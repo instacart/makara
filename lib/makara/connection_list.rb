@@ -10,9 +10,11 @@ module Makara
     # the master and the slaves. This is guard against retrieving of stale or out-of-sync data.
     def initialize(config = {})
 
+      # sticky master by default
       @sticky_master = true
       @sticky_master = !!config.delete(:sticky_master) if config.has_key?(:sticky_master)
 
+      # sticky slaves by default
       @sticky_slaves = true
       @sticky_slaves = !!config.delete(:sticky_slaves) if config.has_key?(:sticky_slaves)
 
@@ -145,7 +147,7 @@ module Makara
       decorate_connection(@master.connection)
       @slaves.each{|s| decorate_connection(s.connection) }
     end
-    
+
     def decorate_connection(con)
       con.extend ::Makara::ConnectionWrapper::ConnectionDecorator
       con.connection_list = self

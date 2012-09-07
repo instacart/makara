@@ -1,6 +1,10 @@
 module Makara
   module ConnectionWrapper
 
+    # wraps the connection, allowing it to:
+    #   - have a name
+    #   - be blacklisted
+    #   - answer questions about it's role
     class AbstractWrapper
       INFINITE_BLACKLIST_TIME = -1
 
@@ -27,7 +31,7 @@ module Makara
       def slave?
         !self.master?
       end
-      
+
     end
 
   end
