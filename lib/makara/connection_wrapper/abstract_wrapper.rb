@@ -1,12 +1,17 @@
 module Makara
   module ConnectionWrapper
 
-    class AbstractWrapper < Struct.new(:name, :connection)
+    class AbstractWrapper
       INFINITE_BLACKLIST_TIME = -1
 
-      attr_reader :blacklisted_until
+      attr_reader :name, :connection, :blacklisted_until
 
       delegate :execute, :to => :connection
+
+      def initialize(name, connection)
+        @name = name
+        @connection = decorate_connection(connection)
+      end
 
       def blacklisted?
         return false if blacklisted_until.nil?
@@ -22,7 +27,7 @@ module Makara
       def slave?
         !self.master?
       end
-
+      
     end
 
   end

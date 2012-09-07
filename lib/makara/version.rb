@@ -6,9 +6,9 @@ module Makara
     PATCH = 1
     PRE = nil
 
-    def to_s
+    def self.to_s
       [MAJOR, MINOR, PATCH, PRE].compact.join('.')
     end
-    
+
   end
 end
