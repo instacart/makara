@@ -6,6 +6,8 @@ module Makara
 
       attr_reader :blacklisted_until
 
+      delegate :execute, :to => :connection
+
       def blacklisted?
         return false if blacklisted_until.nil?
         return true if blacklisted_until == INFINITE_BLACKLIST_TIME
@@ -20,7 +22,8 @@ module Makara
       def slave?
         !self.master?
       end
+
     end
-    
+
   end
 end

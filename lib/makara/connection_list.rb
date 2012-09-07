@@ -14,6 +14,8 @@ module Makara
 
       @master = extract_connection_from_config(config, 'master', true)
       @slaves = extract_slaves_from_config(config)
+
+      reset_current_slave
       
     end
 
@@ -21,11 +23,19 @@ module Makara
       wrapper = current_wrapper_for(sql)
       stick!(wrapper) if should_stick?(wrapper)
       wrapper.execute(sql, name)
+    rescue Exception => e
+      
+      raise e if wrapper.master?
+
+      wrapper.blacklist!
+      reset_current_slave
+      
+      retry
     end
 
     def connection_wrapper_for(sql)
       return @master if requires_master?(sql)
-      @stuck_on || @slaves.next || @master
+      @stuck_on || next_slave || @master
     end
 
     def unstick!
@@ -41,8 +51,15 @@ module Makara
       !!@sticky_master
     end
 
-
     protected
+
+    def reset_current_slave
+      @current_slave = @slaves.first
+    end
+
+    def next_slave
+      @current_slave.try(:next)
+    end
 
     def stick!(wrapper)
       @stuck_on = wrapper
@@ -60,8 +77,15 @@ module Makara
     end
 
     def requires_master?(sql)
-      sql.downcase =~ SQL_EXPRESSION
+      !!(sql.to_s.downcase =~ SQL_EXPRESSION)
     end
+
+
+    # pull this out so we can stub easily
+    def wrapper_class(is_master = false)
+      (is_master ? ::Makara::ConnectionWrapper::MasterWrapper : ::Makara::ConnectionWrapper::SlaveWrapper)
+    end
+
 
     def extract_connection_from_config(config, default_name = nil, is_master = false)
       adapter_config = extract_base_config(config)
@@ -69,20 +93,29 @@ module Makara
       name = adapter_config.delete(:name) || default_name || 'adapter'
       adapter_method = "#{adapter_config[:adapter]}_connection"
 
-      klazz = (is_master ? ::Makara::ConnectionWrapper::MasterWrapper : ::Makara::ConnectionWrapper::SlaveWrapper)
-      klazz.new(name, ConnectionSpecification.new(adapter_config, adapter_method))
+      wrapper_class(is_master).new(name, ConnectionSpecification.new(adapter_config, adapter_method))
     end
 
     def extract_slaves_from_config(config)
-      i = 0
       base_config = extract_base_config(config)
 
-      [*config[:slaves]].compact.map do |slave_config|
+      i = 0
+      previous = nil
+
+      # create a singly linked list
+      all_slaves = [*config[:slaves]].compact.map do |slave_config|        
         i += 1
+
         slave_config = slave_config.reverse_merge(base_config)
-        extract_connection_from_config(slave_config, "slave_#{i}", false)
+        slave = extract_connection_from_config(slave_config, "slave_#{i}", false)
+
+        slave.next_slave = previous
+        previous = slave
+        slave
       end
 
+      all_slaves.first.try(:next_slave=, all_slaves.last)
+      all_slaves
     end
 
     def extract_base_config(whole)
