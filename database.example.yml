@@ -1,0 +1,16 @@
+production:
+  sticky_slaves: true
+  sticky_master: true
+  adapter: mysql2
+  host: xxx
+  user: xxx
+  password: xxx
+  slaves:
+    - name: slave1
+      host: xxx
+      user: xxx
+      password: xxx
+    - name: slave2
+      host: xxx
+      user: xxx
+      password: xxx
