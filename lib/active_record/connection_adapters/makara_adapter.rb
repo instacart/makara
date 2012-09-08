@@ -24,12 +24,6 @@ module ActiveRecord
 
       unless self.respond_to?(adapter_method)
         begin
-          require 'rubygems'
-          gem "activerecord-#{adapter_name}-adapter"
-        rescue LoadError
-        end
-
-        begin
           require "active_record/connection_adapters/#{adapter_name}_adapter"
         rescue LoadError
           raise "Please install the #{adapter_name} adapter: `gem install activerecord-#{adapter_name}-adapter` (#{$!})"
