@@ -71,11 +71,9 @@ module ActiveRecord
       %w(active? reconnect! disconnect! reset! verify!).each do |aggregate_method|
 
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
-
           def #{aggregate_method}(*args)
             send_to_all!(:#{aggregate_method}, *args)
           end
-
         AGG_METHOD
 
       end
@@ -117,20 +115,17 @@ module ActiveRecord
         retry
       end
 
+
+      # 
       def with_master
         old_value = @master_forced
-        @master_forced = true
-        info("Forcing master")
+        force_master!        
         yield
       ensure
         @master_forced = old_value
         info("Releasing forced master")
       end
 
-
-      def current_wrapper_name
-        @current_wrapper.try(:name)
-      end
 
       def method_missing(method_name, *args, &block)
         @master.connection.send(method_name, *args, &block)
@@ -140,26 +135,15 @@ module ActiveRecord
         super || @master.connection.respond_to?(method_name, include_private)
       end
 
+      # provide an easy way to get the name of the current wrapper
+      # especially useful for logging
+      def current_wrapper_name
+        @current_wrapper.try(:name)
+      end
+
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
         @stuck_on = nil
-      end
-      alias_method :release!, :unstick!
-
-      # the game
-      def stuck_on
-        @stuck_on
-      end
-
-      # should we be sticking to slaves once they're invoked?
-      def sticky_slave?
-        !!@sticky_slaves
-      end
-      alias_method :sticky_slaves?, :sticky_slave?
-
-      # should we stick with the master once it's invoked?
-      def sticky_master?
-        !!@sticky_master
       end
 
       # are we currently hijacking an execute call and choosing the appropriate connection?
@@ -169,6 +153,7 @@ module ActiveRecord
 
       def force_master!
         @master_forced = true
+        info("Forcing master")
       end
 
 
@@ -185,8 +170,12 @@ module ActiveRecord
         end
       end
 
+      def all_wrappers
+        [@master, @slaves].flatten.compact
+      end
+
       def all_connections
-        [@master.connection, @slaves.map(&:connection)].flatten
+        all_wrappers.map(&:connection)
       end
 
 
@@ -204,11 +193,6 @@ module ActiveRecord
         yield
       ensure
         @hijacking_execute = false
-      end
-
-      # we need a concept of the current slave for iteration purposes. this resets that current to the first slave
-      def reset_current_slave
-        @current_slave = @slaves.first
       end
 
       # get the next available slave. if none are available this will return nil
@@ -233,10 +217,10 @@ module ActiveRecord
       def should_stick?
         
         return false if currently_stuck? && @stuck_on.master?
-        return true if sticky_master? && @current_wrapper.master?
+        return true if @sticky_master && @current_wrapper.master?
 
         return false if currently_stuck?
-        return true if sticky_slave? && @current_wrapper.slave?
+        return true if @sticky_slave && @current_wrapper.slave?
         
         false
       end
@@ -257,10 +241,14 @@ module ActiveRecord
 
       # decorate our database adapters to invoke our execute before they invoke their own
       def decorate_connections!
-        decorate_connection(@master)
-        @slaves.each{|s| decorate_connection(s) }
+        all_wrappers.each do |wrapper|
+          decorate_connection(wrapper)
+        end
       end
 
+      # extends the connection with the ConnectionDecorator functionality
+      # also passes a reference of ourself to the underlying connection
+      # this reference is then used to ensure we can hijack underlying execute() calls
       def decorate_connection(wrapper)
         info("Decorated connection: #{wrapper}")
         con = wrapper.connection
@@ -269,6 +257,7 @@ module ActiveRecord
         con
       end
 
+      # logging helpers
       %w(info error warn).each do |log_method|
         class_eval <<-LOG_METH, __FILE__, __LINE__ + 1
           def #{log_method}(msg)
