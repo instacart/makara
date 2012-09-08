@@ -1,5 +1,3 @@
-require 'active_record/connection_adapters/mysql_adapter'
-
 module ActiveRecord
   
   class Base
