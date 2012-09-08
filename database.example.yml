@@ -1,7 +1,8 @@
 production:
   sticky_slaves: true
   sticky_master: true
-  adapter: mysql2
+  adapter: makara
+  db_adapter: mysql2
   host: xxx
   user: xxx
   password: xxx

@@ -1,9 +1,11 @@
-require "makara/version"
+require 'makara/railtie' if defined?(Rails)
 
 module Makara
 
-  autoload :ConnectionList,     'makara/connection_list'
+  autoload :VERSION,            'makara/version'
   autoload :ConnectionWrapper,  'makara/connection_wrapper'
-
+  autoload :ConnectionBuilder,  'makara/connection_builder'
 
 end
+
+require 'active_record/connection_adapters/makara_adapter'

@@ -10,5 +10,6 @@ module Makara
       [MAJOR, MINOR, PATCH, PRE].compact.join('.')
     end
 
-  end
+  end unless defined?(::Makara::VERSION)
+  ::Makara::VERSION
 end

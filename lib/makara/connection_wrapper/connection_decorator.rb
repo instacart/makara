@@ -7,15 +7,15 @@ module Makara
     module ConnectionDecorator
 
       # set the connection list
-      def connection_list=(cl)
-        @connection_list = cl
+      def makara_adapter=(adapter)
+        @makara_adapter = adapter
       end
 
       # if we have a connection list and we're not alrady hijacked,
       # allow the connection list to handle the execute
       def with_makara
-        if @connection_list && !@connection_list.hijacking_execute?
-          yield @connection_list
+        if @makara_adapter && !@makara_adapter.hijacking_execute?
+          yield @makara_adapter
         else
           yield nil
         end

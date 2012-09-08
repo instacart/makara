@@ -6,26 +6,30 @@ module Makara
     #   - be blacklisted
     #   - answer questions about it's role
     class AbstractWrapper
-      INFINITE_BLACKLIST_TIME = -1
 
-      attr_reader :name, :connection, :blacklisted_until
+      attr_reader :name, :connection
 
       delegate :execute, :to => :connection
 
-      def initialize(name, connection)
-        @name = name
-        @connection = decorate_connection(connection)
+      def initialize(connection, name = nil)
+        @name = name || connection.instance_variable_get('@config').try(:[], :name)
+        @connection = connection
       end
 
       def blacklisted?
-        return false if blacklisted_until.nil?
-        return true if blacklisted_until == INFINITE_BLACKLIST_TIME
-        blacklisted_until.to_i > Time.now.to_i
+        blacklisted = @blacklisted_until.to_i > Time.now.to_i
+        if @previously_blacklisted && !blacklisted
+          @previously_blacklisted = false
+          self.connection.reconnect!
+        end
+        blacklisted
       end
 
-      def blacklist!(until_time = 1.minute)
-        return if self.master?
-        self.blacklisted_until = until_time
+      def blacklist!(for_length = 1.minute)
+        for_length = 0.seconds if self.master?
+
+        @previously_blacklisted = true
+        @blacklisted_until = for_length.from_now
       end
 
       def slave?
