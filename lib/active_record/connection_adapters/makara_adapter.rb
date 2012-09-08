@@ -214,7 +214,7 @@ module ActiveRecord
         return true if @sticky_master && @current_wrapper.master?
 
         return false if currently_stuck?
-        return true if @sticky_slave && @current_wrapper.slave?
+        return true if @sticky_slaves && @current_wrapper.slave?
         
         false
       end
