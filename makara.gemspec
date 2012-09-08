@@ -4,8 +4,8 @@ require File.expand_path('../lib/makara/version', __FILE__)
 Gem::Specification.new do |gem|
   gem.authors       = ["Mike Nelson"]
   gem.email         = ["mike@mikeonrails.com"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = %q{Read-write split your DB yo}
+  gem.summary       = %q{Read-write split your DB yo}
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($\)
