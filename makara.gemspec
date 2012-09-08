@@ -15,5 +15,5 @@ Gem::Specification.new do |gem|
   gem.require_paths = ["lib"]
   gem.version       = Makara::VERSION
 
-  gem.add_dependency 'mysql2'
+  gem.add_dependency 'rails', '>= 3.0'
 end

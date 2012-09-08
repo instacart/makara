@@ -6,6 +6,7 @@ production:
   host: xxx
   user: xxx
   password: xxx
+  blacklist_duration: 5
   slaves:
     - name: slave1
       host: xxx

@@ -28,19 +28,30 @@ module Makara
       # provides an iterator with the slave config and the # of the config (1..n)
       def each_slave_config(base_config = {})
         i = 0
+
         [*base_config[:slaves]].compact.map do |config| 
           i += 1
 
           config = config.reverse_merge(base_config)
-          config = config.reverse_merge(:adapter => config.delete(:db_adapter))
-          config = config.reverse_merge(:name => "slave_#{i}")
+          config = apply_adapter_name(config)
+          config.reverse_merge!(:name => "slave_#{i}")
 
           yield extract_base_config(config)
 
         end
       end
 
+      def master_config(config)
+        config = apply_adapter_name(config)
+        extract_base_config(config)
+      end
+
       protected
+
+      def apply_adapter_name(config)
+        db_adapter = config[:db_adapter] || config[:adapter]
+        config.merge(:adapter => db_adapter)
+      end
 
       # pull this out so we can stub easily
       # use the connection wrapper based on if this is from a master config
@@ -51,7 +62,7 @@ module Makara
       # strip out the makara-only configuration keys
       def extract_base_config(whole)
         whole = whole.symbolize_keys
-        whole.except(:slaves, :sticky_slaves, :sticky_master)
+        whole.except(:slaves, :db_adapter, :sticky_slaves, :sticky_master, :verbose)
       end
 
     end
