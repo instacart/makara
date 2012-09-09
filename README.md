@@ -1,5 +1,7 @@
 # Makara: *A Read-Write splitting adaptor for Active Record*
 
+[![Build Status](https://secure.travis-ci.org/taskrabbit/makara.png)](http://travis-ci.org/taskrabbit/makara)
+
 ## What?
 
 Makara allows your Rails applications to use read-write splitting to share the load across multiple database servers. 
