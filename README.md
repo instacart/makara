@@ -16,7 +16,7 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 
 ## What is a sticky connection?
 
-Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your application stack may preform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) remains connected to the master of the slave it had been previously reading from to ensure a consistent experience. 
+Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your application stack may preform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) remains connected to the node it had been previously reading from to ensure a consistent experience. 
 
 ## Failover
 
