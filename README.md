@@ -36,7 +36,7 @@ Assuming you are running a **Rails 3.x.x** application and `bundler`, using Maka
 ## Questions
 
 - Can I have more than one master database?
-  - No.  For now Makara assumes that there is only one master database.  This allows Makara to work with more database types.
+  - Yes!  You can define many slave and master roles. Be sure that your database replication is configured to handle multiple masters before you use this mode.
 - Can I use Makara for my Rails 2 project?
   - Nope.  However, there are other project that [work well for Rails 2](https://github.com/tchandy/octopus) 
 - Does Makara handle geographic selection of databases?
