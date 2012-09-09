@@ -5,3 +5,5 @@ gemspec
 
 
 gem 'rspec'
+gem 'ruby-debug'
+gem 'delorean'

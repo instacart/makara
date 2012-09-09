@@ -7,6 +7,7 @@
 
 require 'rails/all'
 require 'makara'
+require 'ruby-debug'
 
 Dir[File.join(File.dirname(__FILE__), 'support', '*.rb')].each do |file|
   require file
@@ -23,14 +24,60 @@ RSpec.configure do |config|
   #     --seed 1234
   config.order = 'random'
 
+  def connect!(config)
+    ActiveRecord::Base.establish_connection(config)
+  end
+
+  def adapter
+    ActiveRecord::Base.connection
+  end
 
   def simple_config
     {
-      :adapter => 'abstract',
+      :adapter => 'makara',
+      :db_adapter => 'abstract',
       :database => 'test_db',
       :host => 'localhost',
       :port => '3439'
     }
+  end
+
+
+  def single_slave_config
+    simple_config.merge({
+      :slaves => [
+        {:name => 'slave1'}
+      ]
+    })
+  end
+
+  def multi_slave_config
+    simple_config.merge({
+      :slaves => [
+        {:name => 'Slave One'},
+        {:name => 'Slave Two'}
+      ]
+    })
+  end
+
+  def invalid_config
+    simple_config.merge({
+      :db_adapter => 'some_unknown_adapter'
+    })
+  end
+
+  def sticky_config
+    simple_config.merge({
+      :sticky_slaves => true,
+      :sticky_master => true
+    })
+  end
+
+  def dry_config
+    simple_config.merge({
+      :sticky_slaves => false,
+      :sticky_master => false
+    })
   end
 
 end
