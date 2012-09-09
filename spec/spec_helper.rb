@@ -8,6 +8,7 @@
 require 'rails/all'
 require 'makara'
 require 'ruby-debug'
+require 'delorean'
 
 Dir[File.join(File.dirname(__FILE__), 'support', '*.rb')].each do |file|
   require file
@@ -60,6 +61,18 @@ RSpec.configure do |config|
     })
   end
 
+  def massive_slave_config
+    simple_config.merge({
+      :slaves => [
+        {:name => 'Slave One'   },
+        {:name => 'Slave Two'   },
+        {:name => 'Slave Three' },
+        {:name => 'Slave Four'  },
+        {:name => 'Slave Five'  }
+      ]
+    })
+  end
+
   def invalid_config
     simple_config.merge({
       :db_adapter => 'some_unknown_adapter'
@@ -75,6 +88,13 @@ RSpec.configure do |config|
 
   def dry_config
     simple_config.merge({
+      :sticky_slaves => false,
+      :sticky_master => false
+    })
+  end
+
+  def dry_multi_slave_config
+    multi_slave_config.merge({
       :sticky_slaves => false,
       :sticky_master => false
     })

@@ -40,6 +40,8 @@ module ActiveRecord
       SQL_SLAVE_KEYWORDS = ['select', 'show tables', 'show fields', 'describe']
       SQL_SLAVE_MATCHER = /#{SQL_SLAVE_KEYWORDS.join('|')}/
 
+      MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
+
       def initialize(master_connection, slave_connections, options = {})
 
         # sticky master by default
@@ -60,7 +62,7 @@ module ActiveRecord
         reset_current_slave
       end
 
-      %w(active? reconnect! disconnect! reset! verify!).each do |aggregate_method|
+      MASS_DELEGATION_METHODS.each do |aggregate_method|
 
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
           def #{aggregate_method}(*args)

@@ -56,7 +56,7 @@ describe 'Makara Adapter Stickiness' do
     
     let(:config){ multi_slave_config.merge(:sticky_master => false) }
     
-    it 'should return to the stick slave if the master is not sticky' do
+    it 'should return to the sticky slave if the master is not sticky' do
       adapter.scon(1).should_receive(:execute).never
       adapter.scon(2).should_receive(:execute).with('select * from users', nil).once
       adapter.mcon.should_receive(:execute).with('select * from cars', nil).never
@@ -67,6 +67,47 @@ describe 'Makara Adapter Stickiness' do
       adapter.execute('insert into cars...')
       adapter.execute('select * from cars')
       adapter.execute('select * from cars')
+    end
+  end
+
+  context 'with dry slaves' do
+
+    let(:config){ multi_slave_config.merge(:sticky_slaves => false) }
+
+
+    it 'should rotate through slaves until master is used' do
+      adapter.scon(2).should_receive(:execute).with('select * from dogs', nil).once
+      adapter.scon(1).should_receive(:execute).with('select * from cats', nil).once
+      adapter.mcon.should_receive(:execute).with('insert into animals...', nil).once
+      adapter.mcon.should_receive(:execute).with('select * from pumas', nil).once
+      adapter.mcon.should_receive(:execute).with('select * from panthers', nil).once
+
+      adapter.execute('select * from dogs')
+      adapter.execute('select * from cats')
+      adapter.execute('insert into animals...')
+      adapter.execute('select * from pumas')
+      adapter.execute('select * from panthers')
+    end
+
+  end
+
+  context 'with a completely dry configuration' do
+
+    let(:config){ dry_multi_slave_config }
+
+    it 'should pass control around to all underlying adapters' do
+      adapter.scon(2).should_receive(:execute).with('select * from dogs', nil).once
+      adapter.scon(1).should_receive(:execute).with('select * from cats', nil).once
+      adapter.mcon.should_receive(:execute).with('insert into animals...', nil).once
+      adapter.scon(2).should_receive(:execute).with('select * from pumas', nil).once  
+      adapter.scon(1).should_receive(:execute).with('select * from panthers', nil).once
+
+      adapter.execute('select * from dogs')
+      adapter.execute('select * from cats')
+      adapter.execute('insert into animals...')
+      adapter.execute('select * from pumas')
+      adapter.execute('select * from panthers')
+
     end
   end
 

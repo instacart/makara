@@ -9,6 +9,10 @@ module AdapterExtensions
     @slaves.length == count
   end
 
+  def slaves
+    @slaves
+  end
+
   def master
     @master
   end
