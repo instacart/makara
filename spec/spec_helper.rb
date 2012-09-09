@@ -39,14 +39,18 @@ RSpec.configure do |config|
       :db_adapter => 'abstract',
       :database => 'test_db',
       :host => 'localhost',
-      :port => '3439'
+      :port => '3439',
+      :databases => [
+        {:name => 'master', :role => 'master'}
+      ]
     }
   end
 
 
   def single_slave_config
     simple_config.merge({
-      :slaves => [
+      :databases => [
+        {:name => 'master', :role => 'master'},
         {:name => 'slave1'}
       ]
     })
@@ -54,7 +58,8 @@ RSpec.configure do |config|
 
   def multi_slave_config
     simple_config.merge({
-      :slaves => [
+      :databases => [
+        {:name => 'master', :role => 'master'},
         {:name => 'Slave One'},
         {:name => 'Slave Two'}
       ]
@@ -63,7 +68,8 @@ RSpec.configure do |config|
 
   def massive_slave_config
     simple_config.merge({
-      :slaves => [
+      :databases => [
+        {:name => 'master', :role => 'master'},
         {:name => 'Slave One'   },
         {:name => 'Slave Two'   },
         {:name => 'Slave Three' },
@@ -81,21 +87,21 @@ RSpec.configure do |config|
 
   def sticky_config
     simple_config.merge({
-      :sticky_slaves => true,
+      :sticky_slave => true,
       :sticky_master => true
     })
   end
 
   def dry_config
     simple_config.merge({
-      :sticky_slaves => false,
+      :sticky_slave => false,
       :sticky_master => false
     })
   end
 
   def dry_multi_slave_config
     multi_slave_config.merge({
-      :sticky_slaves => false,
+      :sticky_slave => false,
       :sticky_master => false
     })
   end

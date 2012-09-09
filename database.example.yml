@@ -1,5 +1,5 @@
 production:
-  sticky_slaves: true
+  sticky_slave: true
   sticky_master: true
   adapter: makara
   db_adapter: mysql2
@@ -7,12 +7,15 @@ production:
   user: xxx
   password: xxx
   blacklist_duration: 5
-  slaves:
+  databases:
+    - name: master
+      role: master
     - name: slave1
+      role: slave
       host: xxx
       user: xxx
       password: xxx
     - name: slave2
+      role: slave
       host: xxx
       user: xxx
-      password: xxx

@@ -1,22 +1,33 @@
 module Makara
-  module ConnectionWrapper
-
+  module Connection
+    
     # wraps the connection, allowing it to:
     #   - have a name
     #   - be blacklisted
     #   - answer questions about it's role
-    class AbstractWrapper
+    class Wrapper
 
       attr_reader :name, :connection
 
       delegate :execute, :to => :connection
 
-      def initialize(connection, name = nil, blacklist_duration = nil)
-        @connection = connection
-        @config = @connection.instance_variable_get('@config') || {}
+      def initialize(connection)
+        @connection         = connection
+        @config             = @connection.instance_variable_get('@config') || {}
 
-        @name = @config.delete(:name) || name
-        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds) || blacklist_duration
+        raise "No name was provided for configuration:\n#{@config.to_yaml}" if @config[:name].blank?
+
+        @name               = @config.delete(:name)
+        @master             = @config.delete(:role) == 'master'
+        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds)
+      end
+
+      def master?
+        @master
+      end
+
+      def slave?
+        !self.master?
       end
 
       def blacklisted?
@@ -37,10 +48,6 @@ module Makara
         @blacklisted_until = for_length.from_now
       end
 
-      def slave?
-        !self.master?
-      end
-
       def to_s
         @name || (self.master? ? 'master' : 'slave')
       end
@@ -50,6 +57,5 @@ module Makara
       end
 
     end
-
   end
 end

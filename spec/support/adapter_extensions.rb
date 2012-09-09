@@ -1,35 +1,35 @@
 module AdapterExtensions
 
-  def master_only?
-    @slaves.blank?
-  end
-
-  def slaved?(count = nil)
-    return @slaves.present? if count.nil?
-    @slaves.length == count
-  end
-
-  def slaves
-    @slaves
-  end
-
-  def master
+  def master_group
     @master
   end
 
-  def mcon
-    master.connection
+  def slave_group
+    @slave
+  end
+
+  def master_only?
+    @slave.length == 0
+  end
+
+  def slaved?(count = nil)
+    return @slave.length > 0 if count.nil?
+    @slave.length == count
+  end
+
+  def master(number = 1)
+    @master.instance_variable_get('@wrappers')[number - 1]
+  end
+
+  def mcon(number = 1)
+    master(number).connection
   end
 
   def slave(number = 1)
-    @slaves[number - 1]
+    @slave.instance_variable_get('@wrappers')[number - 1]
   end
 
   def scon(number = 1)
-    slave(number).connection
-  end
-
-  def slave_connection
     slave(number).connection
   end
 
@@ -38,7 +38,7 @@ module AdapterExtensions
   end
 
   def sticky_slaves?
-    @sticky_slaves
+    @sticky_slave
   end
 
   def sticky_master?
@@ -57,4 +57,4 @@ module WrapperExtensions
 
 end
 
-Makara::ConnectionWrapper::AbstractWrapper.send(:include, WrapperExtensions)
+Makara::Connection::Wrapper.send(:include, WrapperExtensions)

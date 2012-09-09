@@ -11,7 +11,6 @@ describe 'Adapter Setup and Initialization' do
 
     it 'should initialize a single master database with no slaves' do
       adapter.should be_master_only
-      adapter.master.should be_a(Makara::ConnectionWrapper::MasterWrapper)
       adapter.master.connection.class.should eql(ActiveRecord::ConnectionAdapters::AbstractAdapter)
     end
 
@@ -42,7 +41,6 @@ describe 'Adapter Setup and Initialization' do
       adapter.should_not be_master_only
       adapter.should be_slaved(1)
 
-      adapter.slave(1).should be_a(Makara::ConnectionWrapper::SlaveWrapper)
       adapter.slave(1).connection.class.should eql(ActiveRecord::ConnectionAdapters::AbstractAdapter)
 
       adapter.slave(1).name.should eql('slave1')
@@ -75,7 +73,6 @@ describe 'Adapter Setup and Initialization' do
       adapter.should be_slaved(2)
 
       [1,2].each do |num|
-        adapter.slave(num).should be_a(Makara::ConnectionWrapper::SlaveWrapper)
         adapter.slave(num).connection.class.should eql(ActiveRecord::ConnectionAdapters::AbstractAdapter)
       end
 

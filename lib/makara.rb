@@ -2,15 +2,20 @@ require 'makara/railtie' if defined?(Rails)
 
 module Makara
 
-  autoload :VERSION,            'makara/version'
-  autoload :ConnectionWrapper,  'makara/connection_wrapper'
-  autoload :ConnectionBuilder,  'makara/connection_builder'
-  autoload :Middleware,         'makara/middleware'
+  autoload :ConfigParser,           'makara/config_parser'
 
+  autoload :Middleware,             'makara/middleware'
+  autoload :VERSION,                'makara/version'
+
+  module Connection
+    autoload :Decorator,    'makara/connection/decorator'
+    autoload :Group,        'makara/connection/group'
+    autoload :Wrapper,      'makara/connection/wrapper'
+  end
 
   module Logging
     autoload :BufferedLoggerDecorator,  'makara/logging/buffered_logger_decorator'
-    autoload :Formatter,                'makara/logging/formatter'
+    autoload :Formatter,                'makara/logging/formatter'                
   end
 
 end

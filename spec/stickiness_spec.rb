@@ -72,7 +72,7 @@ describe 'Makara Adapter Stickiness' do
 
   context 'with dry slaves' do
 
-    let(:config){ multi_slave_config.merge(:sticky_slaves => false) }
+    let(:config){ multi_slave_config.merge(:sticky_slave => false) }
 
 
     it 'should rotate through slaves until master is used' do

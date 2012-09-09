@@ -3,14 +3,14 @@ module ActiveRecord
   class Base
 
     def self.makara_connection(config)
-      master_config     = ::Makara::ConnectionBuilder::master_config(config)
-      master_connection = underlying_connection_for(master_config)
-
-      slave_connections = ::Makara::ConnectionBuilder::each_slave_config(config) do |slave_config|
-        underlying_connection_for(slave_config)
+      wrappers = ::Makara::ConfigParser.each_config(config) do |db_config|
+        connection = underlying_connection_for(db_config)                
+        ::Makara::Connection::Wrapper.new(connection)
       end
 
-      ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new(master_connection, slave_connections, config)
+      raise "[Makara] You must include at least one connection that serves as a master" unless wrappers.any?(&:master?)
+
+      ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new(wrappers, config)
     end
 
     protected
@@ -42,24 +42,24 @@ module ActiveRecord
 
       MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
 
-      def initialize(master_connection, slave_connections, options = {})
+      def initialize(wrappers, options = {})
 
         # sticky master by default
         @sticky_master  = true
         @sticky_master  = !!options.delete(:sticky_master) if options.has_key?(:sticky_master)
 
         # sticky slaves by default
-        @sticky_slaves  = true
-        @sticky_slaves  = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
+        @sticky_slave   = true
+        @sticky_slave   = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
+        @sticky_slave   = !!options.delete(:sticky_slave) if options.has_key?(:sticky_slave)
 
         @verbose        = options.delete(:verbose)
         
-        @master         = ::Makara::ConnectionWrapper::MasterWrapper.new(master_connection, 'master')
-        @slaves         = ::Makara::ConnectionBuilder::build_slave_linked_list(slave_connections)
+        @master         = ::Makara::Connection::Group.new(wrappers.select(&:master?))
+        @slave          = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
 
         decorate_connections!
 
-        reset_current_slave
       end
 
       MASS_DELEGATION_METHODS.each do |aggregate_method|
@@ -122,11 +122,11 @@ module ActiveRecord
 
 
       def method_missing(method_name, *args, &block)
-        @master.connection.send(method_name, *args, &block)
+        @master.any.connection.send(method_name, *args, &block)
       end
 
       def respond_to?(method_name, include_private = false)
-        super || @master.connection.respond_to?(method_name, include_private)
+        super || @master.any.connection.respond_to?(method_name, include_private)
       end
 
       # provide an easy way to get the name of the current wrapper
@@ -152,7 +152,7 @@ module ActiveRecord
 
 
       def inspect
-        "#<#{self.class.name} current: #{@current_wrapper.try(:name)}, sticky: [#{[@sticky_master ? 'master' : nil, @sticky_slaves ? 'slaves' : nil].compact.join(', ')}], verbose: #{@verbose}, master: 1, slaves: #{@slaves.length} >"
+        "#<#{self.class.name} current: #{@current_wrapper.try(:name)}, sticky: [#{[@sticky_master ? 'master(s)' : nil, @sticky_slave ? 'slave(s)' : nil].compact.join(', ')}], verbose: #{@verbose}, master: #{@master.length}, slaves: #{@slave.length} >"
       end
 
 
@@ -165,7 +165,7 @@ module ActiveRecord
       end
 
       def all_wrappers
-        [@master, @slaves].flatten.compact
+        [@master, @slave].map(&:wrappers).flatten.compact
       end
 
       def all_connections
@@ -177,8 +177,11 @@ module ActiveRecord
       # if we're dealing with a sql statement which requires master access, use it.
       # otherwise, let's use the currently stuck connection, the next available slave, or the master connection
       def current_wrapper_for(sql)
-        return @master if requires_master?(sql)
-        @stuck_on || next_slave || @master
+        if requires_master?(sql)
+          @stuck_on.try(:master?) ? @stuck_on : @master.next
+        else
+          @stuck_on || @slave.next || @master.next
+        end
       end
 
       # denote that we're hijacking an execute call
@@ -187,11 +190,6 @@ module ActiveRecord
         yield
       ensure
         @hijacking_execute = false
-      end
-
-      # get the next available slave. if none are available this will return nil
-      def next_slave
-        @current_slave = @current_slave.try(:next)
       end
 
       # let's get stuck on a wrapper so we continue utilizing the same connection for the duration of this request (or until we're unstuck)
@@ -210,11 +208,11 @@ module ActiveRecord
       # to a slave.
       def should_stick?
         
-        return false if currently_stuck? && @stuck_on.master?
-        return true if @sticky_master && @current_wrapper.master?
+        return false  if currently_stuck?   && @stuck_on.master?
+        return true   if @sticky_master     && @current_wrapper.master?
 
-        return false if currently_stuck?
-        return true if @sticky_slaves && @current_wrapper.slave?
+        return false  if currently_stuck?
+        return true   if @sticky_slave      && @current_wrapper.slave?
         
         false
       end
@@ -225,13 +223,6 @@ module ActiveRecord
         return true if @master_forced
         !(!!(sql.to_s.downcase =~ SQL_SLAVE_MATCHER))
       end
-
-
-      # we need a concept of the current slave for iteration purposes. this resets that current to the first slave
-      def reset_current_slave
-        @current_slave = next_slave || @slaves.first
-      end
-
 
       # decorate our database adapters to invoke our execute before they invoke their own
       def decorate_connections!
@@ -246,7 +237,7 @@ module ActiveRecord
       def decorate_connection(wrapper)
         info("Decorated connection: #{wrapper}")
         con = wrapper.connection
-        con.extend ::Makara::ConnectionWrapper::ConnectionDecorator
+        con.extend ::Makara::Connection::Decorator
         con.makara_adapter = self
         con
       end

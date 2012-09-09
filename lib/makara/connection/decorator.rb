@@ -1,10 +1,10 @@
 module Makara
-  module ConnectionWrapper
-
+  
+  module Connection
     # module which gets extended on adapter instances
     # provides a way to reference the connection list
     # overrides execute so it will delegate to the connection list once
-    module ConnectionDecorator
+    module Decorator
 
       # set the connection list
       def makara_adapter=(adapter)
@@ -28,8 +28,6 @@ module Makara
           acceptor.execute(sql, name)
         end
       end
-
     end
-
   end
 end
