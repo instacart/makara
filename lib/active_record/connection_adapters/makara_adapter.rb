@@ -37,7 +37,7 @@ module ActiveRecord
 
     class MakaraAdapter
 
-      SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe']
+      SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /#{SQL_SLAVE_KEYWORDS.join('|')}/
       MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
 
