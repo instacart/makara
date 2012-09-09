@@ -37,9 +37,8 @@ module ActiveRecord
 
     class MakaraAdapter
 
-      SQL_SLAVE_KEYWORDS = ['select', 'show tables', 'show fields', 'describe']
-      SQL_SLAVE_MATCHER = /#{SQL_SLAVE_KEYWORDS.join('|')}/
-
+      SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe']
+      SQL_SLAVE_MATCHER       = /#{SQL_SLAVE_KEYWORDS.join('|')}/
       MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
 
       def initialize(wrappers, options = {})
@@ -62,6 +61,7 @@ module ActiveRecord
 
       end
 
+      # these methods must be invoked on all adapters
       MASS_DELEGATION_METHODS.each do |aggregate_method|
 
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
@@ -110,7 +110,7 @@ module ActiveRecord
       end
 
 
-      # 
+      # temporarily force master within the block provided
       def with_master
         old_value = @master_forced
         force_master!        
@@ -120,7 +120,7 @@ module ActiveRecord
         info("Releasing forced master")
       end
 
-
+      # if we don't know how to handle it, pass to a master
       def method_missing(method_name, *args, &block)
         @master.any.connection.send(method_name, *args, &block)
       end
@@ -145,6 +145,7 @@ module ActiveRecord
         !!@hijacking_execute
       end
 
+      # force us to use a master connection
       def force_master!
         @master_forced = true
         info("Forcing master")
@@ -158,16 +159,19 @@ module ActiveRecord
 
       protected
 
+      # send the provided method and args to all the underlying adapters
       def send_to_all!(method_name, *args)
         all_connections.each do |con|
           con.send(method_name, *args)
         end
       end
 
+      # provide a way to access all our wrappers
       def all_wrappers
         [@master, @slave].map(&:wrappers).flatten.compact
       end
 
+      # all the underlying adapters
       def all_connections
         all_wrappers.map(&:connection)
       end

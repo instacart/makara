@@ -1,5 +1,9 @@
 module Makara
   module Connection
+
+    # represents a group of connection wrappers
+    # understands how to iterate over the wrappers when requested
+    # provides
     class Group
 
       attr_reader :wrappers
@@ -11,55 +15,59 @@ module Makara
         @current_idx  = 0
       end
 
-      def reset!
-        @current_idx = 0
-      end
-
+      # doesn't take into account blacklisting, just returns one of our values
       def any
-        @wrappers.first
+        current || @wrappers.first
       end
 
+      # grabs the next non-blacklisted wrapper
+      # if all wrappers are blacklisted, returns nil
       def next
 
-        return nil if self.empty?
-
-        if self.singular?
-          return safe_value(@current_idx, true)
-        end
-
-        idx = next_index(@current_idx)
-
-        while safe_value(idx).nil?
+        # bypass the simple situation
+        return safe_value(@current_idx, true) if self.singular?
+        
+        # start at our current position
+        idx = @current_idx  
+        begin
+          # grab the next possible index
           idx = next_index(idx)
 
-          #we've looped all the way around
-          if idx == @current_idx 
-            return safe_value(idx, true) 
-          end
+          # if we've looped all the way around, return our safe value
+          return safe_value(idx, true) if idx == @current_idx
 
-        end
+          # while our current safe value is dangerous
+        end while safe_value(idx).nil?
+ 
 
+        # store our current spot and return our safe value
         safe_value(idx, true)
       end
 
+      protected
+      
       def current
         @wrappers[@current_idx]
       end
 
-      protected
-
+      # next index within the bounds of the wrappers array
+      # loop around when the end is hit
       def next_index(idx)
         idx = idx + 1
         idx = 0 if idx >= @wrappers.length
         idx 
       end
 
+      # return the wrapper if it's not blacklisted
+      # otherwise return nil
+      # optionally, store the position we're returning
       def safe_value(idx, store_index = false)
         @current_idx = idx if store_index
         con = @wrappers[idx]
-        con.blacklisted? ? nil : con
+        con.try(:blacklisted?) ? nil : con
       end
 
+      # are we dealing with a situation where iteration is pointless?
       def singular?
         @wrappers.length <= 1
       end
