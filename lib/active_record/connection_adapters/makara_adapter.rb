@@ -37,25 +37,29 @@ module ActiveRecord
 
     class MakaraAdapter
 
+      attr_reader :current_wrapper
+
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
-      SQL_SLAVE_MATCHER       = /^#{SQL_SLAVE_KEYWORDS.join('|')}/
+      SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
       MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
 
       def initialize(wrappers, options = {})
 
         # sticky master by default
-        @sticky_master  = true
-        @sticky_master  = !!options.delete(:sticky_master) if options.has_key?(:sticky_master)
-
+        @sticky_master      = true
+        @sticky_master      = !!options.delete(:sticky_master) if options.has_key?(:sticky_master)
+    
         # sticky slaves by default
-        @sticky_slave   = true
-        @sticky_slave   = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
-        @sticky_slave   = !!options.delete(:sticky_slave) if options.has_key?(:sticky_slave)
+        @sticky_slave       = true
+        @sticky_slave       = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
+        @sticky_slave       = !!options.delete(:sticky_slave) if options.has_key?(:sticky_slave)
+    
+        @verbose            = options.delete(:verbose)
+            
+        @master             = ::Makara::Connection::Group.new(wrappers.select(&:master?))
+        @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
 
-        @verbose        = options.delete(:verbose)
-        
-        @master         = ::Makara::Connection::Group.new(wrappers.select(&:master?))
-        @slave          = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
+        @exception_handler  = ::Makara::Connection::ErrorHandler.new(self)
 
         decorate_connections!
 
@@ -91,20 +95,11 @@ module ActiveRecord
 
       # catch all exceptions for now, since we don't know what adapter we'll be using or how they'll be formatted
       rescue Exception => e
-
-        # we caught this exception while invoking something on the master connection, raise the error
-        if @current_wrapper.nil? || @current_wrapper.master?
-          error("Error caught in makara adapter while using #{@current_wrapper}:")
-          raise e 
-        end
-        # something has gone wrong, we need to release this sticky connection
-        unstick!
-
-        # let's blacklist this slave to ensure it's removed from the slave cycle
-        @current_wrapper.blacklist!
-        warn("Blacklisted [#{@current_wrapper.name}]")
         
-        # do it!
+        # handle the exception properly
+        @exception_handler.handle(e)
+
+        # do it again!
         retry
       end
 

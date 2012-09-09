@@ -8,6 +8,7 @@ module Makara
 
   module Connection
     autoload :Decorator,                'makara/connection/decorator'
+    autoload :ErrorHandler,             'makara/connection/error_handler'
     autoload :Group,                    'makara/connection/group'
     autoload :Wrapper,                  'makara/connection/wrapper'
   end

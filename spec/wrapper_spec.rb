@@ -42,5 +42,15 @@ describe 'Makara Connection Wrappers' do
       end
     end
 
+    it 'should extend the blacklisting if the reconnection fails' do
+      one.connection.should_receive(:reconnect!).and_raise('This is a reconnect error!')
+      one.blacklist!
+
+      Delorean.time_travel_to 70.seconds.from_now do
+        one.should be_blacklisted
+        one.instance_variable_get('@blacklisted_until').should be_within(1).of(1.minute.from_now)
+      end
+    end
+
   end
 end

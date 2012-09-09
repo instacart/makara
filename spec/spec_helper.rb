@@ -7,7 +7,6 @@
 
 require 'rails/all'
 require 'makara'
-require 'ruby-debug'
 require 'delorean'
 
 Dir[File.join(File.dirname(__FILE__), 'support', '*.rb')].each do |file|
@@ -94,6 +93,13 @@ RSpec.configure do |config|
 
   def dry_config
     simple_config.merge({
+      :sticky_slave => false,
+      :sticky_master => false
+    })
+  end
+
+  def dry_single_slave_config
+    single_slave_config.merge({
       :sticky_slave => false,
       :sticky_master => false
     })

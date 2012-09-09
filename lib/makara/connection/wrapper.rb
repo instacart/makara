@@ -34,7 +34,12 @@ module Makara
         blacklisted = @blacklisted_until.to_i > Time.now.to_i
         if @previously_blacklisted && !blacklisted
           @previously_blacklisted = false
-          self.connection.reconnect!
+          begin
+            self.connection.reconnect!
+          rescue
+            blacklist!
+            return true
+          end
         end
         blacklisted
       end
