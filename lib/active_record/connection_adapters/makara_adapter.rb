@@ -38,7 +38,7 @@ module ActiveRecord
     class MakaraAdapter
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe']
-      SQL_SLAVE_MATCHER       = /#{SQL_SLAVE_KEYWORDS.join('|')}/
+      SQL_SLAVE_MATCHER       = /^#{SQL_SLAVE_KEYWORDS.join('|')}/
       MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
 
       def initialize(wrappers, options = {})
@@ -61,7 +61,7 @@ module ActiveRecord
 
       end
 
-      # these methods must be invoked on all adapters
+      # these methods must be forwarded on all adapters
       MASS_DELEGATION_METHODS.each do |aggregate_method|
 
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
@@ -75,7 +75,6 @@ module ActiveRecord
 
       # the execute method which routes it's call to the correct underlying adapter.
       # if we're already stuck on a connection, continue using it. if we want to be stuck on a connection, stick to it.
-      # 
       def execute(sql, name = nil)
         
         # the connection wrapper that should handle the execute call

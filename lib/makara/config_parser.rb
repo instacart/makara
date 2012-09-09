@@ -1,11 +1,10 @@
-# builds connections based on your database.yml
-# strips some of this logic from rails directly
+# parses wrapper configs based on your database.yml
 module Makara
   module ConfigParser
     class << self
 
-      # provide a way to easily iterate slave configs, building connections along the way
-      # provides an iterator with the slave config and the # of the config (1..n)
+      # provide a way to easily iterate configs
+      # provides an iterator with the config of a singular connection
       def each_config(full_config = {})
         full_config = full_config.symbolize_keys
 
@@ -15,20 +14,22 @@ module Makara
 
           config = config.reverse_merge(shared)
           config = apply_adapter_name(config)
+          config = extract_base_config(config)
 
-          yield extract_base_config(config)
-
+          yield config
         end
       end
 
       protected
 
-
+      # pull out the shared information from the top-level config
       def shared_config(config)
         config = apply_adapter_name(config)
         extract_base_config(config)
       end
 
+      # since the adapter needs to be set to makara, allow for the db_adapter
+      # to be evaluated as underlying adapter name
       def apply_adapter_name(config)
         db_adapter = config[:db_adapter] || config[:adapter]
         config.merge(:adapter => db_adapter)
