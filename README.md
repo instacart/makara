@@ -21,6 +21,8 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 
 Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your application stack may preform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) remains connected to the node it had been previously reading from to ensure a consistent experience. 
 
+Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to such to avoid reading from a slave which may not have synced the new data yet.
+
 ## Failover
 
 If an error is raised while attempting a query on a slave, the query will be retried on another slave (or the master DB), and the slave with the error will be blacklisted.  Every so often, Makara will attempt to reconnect to these lost slaves.  This ensures the highest possible uptime for your application.
