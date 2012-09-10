@@ -36,7 +36,7 @@ module Makara
           @previously_blacklisted = false
           begin
             self.connection.reconnect!
-          rescue
+          rescue Exception => e
             blacklist!
             return true
           end
