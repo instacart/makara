@@ -41,7 +41,7 @@ module ActiveRecord
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
-      MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset! verify!)
+      MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset!)
 
       def initialize(wrappers, options = {})
 
@@ -63,6 +63,12 @@ module ActiveRecord
 
         decorate_connections!
 
+      end
+
+      def verify!
+        all_wrappers.each do |wrapper|
+          wrapper.connection.verify! unless wrapper.blacklisted?
+        end
       end
 
       # these methods must be forwarded on all adapters
