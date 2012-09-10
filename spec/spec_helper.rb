@@ -9,8 +9,11 @@ require 'rails/all'
 require 'makara'
 require 'delorean'
 
-require 'ruby-debug' rescue nil
-
+begin
+  gem 'ruby-debug'
+  require 'ruby-debug'
+rescue
+end
 Dir[File.join(File.dirname(__FILE__), 'support', '*.rb')].each do |file|
   require file
 end

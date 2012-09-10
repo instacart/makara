@@ -6,7 +6,3 @@ gemspec
 
 gem 'rspec'
 gem 'delorean'
-
-group :development do
-  gem 'ruby-debug'
-end
