@@ -24,7 +24,8 @@ module Makara
       # execute the sql statement, give precedence to the 
       def execute(sql, name = nil)
         with_makara do |acceptor|
-          return super(sql, name) if acceptor.nil?
+          # ternary needed for testing purposes (stubbing issue)
+          return (defined?(super) ? super(sql, name) : nil) if acceptor.nil?
           acceptor.execute(sql, name)
         end
       end

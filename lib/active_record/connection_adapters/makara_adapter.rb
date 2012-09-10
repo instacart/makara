@@ -54,7 +54,7 @@ module ActiveRecord
         @sticky_slave       = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
         @sticky_slave       = !!options.delete(:sticky_slave) if options.has_key?(:sticky_slave)
     
-        @verbose            = options.delete(:verbose)
+        @verbose            = !!options.delete(:verbose)
             
         @master             = ::Makara::Connection::Group.new(wrappers.select(&:master?))
         @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))

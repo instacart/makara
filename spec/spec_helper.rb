@@ -8,6 +8,7 @@
 require 'rails/all'
 require 'makara'
 require 'delorean'
+# require 'ruby-debug'
 
 Dir[File.join(File.dirname(__FILE__), 'support', '*.rb')].each do |file|
   require file

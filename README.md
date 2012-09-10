@@ -15,6 +15,7 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 * Automatic reconnection attempts to lost slaves
 * Optional "sticky" connections to master and slaves
 * Works with many database types (mysql, postgres, etc)
+* Provides a middleware for releasing stuck connections
 
 ## What is a sticky connection?
 
