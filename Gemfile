@@ -5,5 +5,8 @@ gemspec
 
 
 gem 'rspec'
-# gem 'ruby-debug'
 gem 'delorean'
+
+group :development do
+  gem 'ruby-debug'
+end

@@ -28,7 +28,7 @@ describe 'Integration of Makara Adapter to Real World Events' do
   let(:slaveA){ adapter.scon(1)    }
   let(:slaveB){ adapter.scon(2)    }
 
-  context 'dry' do
+  context 'with a dry configuration' do
 
     let(:config){ dry_multi_slave_config  }
 
@@ -105,7 +105,7 @@ describe 'Integration of Makara Adapter to Real World Events' do
 
   end
 
-  context 'sticky' do
+  context 'with a sticky configuration' do
 
     let(:config){ multi_slave_config }
 
