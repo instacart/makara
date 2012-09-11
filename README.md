@@ -21,7 +21,7 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 
 Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your application stack may preform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) remains connected to the node it had been previously reading from to ensure a consistent experience. 
 
-Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to such to avoid reading from a slave which may not have synced the new data yet.
+Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to.  This avoids reading from a slave which may not have synced the new data yet.
 
 ## Failover
 
@@ -59,5 +59,5 @@ Assuming you are running a **Rails 3.x.x** application and `bundler`, using Maka
 
 ## Acknowledgements
 
-- Makara was developed by the fine folks at [www.taskrabbit.com](http://www.taskrabbit.com)
+- Makara was developed by the fine folks at [www.taskrabbit.com](http://www.taskrabbit.com).  If you like working on problems like this one, [we are hiring](http://www.taskrabbit.com/careers)
 - The [Octopus Gem](https://github.com/tchandy/octopus) inspired our work on this project (including the name).  We have [a fork](https://github.com/taskrabbit/octopus/compare/master) which adds some of the failover features Makara has
