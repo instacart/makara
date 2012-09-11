@@ -135,8 +135,22 @@ module ActiveRecord
         @current_wrapper.try(:name)
       end
 
+      # provide a way for things like the middleware to determine if we're currently using a master wrapper
+      def currently_master?
+        !!@current_wrapper.try(:master?)
+      end
+
+      def sticky_master?
+        @sticky_master
+      end
+
+      def sticky_slave?
+        @sticky_slave
+      end
+
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
+        info("Unstuck: #{@current_wrapper}")
         @stuck_on = nil
       end
 
