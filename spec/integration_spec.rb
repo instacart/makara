@@ -14,6 +14,7 @@ describe 'Integration of Makara Adapter to Real World Events' do
   # 9) test stickyness of master (write first, then all reads should stay on master) 
   # 10) complex queries (insert into… where select a from b) still go to master 
   # 11) oddball queries all go to master (grant ALL to user@host…) 
+  # 12) i should be able to verify my connection at the beginning of a request
 
   before do
     connect!(config)
@@ -103,6 +104,17 @@ describe 'Integration of Makara Adapter to Real World Events' do
       2.times{ adapter.execute(insert) }
     end
 
+    it '(12) can call verify without blowing up when one node is down' do
+      down!(slaveA)
+      [master, slaveB].each{|con| con.should_receive(:verify!).once}
+
+      lambda{
+        adapter.verify!
+      }.should_not raise_error
+
+      adapter.should_not be_stuck
+    end
+
   end
 
   context 'with a sticky configuration' do
@@ -134,6 +146,17 @@ describe 'Integration of Makara Adapter to Real World Events' do
       adapter.execute(unkown)
     end
 
+    it '(12) can call verify without blowing up when one node is down' do
+      down!(slaveA)
+      [master, slaveB].each{|con| con.should_receive(:verify!).once}
+
+      lambda{
+        adapter.verify!
+      }.should_not raise_error
+
+      adapter.should_not be_stuck
+    end
+
   end 
 
   def later
@@ -146,12 +169,14 @@ describe 'Integration of Makara Adapter to Real World Events' do
   def up!(*cons)
     cons.each do |con|
       con.unstub(:execute)
+      con.unstub(:verify!)
     end
   end
 
   def down!(*cons)
     cons.each do |con|
       con.stub(:execute).and_raise(ActiveRecord::StatementInvalid.new('closed connection'))
+      con.stub(:verify!).and_raise(ActiveRecord::StatementInvalid.new('closed connection'))
     end
   end
 

@@ -66,8 +66,17 @@ module ActiveRecord
       end
 
       def verify!
-        all_wrappers.each do |wrapper|
-          wrapper.connection.verify! unless wrapper.blacklisted?
+        # hijack execute so we work on the actual underlying connections
+        hijacking_execute! do
+          all_wrappers.reject(&:blacklisted?).each do |wrapper|
+            begin 
+              wrapper.connection.verify!
+            rescue Exception => e
+              raise e if wrapper.master?
+              wrapper.blacklist!
+              warn("Blacklisted: #{wrapper}")
+            end
+          end
         end
       end
 
@@ -175,8 +184,10 @@ module ActiveRecord
 
       # send the provided method and args to all the underlying adapters
       def send_to_all!(method_name, *args)
-        all_connections.each do |con|
-          con.send(method_name, *args)
+        hijacking_execute! do
+          all_connections.each do |con|
+            con.send(method_name, *args)
+          end
         end
       end
 

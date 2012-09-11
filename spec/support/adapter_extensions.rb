@@ -8,6 +8,10 @@ module AdapterExtensions
     @slave
   end
 
+  def stuck?
+    self.currently_stuck?
+  end
+  
   def master_only?
     @slave.length == 0
   end
