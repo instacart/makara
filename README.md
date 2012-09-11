@@ -59,5 +59,5 @@ Assuming you are running a **Rails 3.x.x** application and `bundler`, using Maka
 
 ## Acknowledgements
 
-- Makara was developed by the fine folks at [www.taskrabbit.com](http://www.taskrabbit.com).  If you like working on problems like this one, [we are hiring](http://www.taskrabbit.com/careers)
+- Makara was developed by the fine folks at [www.taskrabbit.com](http://www.taskrabbit.com).  If you like working on problems like this one, [we are hiring](http://www.taskrabbit.com/careers).
 - The [Octopus Gem](https://github.com/tchandy/octopus) inspired our work on this project (including the name).  We have [a fork](https://github.com/taskrabbit/octopus/compare/master) which adds some of the failover features Makara has
