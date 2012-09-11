@@ -41,7 +41,9 @@ module ActiveRecord
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
-      MASS_DELEGATION_METHODS = %w(active? reconnect! disconnect! reset!)
+
+      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
+      MASS_ANY_DELEGATION_METHODS = %w(active? requires_reloading?)
 
       def initialize(wrappers, options = {})
 
@@ -80,15 +82,24 @@ module ActiveRecord
         end
       end
 
+      # not using any?(:meth) because i don't want it short-circuited.
+      MASS_ANY_DELEGATION_METHODS.each do |meth|
+        class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
+          def #{meth}
+            hijacking_execute! do
+              all_connections.select(&:#{meth}).present?
+            end
+          end
+        DEL_METHOD
+      end
+
       # these methods must be forwarded on all adapters
       MASS_DELEGATION_METHODS.each do |aggregate_method|
-
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
           def #{aggregate_method}(*args)
             send_to_all!(:#{aggregate_method}, *args)
           end
         AGG_METHOD
-
       end
 
 
