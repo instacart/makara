@@ -49,14 +49,17 @@ module ActiveRecord
 
         # sticky master by default
         @sticky_master      = true
-        @sticky_master      = !!options.delete(:sticky_master) if options.has_key?(:sticky_master)
+        @sticky_master      = !!options.delete(:sticky_master)  if options.has_key?(:sticky_master)
     
         # sticky slaves by default
         @sticky_slave       = true
-        @sticky_slave       = !!options.delete(:sticky_slaves) if options.has_key?(:sticky_slaves)
-        @sticky_slave       = !!options.delete(:sticky_slave) if options.has_key?(:sticky_slave)
+        @sticky_slave       = !!options.delete(:sticky_slaves)  if options.has_key?(:sticky_slaves)
+        @sticky_slave       = !!options.delete(:sticky_slave)   if options.has_key?(:sticky_slave)
     
         @verbose            = !!options.delete(:verbose)
+
+        @ansi_colors        = true
+        @ansi_colors        = !!options.delete(:ansi_colors)    if options.has_key?(:ansi_colors)
             
         @master             = ::Makara::Connection::Group.new(wrappers.select(&:master?))
         @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
@@ -151,6 +154,10 @@ module ActiveRecord
 
       def sticky_slave?
         @sticky_slave
+      end
+
+      def ansi_colors?
+        @ansi_colors
       end
 
       # if we want to unstick the current connection (request is over, testing, etc)
