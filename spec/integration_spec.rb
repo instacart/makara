@@ -104,9 +104,8 @@ describe 'Integration of Makara Adapter to Real World Events' do
       2.times{ adapter.execute(insert) }
     end
 
-    it '(12) can call verify without blowing up when one node is down' do
+    it '(12) can call verify without blowing up when one slave node is down' do
       down!(slaveA)
-      [master, slaveB].each{|con| con.should_receive(:verify!).once}
 
       lambda{
         adapter.verify!
@@ -146,9 +145,8 @@ describe 'Integration of Makara Adapter to Real World Events' do
       adapter.execute(unkown)
     end
 
-    it '(12) can call verify without blowing up when one node is down' do
+    it '(12) can call verify without blowing up when one slave node is down' do
       down!(slaveA)
-      [master, slaveB].each{|con| con.should_receive(:verify!).once}
 
       lambda{
         adapter.verify!

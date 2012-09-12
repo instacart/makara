@@ -43,7 +43,7 @@ module ActiveRecord
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
       MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
-      MASS_ANY_DELEGATION_METHODS = %w(active? requires_reloading?)
+      MASS_ANY_DELEGATION_METHODS = %w(active?)
 
       def initialize(wrappers, options = {})
 
@@ -67,26 +67,11 @@ module ActiveRecord
 
       end
 
-      def verify!
-        # hijack execute so we work on the actual underlying connections
-        hijacking_execute! do
-          all_wrappers.reject(&:blacklisted?).each do |wrapper|
-            begin 
-              wrapper.connection.verify!
-            rescue Exception => e
-              raise e if wrapper.master?
-              wrapper.blacklist!
-              warn("Blacklisted: #{wrapper}")
-            end
-          end
-        end
-      end
-
       # not using any?(:meth) because i don't want it short-circuited.
       MASS_ANY_DELEGATION_METHODS.each do |meth|
         class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
           def #{meth}
-            hijacking_execute! do
+            hijacking! do
               all_connections.select(&:#{meth}).present?
             end
           end
@@ -114,7 +99,7 @@ module ActiveRecord
         stick! if should_stick?
 
         # mark ourselves as being in a hijack block so we don't invoke this execute() unecessarily
-        hijacking_execute! do
+        hijacking! do
           # hand off control to the wrapper
           @current_wrapper.execute(sql, name)
         end
@@ -174,9 +159,17 @@ module ActiveRecord
         @stuck_on = nil
       end
 
+      # denote that we're hijacking an execute call
+      def hijacking!
+        @hijacking = true
+        yield
+      ensure
+        @hijacking = false
+      end
+
       # are we currently hijacking an execute call and choosing the appropriate connection?
-      def hijacking_execute?
-        !!@hijacking_execute
+      def hijacking?
+        !!@hijacking
       end
 
       # force us to use a master connection
@@ -195,7 +188,7 @@ module ActiveRecord
 
       # send the provided method and args to all the underlying adapters
       def send_to_all!(method_name, *args)
-        hijacking_execute! do
+        hijacking! do
           all_connections.each do |con|
             con.send(method_name, *args)
           end
@@ -222,14 +215,6 @@ module ActiveRecord
         else
           @stuck_on || @slave.next || @master.next
         end
-      end
-
-      # denote that we're hijacking an execute call
-      def hijacking_execute!
-        @hijacking_execute = true
-        yield
-      ensure
-        @hijacking_execute = false
       end
 
       # let's get stuck on a wrapper so we continue utilizing the same connection for the duration of this request (or until we're unstuck)

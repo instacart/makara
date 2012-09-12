@@ -16,6 +16,14 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
     end
   end
 
+  ActiveRecord::ConnectionAdapters::MakaraAdapter::MASS_ANY_DELEGATION_METHODS.each do |meth|
+    it "should delegate and evaluate an any? on #{meth}" do
+      adapter.mcon.should_receive(meth).once
+      adapter.scon(1).should_receive(meth).once
+      adapter.send(meth)
+    end
+  end
+
   it 'should use the correct wrapper' do
 
     adapter.mcon.should_receive(:execute).with('insert into dogs...', nil).once

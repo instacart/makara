@@ -26,7 +26,7 @@ describe 'Makara Connection Decoration' do
     end
 
     it 'should return nil if we\'ve already hijacked the execution' do      
-      adapter.send(:hijacking_execute!) do
+      adapter.send(:hijacking!) do
         con.with_makara do |acceptor|
           acceptor.should be_nil
         end
@@ -36,7 +36,7 @@ describe 'Makara Connection Decoration' do
   end
 
   it 'should invoke the makara adapter when execute is called internally' do
-    adapter.should_receive(:execute).with('select * from users', nil).once
+    adapter.should_receive(:execute).with('select * from users').once
     con.execute('select * from users')
   end
 

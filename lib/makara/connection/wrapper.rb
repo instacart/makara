@@ -35,7 +35,9 @@ module Makara
         if @previously_blacklisted && !blacklisted
           @previously_blacklisted = false
           begin
-            self.connection.reconnect!
+            self.connection.makara.hijacking! do
+              self.connection.reconnect!
+            end
           rescue Exception => e
             blacklist!
             return true
