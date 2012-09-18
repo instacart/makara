@@ -42,7 +42,7 @@ module ActiveRecord
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
-      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
+      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset! expire)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
 
       def initialize(wrappers, options = {})
@@ -204,7 +204,7 @@ module ActiveRecord
 
       # provide a way to access all our wrappers
       def all_wrappers
-        [@master, @slave].map(&:wrappers).flatten.compact
+        [@master, @slave].map(&:wrappers).flatten.compact.uniq
       end
 
       # all the underlying adapters

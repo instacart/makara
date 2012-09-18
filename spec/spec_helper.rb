@@ -29,6 +29,10 @@ RSpec.configure do |config|
   #     --seed 1234
   config.order = 'random'
 
+  config.before(:each) do
+    Makara::Connection::Group.any_instance.stub(:should_shuffle?).and_return(false)
+  end
+
   def connect!(config)
     ActiveRecord::Base.establish_connection(config)
   end
@@ -66,6 +70,16 @@ RSpec.configure do |config|
         {:name => 'master', :role => 'master'},
         {:name => 'Slave One'},
         {:name => 'Slave Two'}
+      ]
+    })
+  end
+
+  def multi_slave_weighted_config
+    simple_config.merge({
+      :databases => [
+        {:name => 'master', :role => 'master'},
+        {:name => 'Slave One', :weight => 2},
+        {:name => 'Slave Two', :weight => 3}
       ]
     })
   end

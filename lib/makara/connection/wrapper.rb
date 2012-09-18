@@ -7,7 +7,7 @@ module Makara
     #   - answer questions about it's role
     class Wrapper
 
-      attr_reader :name, :connection
+      attr_reader :name, :connection, :weight
 
       delegate :execute, :to => :connection
 
@@ -19,7 +19,8 @@ module Makara
 
         @name               = @config.delete(:name)
         @master             = @config.delete(:role) == 'master'
-        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds)
+        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds) || 1.minute
+        @weight             = @config.delete(:weight) || 1
       end
 
       def master?
@@ -49,7 +50,6 @@ module Makara
       def blacklist!
         for_length = @blacklist_duration
         for_length = 0.seconds if self.master?
-        for_length ||= 1.minute
 
         @previously_blacklisted = true
         @blacklisted_until = for_length.from_now

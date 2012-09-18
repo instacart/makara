@@ -15,7 +15,9 @@ production:
       host: xxx
       user: xxx
       password: xxx
+      weight: 3
     - name: slave2
       role: slave
       host: xxx
       user: xxx
+      weight: 2

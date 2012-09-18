@@ -13,6 +13,27 @@ describe 'Makara::ConnectionGroup' do
     adapter.slave_group.should be_singular
   end
 
+  context 'with a weighted config' do
+
+    let(:config){ multi_slave_weighted_config }
+
+    it 'should build a wrapper list made up of pointers to the same base connections' do
+
+      adapter.send(:all_wrappers).length.should eql(3)
+      adapter.send(:all_connections).length.should eql(3)
+
+      adapter.master_group.should be_singular
+      slave_list = adapter.slave_group.wrappers
+
+      slave_list.length.should eql(5)
+      slave_list.map(&:object_id).uniq.length.should eql(2)
+
+      slave_list.select{|s| s.name == 'Slave One'}.length.should eql(2)
+      slave_list.reject{|s| s.name == 'Slave One'}.length.should eql(3)
+    end
+
+  end
+
   context 'with multiple slaves being used' do
 
     let(:config){ multi_slave_config  }

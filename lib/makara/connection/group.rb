@@ -10,8 +10,8 @@ module Makara
 
       delegate :length, :size, :empty?, :blank?, :to => :wrappers
 
-      def initialize(wrappers, sticky = true)
-        @wrappers     = wrappers
+      def initialize(base_wrappers, sticky = true)
+        @wrappers     = build_wrapper_list(base_wrappers)
         @current_idx  = 0
       end
 
@@ -70,6 +70,21 @@ module Makara
       # are we dealing with a situation where iteration is pointless?
       def singular?
         @wrappers.length <= 1
+      end
+
+      # build a list of the wrappers provided based on their weights.
+      # just create extra pointers to all the wrappers with a weight of more than one
+      def build_wrapper_list(base_wrappers)
+        wraps = []
+        base_wrappers.each do |wrap|
+          wrap.weight.to_i.times{|i| wraps << wrap }
+        end
+        wraps.shuffle! if should_shuffle?
+        wraps
+      end
+
+      def should_shuffle?
+        true
       end
 
     end
