@@ -36,9 +36,8 @@ module Makara
         if @previously_blacklisted && !blacklisted
           @previously_blacklisted = false
           begin
-            self.connection.makara.hijacking! do
-              self.connection.reconnect!
-            end
+            Makara.info("Attempting a reconnect of #{self}")
+            self.connection.reconnect!
           rescue Exception => e
             blacklist!
             return true
@@ -53,6 +52,8 @@ module Makara
 
         @previously_blacklisted = true
         @blacklisted_until = for_length.from_now
+
+        Makara.warn("Blacklisted: #{self}")
       end
 
       def to_s

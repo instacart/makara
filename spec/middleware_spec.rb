@@ -29,7 +29,7 @@ describe Makara::Middleware do
   def set_cookie_value(headers)
     s = headers['Set-Cookie'].to_s
     s =~ /makara-force-master=(.+)/
-    $1
+    $1 ? $1.to_s.split(';').first : nil
   end
 
   before do
@@ -40,31 +40,32 @@ describe Makara::Middleware do
 
   %w(responder redirector).each do |app|
     %w(get post put delete).each do |req|
+
       it "should pass through #{req} requests from a #{app} app when the current adapter isn't makara" do
         ActiveRecord::Base.stub(:connection).and_return(ActiveRecord::ConnectionAdapters::AbstractAdapter.new({}))
         middleware(app).should_receive(:should_force_database?).never
         middleware(app).call(send("#{req}_request"))
       end
 
-      it "should set the cookie to nil when #{req} requests from a #{app} app when master is not being used" do
+      it "should delete the cookie when #{req} requests from a #{app} app when master is not being used" do
         middleware(app).should_receive(:should_force_database?).once
         status, headers, body = middleware(app).call(send("#{req}_request"))
-        set_cookie_value(headers).should be_blank
+        set_cookie_value(headers).should be_nil
       end
 
 
-      it "should set the cookie to nil when #{req} requests from a #{app} app when the master is not sticky" do
+      it "should delete the cookie when #{req} requests from a #{app} app when the master is not sticky" do
         adapter.stub(:currently_master?).and_return(false)
         status, headers, body = middleware(app).call(send("#{req}_request"))
-        set_cookie_value(headers).should be_blank
+        set_cookie_value(headers).should be_nil
       end
 
       if req == 'get'
-        it "should not set the cookie when #{req} requests from a #{app} app and the master is sticky" do
+        it "should delete the cookie when #{req} requests from a #{app} app and the master is sticky" do
           adapter.stub(:currently_master?).and_return(true)
           adapter.stub(:current_wrapper_name).and_return('master')
           status, headers, body = middleware(app).call(send("#{req}_request"))
-          set_cookie_value(headers).should be_blank
+          set_cookie_value(headers).should be_nil
         end
       else
         it "should set the cookie to master when #{req} requests from a #{app} app and the master is sticky" do

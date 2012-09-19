@@ -54,7 +54,7 @@ describe Makara::Connection::ErrorHandler do
     handler.handle(error)
   end
 
-  Makara::Connection::ErrorHandler::HARSH_ERRORS.map(&:constantize).each do |klazz|
+  [ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey].each do |klazz|
     it "should handle #{klazz} harshly" do
       error = klazz.new('some kind of statement error', exception('some kind of statement error'))
       handler.should_receive(:handle_exception_harshly).once

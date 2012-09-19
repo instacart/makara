@@ -16,11 +16,11 @@ module Makara
       protected
 
       def wrapper_name
-        makara_connection.try(:current_wrapper_name)
+        Makara.connection.try(:current_wrapper_name)
       end
 
       def use_colors?
-        makara_connection.ansi_colors?
+        Makara.connection.try(:ansi_colors?)
       end
 
       def sql_statement?(msg)
@@ -30,11 +30,6 @@ module Makara
       def color_for_wrapper(name)
         # master ? red : yellow
         name =~ /[mM]aster/ ? "\e[31m" : "\e[33m"
-      end
-
-      def makara_connection
-        return nil unless ActiveRecord::Base.connection.respond_to?(:unstick!)
-        ActiveRecord::Base.connection
       end
 
     end

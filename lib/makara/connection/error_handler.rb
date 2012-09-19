@@ -2,8 +2,6 @@ module Makara
   module Connection
     class ErrorHandler
 
-      HARSH_ERRORS = ['ActiveRecord::RecordNotUnique', 'ActiveRecord::InvalidForeignKey']
-
       delegate :current_wrapper, :to => :@adapter
 
       def initialize(makara_adapter)
@@ -18,7 +16,7 @@ module Makara
         end
 
         case e
-        when *(HARSH_ERRORS.map(&:constantize))
+        when ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey
           return handle_exception_harshly(e)
         when ActiveRecord::StatementInvalid
           return handle_exception_harshly(e) unless connection_message?(e)
@@ -35,11 +33,10 @@ module Makara
 
         # let's blacklist this slave to ensure it's removed from the slave cycle
         current_wrapper.blacklist!
-        @adapter.send(:warn, "Blacklisted: #{current_wrapper}")
       end
 
       def handle_exception_harshly(e)
-        @adapter.send(:error, "Error caught in makara adapter while using #{current_wrapper}:")
+        Makara.error("Error caught in makara adapter while using #{current_wrapper}:")
         raise e 
       end
 

@@ -7,12 +7,12 @@ module Makara
 
     def call(env)
 
-      return @app.call(env) unless makara_connection
+      return @app.call(env) unless Makara.connection
 
       @request = Rack::Request.new(env)
 
       status, headers, body = if should_force_database?
-        makara_connection.with_master do
+        Makara.connection.with_master do
           @app.call(env)
         end
       else
@@ -26,7 +26,7 @@ module Makara
       @response.finish
 
     ensure
-      makara_connection.try(:unstick!)
+      Makara.connection.try(:unstick!)
     end
 
     protected
@@ -42,17 +42,15 @@ module Makara
 
     def store_master_cookie!
       if @request.get?
-        unless [301, 302].include?(@response.status.to_i)
-          @response.set_cookie('makara-force-master', nil)
-        end
-      elsif makara_connection.sticky_master? && makara_connection.currently_master?
-        @response.set_cookie('makara-force-master', makara_connection.current_wrapper_name)
-      end
-    end
+        return if [301, 302].include?(@response.status.to_i)
 
-    def makara_connection
-      return nil unless ActiveRecord::Base.connection.respond_to?(:unstick!)
-      ActiveRecord::Base.connection
+        if @response.header['Set-Cookie'].present? 
+          @response.delete_cookie('makara-force-master')
+        end
+      elsif Makara.connection.sticky_master? && Makara.connection.currently_master?
+        ttl = Time.at(Time.now.to_i + 5)
+        @response.set_cookie('makara-force-master', {:value => Makara.connection.current_wrapper_name, :expires => ttl})
+      end
     end
 
   end

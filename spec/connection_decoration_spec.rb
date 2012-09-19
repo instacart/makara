@@ -12,9 +12,6 @@ describe 'Makara Connection Decoration' do
 
   it 'should integrate with the underlying adapters, giving reference to the makara adapter' do
     con.should respond_to(:with_makara)
-    con.should respond_to(:makara_adapter=)
-
-    con.instance_variable_get('@makara_adapter').should eql(adapter)
   end
 
   describe '#with_makara' do

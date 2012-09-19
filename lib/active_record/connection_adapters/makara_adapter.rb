@@ -47,6 +47,8 @@ module ActiveRecord
 
       def initialize(wrappers, options = {})
 
+        Makara.verbose! if !!options.delete(:verbose)
+
         # sticky master by default
         @sticky_master      = true
         @sticky_master      = !!options.delete(:sticky_master)  if options.has_key?(:sticky_master)
@@ -55,8 +57,6 @@ module ActiveRecord
         @sticky_slave       = true
         @sticky_slave       = !!options.delete(:sticky_slaves)  if options.has_key?(:sticky_slaves)
         @sticky_slave       = !!options.delete(:sticky_slave)   if options.has_key?(:sticky_slave)
-    
-        @verbose            = !!options.delete(:verbose)
 
         @ansi_colors        = true
         @ansi_colors        = !!options.delete(:ansi_colors)    if options.has_key?(:ansi_colors)
@@ -67,13 +67,13 @@ module ActiveRecord
         @exception_handler  = ::Makara::Connection::ErrorHandler.new(self)
 
         decorate_connections!
-
       end
 
       # not using any?(:meth) because i don't want it short-circuited.
       MASS_ANY_DELEGATION_METHODS.each do |meth|
         class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
           def #{meth}
+            Makara.info("Sending #{meth} to all connections and evaluating as any?")
             hijacking! do
               all_connections.select(&:#{meth}).present?
             end
@@ -85,6 +85,7 @@ module ActiveRecord
       MASS_DELEGATION_METHODS.each do |aggregate_method|
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
           def #{aggregate_method}(*args)
+            Makara.info("Sending #{aggregate_method} to all connections")
             send_to_all!(:#{aggregate_method}, *args)
           end
         AGG_METHOD
@@ -125,12 +126,18 @@ module ActiveRecord
         yield
       ensure
         @master_forced = old_value
-        info("Releasing forced master")
+        Makara.info("Releasing forced master")
       end
 
       # if we don't know how to handle it, pass to a master
+      # cache a method declaration so we don't waste as much time the next time this is called
       def method_missing(method_name, *args, &block)
-        @master.any.connection.send(method_name, *args, &block)
+        class_eval <<-EV
+          def #{method_name}(*args, &block)
+            @master.any.connection.send(:#{method_name}, *args, &block)
+          end
+        EV
+        send(method_name, *args, &block)
       end
 
       def respond_to?(method_name, include_private = false)
@@ -162,7 +169,7 @@ module ActiveRecord
 
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
-        info("Unstuck: #{@current_wrapper}")
+        Makara.info("Unstuck: #{@current_wrapper}")
         @stuck_on = nil
       end
 
@@ -182,12 +189,12 @@ module ActiveRecord
       # force us to use a master connection
       def force_master!
         @master_forced = true
-        info("Forcing master")
+        Makara.info("Forcing master")
       end
 
 
       def inspect
-        "#<#{self.class.name} current: #{@current_wrapper.try(:name)}, sticky: [#{[@sticky_master ? 'master(s)' : nil, @sticky_slave ? 'slave(s)' : nil].compact.join(', ')}], verbose: #{@verbose}, master: #{@master.length}, slaves: #{@slave.length} >"
+        "#<#{self.class.name} current: #{@current_wrapper.try(:name)}, sticky: [#{[@sticky_master ? 'master(s)' : nil, @sticky_slave ? 'slave(s)' : nil].compact.join(', ')}], master: #{@master.length}, slaves: #{@slave.length} >"
       end
 
 
@@ -226,7 +233,7 @@ module ActiveRecord
 
       # let's get stuck on a wrapper so we continue utilizing the same connection for the duration of this request (or until we're unstuck)
       def stick!
-        info("Sticking to: #{@current_wrapper}")
+        Makara.info("Sticking to: #{@current_wrapper}")
         @stuck_on = @current_wrapper
       end
 
@@ -267,22 +274,10 @@ module ActiveRecord
       # also passes a reference of ourself to the underlying connection
       # this reference is then used to ensure we can hijack underlying execute() calls
       def decorate_connection(wrapper)
-        info("Decorated connection: #{wrapper}")
+        Makara.info("Decorated connection: #{wrapper}")
         con = wrapper.connection
         con.extend ::Makara::Connection::Decorator
-        con.makara_adapter = self
         con
-      end
-
-      # logging helpers
-      %w(info error warn).each do |log_method|
-        class_eval <<-LOG_METH, __FILE__, __LINE__ + 1
-          def #{log_method}(msg)
-            return unless @verbose
-            msg = "\\e[34m[Makara]\\e[0m \#{msg}"
-            ActiveRecord::Base.logger.#{log_method}(msg)
-          end
-        LOG_METH
       end
 
     end
