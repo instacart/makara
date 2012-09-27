@@ -5,7 +5,9 @@
 #
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 
-require 'rails/all'
+require "active_record/railtie"
+require "action_controller/railtie"
+
 require 'makara'
 require 'delorean'
 

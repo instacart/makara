@@ -37,6 +37,11 @@ module ActiveRecord
 
     class MakaraAdapter
 
+      def self.visitor_for(pool)
+        AbstractAdapter.visitor_for(pool)
+      end
+
+
       attr_reader :current_wrapper
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
