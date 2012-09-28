@@ -37,10 +37,13 @@ module ActiveRecord
 
     class MakaraAdapter
 
+      # use the master connections class to determine what underlying visitor_for should be used.
       def self.visitor_for(pool)
-        AbstractAdapter.visitor_for(pool)
+        master_conf = ::Makara::ConfigParser.master_config(pool.spec.config)
+        return AbstractAdapter.visitor_for(pool) unless master_conf
+        adapter_name = master_conf[:db_adapter] || master_conf[:adapter]
+        "ActiveRecord::ConnectionAdapters::#{adapter_name.to_s.classify}Adapter".constantize.visitor_for(pool)
       end
-
 
       attr_reader :current_wrapper
 
@@ -195,6 +198,10 @@ module ActiveRecord
       def force_master!
         @master_forced = true
         Makara.info("Forcing master")
+      end
+
+      def any_master_connection
+        @master.any.connection
       end
 
 

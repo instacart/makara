@@ -6,7 +6,7 @@
 
 Makara allows your Rails applications to use read-write splitting to share the load across multiple database servers. 
 
-Read-Write splitting is the notion that if you have synchronized database, you can send all "write queries" (insert, update, delete) to a master database, and preform all of your "read queries" (select) from a number of slaves.  As most Rails applications are read-heavy, this scaling practice is very desirable.
+Read-Write splitting is the notion that if you have synchronized database, you can send all "write queries" (insert, update, delete) to a master database, and perform all of your "read queries" (select) from a number of slaves.  As most Rails applications are read-heavy, this scaling practice is very desirable.
  
 ## Features
 
@@ -16,37 +16,69 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 * Optional "sticky" connections to master and slaves
 * Works with many database types (mysql, postgres, etc)
 * Provides a middleware for releasing stuck connections
-* Weighted connection pooling for slave priority
+* Multi-request stickiness via cookies
+* Weighted connection pooling for connection priority
+
+## Quick Start
+
+Add makara to your gemfile:
+
+    gem 'makara'
+
+[Configure your database.yml](./DATABASE_YML_CONFIG.md) as desired.
+  
+    production:
+      sticky_slave: true
+      sticky_master: true
+
+      adapter: makara
+      
+      db_adapter: mysql2
+      host: xxx
+      user: xxx
+      password: xxx
+      blacklist_duration: 5
+      
+      databases:
+        - name: master
+          role: master
+        - name: slave1
+          role: slave
+          host: xxx
+          user: xxx
+          password: xxx
+          weight: 3
+        - name: slave2
+          role: slave
+          host: xxx
+          user: xxx
+          weight: 2
+
+Profit.
 
 ## What is a sticky connection?
 
-Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your application stack may preform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) remains connected to the node it had been previously reading from to ensure a consistent experience. 
+Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your stack may perform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) continues utilizing the node it had been previously reading from to ensure a consistent experience. 
 
-Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to.  This avoids reading from a slave which may not have synced the new data yet.
+Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to in the following request. This avoids reading from a slave which may not have synced the new data yet.
 
 ## Failover
 
 If an error is raised while attempting a query on a slave, the query will be retried on another slave (or the master DB), and the slave with the error will be blacklisted.  Every so often, Makara will attempt to reconnect to these lost slaves.  This ensures the highest possible uptime for your application.
 
-In your [database.yml](https://github.com/taskrabbit/makara/blob/master/database.example.yml), you can define a `blacklist_duration` to set how often lost connections are retried (default is 1 minute).  Unfortunately, there is no failover if your master database goes down.
-
-## Installation
-
-Assuming you are running a **Rails 3.x.x** application and `bundler`, using Makara is simple!
-
-1. Include `gem 'makara'` in your `Gemfile` and `bundle install`
-2. Make your `database.yml` look like the [example](https://github.com/taskrabbit/makara/blob/master/database.example.yml)
-3. ???
-4. Profit.
+In your [database.yml](./DATABASE_YML_CONFIG.md), you can define a `blacklist_duration` to set how often lost connections are retried (default is 1 minute).  Unfortunately, there is no failover if your master database goes down.
 
 ## Questions
 
 - Can I have more than one master database?
-  - Yes!  You can define many slave and master roles. Be sure that your database replication is configured to handle multiple masters before you use this mode.
+  - Yes!  You can define many slave and master roles. Be sure that your database replication is configured to handle multiple masters if you desire multi-master functionality.
 - Can I use Makara for my Rails 2 project?
   - Nope.  However, there are other project that [work well for Rails 2](https://github.com/tchandy/octopus) 
+  - Also, feel free to submit a pull request.
 - Does Makara handle geographic selection of databases?
-  - No, but you can load up a separate database.yml file for each location  
+  - No, but you can load up a separate database.yml file for each location
+- Does Makara solve all my performance problems.
+  - Yes! Actually, no.
 
 
 ## Contributing
@@ -61,4 +93,4 @@ Assuming you are running a **Rails 3.x.x** application and `bundler`, using Maka
 ## Acknowledgements
 
 - Makara was developed by the fine folks at [www.taskrabbit.com](http://www.taskrabbit.com).  If you like working on problems like this one, [we are hiring](http://www.taskrabbit.com/careers).
-- The [Octopus Gem](https://github.com/tchandy/octopus) inspired our work on this project (including the name).  We have [a fork](https://github.com/taskrabbit/octopus/compare/master) which adds some of the failover features Makara has
+- The [Octopus Gem](https://github.com/tchandy/octopus) inspired our work on this project (including the name).  We have [a fork](https://github.com/taskrabbit/octopus/compare/master) which adds some of the failover features Makara has.

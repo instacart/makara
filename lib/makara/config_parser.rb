@@ -20,6 +20,13 @@ module Makara
         end
       end
 
+      def master_config(full_config = {})
+        each_config(full_config) do |config|
+          return config if config[:role] == 'master'
+        end
+        nil
+      end
+
       protected
 
       # pull out the shared information from the top-level config
