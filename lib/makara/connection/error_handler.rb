@@ -22,21 +22,21 @@ module Makara
           return handle_exception_harshly(e) unless connection_message?(e)
         end
 
-        handle_exception_gracefully
+        handle_exception_gracefully(e)
       end
 
       protected
 
-      def handle_exception_gracefully
+      def handle_exception_gracefully(e)
         # something has gone wrong, we need to release this sticky connection
         @adapter.unstick!
 
         # let's blacklist this slave to ensure it's removed from the slave cycle
-        current_wrapper.blacklist!
+        current_wrapper.blacklist!(e.to_s)
       end
 
       def handle_exception_harshly(e)
-        Makara.error("Error caught in makara adapter while using #{current_wrapper}:")
+        Makara.error("Error caught in makara adapter while using #{current_wrapper}: #{e}")
         raise e 
       end
 

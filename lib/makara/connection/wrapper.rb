@@ -46,14 +46,14 @@ module Makara
         blacklisted
       end
 
-      def blacklist!
+      def blacklist!(message = nil)
         for_length = @blacklist_duration
         for_length = 0.seconds if self.master?
 
         @previously_blacklisted = true
         @blacklisted_until = for_length.from_now
 
-        Makara.warn("Blacklisted: #{self}")
+        Makara.warn("Blacklisted: #{self} #{message}")
       end
 
       def to_s
