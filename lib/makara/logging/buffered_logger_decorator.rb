@@ -4,7 +4,7 @@ module Makara
     module BufferedLoggerDecorator
 
       def add(severity, message = nil, progname = nil, &block)
-        message = makara_formatter.call(severity, Time.now, progname, message)
+        message = makara_formatter.call(severity, Time.now, progname, message, &block)
         super(severity, message, progname, &block)
       end
 

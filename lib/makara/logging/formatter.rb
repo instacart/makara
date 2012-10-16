@@ -3,9 +3,14 @@ module Makara
 
     class Formatter < ::Logger::Formatter
 
-      def call(severity, timestamp, progname, msg)
-        default = "#{msg}\r\n"
-        
+      def call(severity, timestamp, progname, msg, &block)
+
+        default = if msg.nil?
+         block_given? ? block.call : progname
+        else
+          "#{msg}\r\n"
+        end
+          
         return default unless sql_statement?(default)
         return default unless name = wrapper_name
         return "[#{name}] #{default}" unless use_colors?

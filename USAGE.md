@@ -52,6 +52,10 @@ By default the databases will inherit the top-level db configuration. The best p
 
 The following are definitions of the options available to the makara adapter:
 
+* ansi_colors:
+  - [boolean]
+  - if makara should decorate it's output with insanely pretty colors
+
 * blacklist_duration:
   - [integer]
   - the number of seconds a node is blacklisted before attempting a reconnect
