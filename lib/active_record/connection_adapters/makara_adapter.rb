@@ -102,28 +102,22 @@ module ActiveRecord
 
       # the execute method which routes it's call to the correct underlying adapter.
       # if we're already stuck on a connection, continue using it. if we want to be stuck on a connection, stick to it.
-      def execute(sql, name = nil)
-        
-        # the connection wrapper that should handle the execute call
-        @current_wrapper = current_wrapper_for(sql)
-
-        # stick to it if we determine that's the right thing to do
-        stick! if should_stick?
-
-        # mark ourselves as being in a hijack block so we don't invoke this execute() unecessarily
-        hijacking! do
-          # hand off control to the wrapper
-          @current_wrapper.execute(sql, name)
+      def execute(sql, name = nil, binds = [])
+        makara_block(sql) do |wrapper|
+          ar = wrapper.method(:execute).arity
+          if ar >= 3 || ar <= -3
+            wrapper.execute(sql, name, binds)
+          else
+            wrapper.execute(sql, name)
+          end
         end
+      end
 
-      # catch all exceptions for now, since we don't know what adapter we'll be using or how they'll be formatted
-      rescue Exception => e
-        
-        # handle the exception properly
-        @exception_handler.handle(e)
+      def exec_query(sql, name = 'SQL', binds = [])
 
-        # do it again!
-        retry
+        makara_block(sql) do |wrapper|
+          wrapper.exec_query(sql, name, binds)
+        end
       end
 
 
@@ -257,14 +251,23 @@ module ActiveRecord
       # given the wrapper and the current configuration, should we stick to this guy?
       # note: if all wrappers are sticky, we should stick to the master even if we've already stuck
       # to a slave.
-      def should_stick?
-        
+      def should_stick?(sql)
+
+        return false  if ignore_stickiness?(sql)
+
         return false  if currently_stuck?   && @stuck_on.master?
         return true   if @sticky_master     && @current_wrapper.master?
 
         return false  if currently_stuck?
         return true   if @sticky_slave      && @current_wrapper.slave?
         
+        false
+      end
+
+      def ignore_stickiness?(sql)
+        s = sql.to_s.downcase
+        return true if s =~ /^show ([\w]+ )?tables?/
+        return true if s =~ /^show fields?/
         false
       end
 
@@ -291,6 +294,31 @@ module ActiveRecord
         con.extend ::Makara::Connection::Decorator
         con
       end
+
+      def makara_block(sql)
+        # the connection wrapper that should handle the execute call
+        @current_wrapper = current_wrapper_for(sql)
+
+        # stick to it if we determine that's the right thing to do
+        stick! if should_stick?(sql)
+
+        # mark ourselves as being in a hijack block so we don't invoke this execute() unecessarily
+        hijacking! do
+          
+          # hand off control to the wrapper
+          yield @current_wrapper
+        end
+
+      # catch all exceptions for now, since we don't know what adapter we'll be using or how they'll be formatted
+      rescue Exception => e
+        
+        # handle the exception properly
+        @exception_handler.handle(e)
+
+        # do it again!
+        retry
+      end
+
 
     end
   end

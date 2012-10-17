@@ -22,6 +22,13 @@ module Makara
           acceptor.execute(*args)
         end
       end
+
+      def exec_query(*args)
+        with_makara do |acceptor|
+          return (defined?(super) ? super : nil) if acceptor.nil?
+          acceptor.exec_query(*args)
+        end
+      end
     end
   end
 end
