@@ -50,7 +50,7 @@ module ActiveRecord
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
-      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset! expire)
+      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
 
       def initialize(wrappers, options = {})
@@ -134,7 +134,7 @@ module ActiveRecord
       # if we don't know how to handle it, pass to a master
       # cache a method declaration so we don't waste as much time the next time this is called
       def method_missing(method_name, *args, &block)
-        class_eval <<-EV
+        class_eval <<-EV, __FILE__, __LINE__+1
           def #{method_name}(*args, &block)
             @master.any.connection.send(:#{method_name}, *args, &block)
           end
@@ -267,7 +267,8 @@ module ActiveRecord
       def ignore_stickiness?(sql)
         s = sql.to_s.downcase
         return true if s =~ /^show ([\w]+ )?tables?/
-        return true if s =~ /^show fields?/
+        return true if s =~ /^show (full )?fields?/
+
         false
       end
 
