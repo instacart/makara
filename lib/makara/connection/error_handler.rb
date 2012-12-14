@@ -44,7 +44,7 @@ module Makara
         message = message.to_s.downcase
 
         case message
-        when /(closed|lost|no)\s?(\w+)? connection/, /gone away/
+        when /(closed|lost|no)\s?(\w+)? connection/, /gone away/, /connection (not open|is closed)/i, /reset has failed/
           true
         else
           false
