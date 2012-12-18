@@ -10,5 +10,8 @@ module Makara
       end
     end
 
+    rake_tasks do
+      load "makara/railties/database.rake"
+    end
   end
 end
