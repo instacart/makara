@@ -48,7 +48,7 @@ module ActiveRecord
       attr_reader :current_wrapper
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
-      SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
+      SQL_SLAVE_MATCHER       = /^\s*(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
       MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
