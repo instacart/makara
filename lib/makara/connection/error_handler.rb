@@ -52,7 +52,8 @@ module Makara
              /no connection to the server/, 
              /could not connect to server/, 
              /result has been cleared/,
-             /terminating connection/
+             /terminating connection/,
+             /pg::error: : select/ # sometimes libpq returns the given sql query as the error message
           true
         else
           false
