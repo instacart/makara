@@ -80,7 +80,7 @@ In your [database.yml](./DATABASE_YML_CONFIG.md), you can define a `blacklist_du
 - Does Makara solve all my performance problems.
   - Yes! Actually, no.
 
-For more information, you can [http://tech.taskrabbit.com/blog/2013/01/02/makara/](read our launch announcment on our blog)
+For more information, you can [read our launch announcment on our blog](http://tech.taskrabbit.com/blog/2013/01/02/makara/)
 
 ## Contributing
 
