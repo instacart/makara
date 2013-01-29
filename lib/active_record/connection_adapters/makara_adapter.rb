@@ -172,6 +172,7 @@ module ActiveRecord
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
         Makara.info("Unstuck: #{@current_wrapper}")
+        unforce_master!
         @stuck_on = nil
       end
 
@@ -192,6 +193,11 @@ module ActiveRecord
       def force_master!
         @master_forced = true
         Makara.info("Forcing master")
+      end
+
+      def unforce_master!
+        Makara.info("Unforcing master") if @master_forced
+        @master_forced = false
       end
 
       def any_master_connection

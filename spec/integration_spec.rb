@@ -9,7 +9,7 @@ describe 'Integration of Makara Adapter to Real World Events' do
   # 4) master goes down, slaves are up; writes should cause normal rails exceptions 
   # 5) master goes down, all slaves also down; all sql actions should cause normal rails exceptions 
   # 6) master goes down, all writes cause errors, then master comes back; app should reconnect to master 
-  # 7) we can force a process (rake/DJ) to only be on master and ignore the slaves
+  # 7) we can force (or unforce) a process (rake/DJ) to only be on master and ignore the slaves
   # 8) test stickyness of slaves (read from slave A, you shouldn't read from slave B) 
   # 9) test stickyness of master (write first, then all reads should stay on master) 
   # 10) complex queries (insert into… where select a from b) still go to master 
@@ -102,6 +102,20 @@ describe 'Integration of Makara Adapter to Real World Events' do
 
       2.times{ adapter.execute(select) }
       2.times{ adapter.execute(insert) }
+    end
+
+    it '(7) can unforce the master' do
+      down!(slaveA)
+      master.should_receive(:execute).with(select, nil).twice
+      slaveB.should_receive(:execute).with(select, nil).twice
+
+      adapter.force_master!
+
+      2.times{ adapter.execute(select) }
+
+      adapter.unforce_master!
+
+      2.times{ adapter.execute(select) }
     end
 
     it '(12) can call verify without blowing up when one slave node is down' do
