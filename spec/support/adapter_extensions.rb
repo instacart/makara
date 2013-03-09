@@ -51,6 +51,7 @@ module AdapterExtensions
 
 end
 
+require 'active_record/connection_adapters/makara_adapter'
 ActiveRecord::ConnectionAdapters::MakaraAdapter.send(:include, AdapterExtensions)
 
 module WrapperExtensions
