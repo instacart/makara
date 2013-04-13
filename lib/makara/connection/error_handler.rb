@@ -50,9 +50,10 @@ module Makara
              /reset has failed/, 
              /the database system is (starting up|shutting down)/, 
              /no connection to the server/, 
-             /could not connect to server/, 
+             /(could not|cannot) connect to server/,
              /result has been cleared/,
              /terminating connection/,
+             /no more connections allowed/,
              /pg::error: : select/ # sometimes libpq returns the given sql query as the error message
           true
         else
