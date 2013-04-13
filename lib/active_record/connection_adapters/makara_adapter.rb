@@ -4,9 +4,14 @@ module ActiveRecord
 
     def self.makara_connection(config)
       wrappers = ::Makara::ConfigParser.each_config(config) do |db_config|
-        connection = underlying_connection_for(db_config)                
-        ::Makara::Connection::Wrapper.new(connection)
-      end
+        begin
+          connection = underlying_connection_for(db_config)
+          ::Makara::Connection::Wrapper.new(connection)
+        rescue StandardError => e
+          raise e if db_config[:role] == 'master'
+          nil
+        end
+      end.compact
 
       raise "[Makara] You must include at least one connection that serves as a master" unless wrappers.any?(&:master?)
 
