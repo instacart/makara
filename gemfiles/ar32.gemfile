@@ -4,6 +4,8 @@ source 'https://rubygems.org'
 gemspec :path => '../'
 
 
-gem 'rails', '3.0.17'
+gem 'activerecord', '3.2.6'
+gem 'rake'
+gem 'rack'
 gem 'rspec'
 gem 'delorean'

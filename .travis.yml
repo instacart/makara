@@ -7,6 +7,6 @@ rvm:
   - jruby
 
 gemfile:
-  - gemfiles/rails30.gemfile
-  - gemfiles/rails31.gemfile
-  - gemfiles/rails32.gemfile
+  - gemfiles/ar30.gemfile
+  - gemfiles/ar31.gemfile
+  - gemfiles/ar32.gemfile

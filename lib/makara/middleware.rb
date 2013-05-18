@@ -1,3 +1,6 @@
+require 'rack'
+require 'rack/request'
+
 module Makara
   class Middleware
 
