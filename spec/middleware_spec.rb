@@ -28,7 +28,7 @@ describe Makara::Middleware do
 
   def set_cookie_value(headers)
     s = headers['Set-Cookie'].to_s
-    s =~ /makara-force-master=(.+)/
+    s =~ /makara-master-indexes=(.+)/
     $1 ? $1.to_s.split(';').first : nil
   end
 
@@ -42,13 +42,13 @@ describe Makara::Middleware do
     %w(get post put delete).each do |req|
 
       it "should pass through #{req} requests from a #{app} app when the current adapter isn't makara" do
-        ActiveRecord::Base.stub(:connection).and_return(ActiveRecord::ConnectionAdapters::AbstractAdapter.new({}))
-        middleware(app).should_receive(:should_force_database?).never
+        Makara.stub(:in_use?).and_return(false)
+        Makara.should_receive(:with_master).never
         middleware(app).call(send("#{req}_request"))
       end
 
       it "should delete the cookie when #{req} requests from a #{app} app when master is not being used" do
-        middleware(app).should_receive(:should_force_database?).once
+        adapter.stub(:currently_master?).and_return(false)
         status, headers, body = middleware(app).call(send("#{req}_request"))
         set_cookie_value(headers).should be_nil
       end
@@ -70,9 +70,8 @@ describe Makara::Middleware do
       else
         it "should set the cookie to master when #{req} requests from a #{app} app and the master is sticky" do
           adapter.stub(:currently_master?).and_return(true)
-          adapter.stub(:current_wrapper_name).and_return('master')
           status, headers, body = middleware(app).call(send("#{req}_request"))
-          set_cookie_value(headers).should eql('master')
+          set_cookie_value(headers).should eql('0')
         end
       end
 
@@ -82,9 +81,11 @@ describe Makara::Middleware do
   %w(responder redirector).each do |app|
     %w(get post put delete).each do |req|
       it "should force master if the previous request stuck to master in a #{app} app handling a #{req} request" do
-        @env = {'HTTP_COOKIE' => 'makara-force-master=master'}
+        adapter
+
+        @env = {'HTTP_COOKIE' => 'makara-master-indexes=0'}
         request = send("#{req}_request")
-        adapter.should_receive(:with_master).and_return(send("#{app}_app").call(request))
+        Makara.should_receive(:with_master).and_return(send("#{app}_app").call(request))
         middleware(app).call(request)
       end
 
@@ -92,8 +93,10 @@ describe Makara::Middleware do
   end
 
   it "should not unset the cookie when a redirect is encountered and the cookie is present" do
-    @env = {'HTTP_COOKIE' => 'makara-force-master=master'}
-    adapter.should_receive(:with_master).and_return(redirector_app.call(get_request))
+    adapter
+    
+    @env = {'HTTP_COOKIE' => 'makara-master-indexes=0'}
+    Makara.should_receive(:with_master).and_return(redirector_app.call(get_request))
     middleware('redirector').call(get_request)
   end
 

@@ -7,6 +7,7 @@ production:
   user: xxx
   password: xxx
   blacklist_duration: 5
+  name: default
   databases:
     - name: master
       role: master

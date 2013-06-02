@@ -5,8 +5,8 @@ module Makara
 
     # This overrides the database connection and reestablishes using makara's list
     initializer "makara.initialize_logger" do |app|
-      ActiveSupport.on_load(:active_record) do
-        ActiveRecord::Base.logger.try(:extend, ::Makara::Logging::BufferedLoggerDecorator)
+      ActiveRecord::LogSubscriber.log_subscribers.each do |subscriber|
+        subscriber.extend ::Makara::Logging::Subscriber
       end
     end
 

@@ -8,19 +8,21 @@ module Makara
     class Wrapper
 
       attr_reader :name, :connection, :weight
+      attr_accessor :adapter
 
       delegate :execute, :exec_query, :to => :connection
 
-      def initialize(connection)
+      def initialize(adapter, connection)
+        @adapter            = adapter
         @connection         = connection
         @config             = @connection.instance_variable_get('@config') || {}
 
         raise "No name was provided for configuration:\n#{@config.to_yaml}" if @config[:name].blank?
 
-        @name               = @config.delete(:name)
-        @master             = @config.delete(:role) == 'master'
-        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds) || 1.minute
-        @weight             = @config.delete(:weight) || 1
+        @name               = @config[:name]
+        @master             = @config[:role] == 'master'
+        @blacklist_duration = @config[:blacklist_duration].try(:seconds) || 1.minute
+        @weight             = @config[:weight] || 1
       end
 
       def master?
@@ -28,7 +30,7 @@ module Makara
       end
 
       def slave?
-        !self.master?
+        !@master
       end
 
       def blacklisted?
@@ -36,10 +38,9 @@ module Makara
         if @previously_blacklisted && !blacklisted
           @previously_blacklisted = false
           begin
-            Makara.info("Attempting a reconnect of #{self}")
-            self.connection.reconnect!
+            @connection.reconnect!
           rescue Exception => e
-            blacklist!
+            blacklist!(e.message)
             return true
           end
         end
@@ -50,14 +51,14 @@ module Makara
         for_length = @blacklist_duration
         for_length = 0.seconds if self.master?
 
-        @previously_blacklisted = true
-        @blacklisted_until = for_length.from_now
+        @previously_blacklisted   = true
+        @blacklisted_until        = for_length.from_now
 
-        Makara.warn("Blacklisted: #{self} #{message}")
+        @adapter.warn("Blacklisted #{self}: #{message}")
       end
 
       def to_s
-        @name || (self.master? ? 'master' : 'slave')
+        @name || (@master ? 'master' : 'slave')
       end
 
       def inspect

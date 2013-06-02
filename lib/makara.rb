@@ -2,47 +2,76 @@ require 'makara/railtie' if defined?(Rails)
 
 module Makara
 
-  autoload :ConfigParser,               'makara/config_parser'
-  autoload :Middleware,                 'makara/middleware'
-  autoload :VERSION,                    'makara/version'
+  autoload :ConfigParser,   'makara/config_parser'
+  autoload :Middleware,     'makara/middleware'
+  autoload :VERSION,        'makara/version'
 
   module Connection
-    autoload :Decorator,                'makara/connection/decorator'
-    autoload :ErrorHandler,             'makara/connection/error_handler'
-    autoload :Group,                    'makara/connection/group'
-    autoload :Wrapper,                  'makara/connection/wrapper'
+    autoload :Decorator,    'makara/connection/decorator'
+    autoload :ErrorHandler, 'makara/connection/error_handler'
+    autoload :Group,        'makara/connection/group'
+    autoload :Wrapper,      'makara/connection/wrapper'
   end
 
   module Logging
-    autoload :BufferedLoggerDecorator,  'makara/logging/buffered_logger_decorator'
-    autoload :Formatter,                'makara/logging/formatter'                
+    autoload :Subscriber,   'makara/logging/subscriber'
   end
 
   class << self
-    # logging helpers
-    %w(info error warn).each do |log_method|
-      class_eval <<-LOG_METH, __FILE__, __LINE__ + 1
-        def #{log_method}(msg)
-          return unless verbose?
-          msg = "[Makara] \#{msg}"
-          ActiveRecord::Base.logger.#{log_method}(msg)
+
+    def reset!
+      @adapters = []
+    end
+
+    def register_adapter(adapter)
+      @adapters ||= []
+      raise "[Makara] all adapters must be given a unique name. \"#{adapter.name}\" has already been used." if @adapters.map(&:name).include?(adapter.name)
+      @adapters << adapter
+      @adapters = @adapters.sort_by(&:name)
+    end
+
+    def with_master(connection_indexes = nil)
+      previous_values = {}
+      adapters.each do |adapter|
+        previous_values[adapter.name] = adapter.forced_to_master?
+      end
+
+      if connection_indexes
+        connection_indexes.each do |index|
+          adapters[index].force_master!
         end
-      LOG_METH
+      else
+        adapters.each(&:force_master!)
+      end
+
+      yield
+
+    ensure
+
+      adapters.each do |adapter|
+        unless previous_values[adapter.name]
+          adapter.release_master!
+        end
+      end
     end
 
-    def verbose!
-      @verbose = true
+    def unstick!
+      adapters.each(&:unstick!)
     end
 
-    def verbose?
-      @verbose
+    def adapters
+      @adapters || []
     end
 
-    def connection
-      return nil unless ActiveRecord::Base.connection.respond_to?(:unstick!)
-      ActiveRecord::Base.connection
+    def in_use?
+      adapters.any?
     end
 
+    def indexes_currently_using_master
+      indexes = []
+      adapters.each_with_index{|con, i| indexes << i if con.currently_master? }
+      indexes
+    end
   end
 end
 
