@@ -5,6 +5,14 @@ module Makara
     # overrides execute so it will delegate to the makara adapter once
     module Decorator
 
+      def self.extended(base)
+        base.instance_eval do
+          def logger
+            @logger
+          end unless self.respond_to?(:logger) # rails 3.0.x compatability
+        end
+      end
+
       def makara_adapter
         @makara_adapter
       end

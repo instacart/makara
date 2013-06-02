@@ -94,10 +94,34 @@ describe Makara::Middleware do
 
   it "should not unset the cookie when a redirect is encountered and the cookie is present" do
     adapter
-    
+
     @env = {'HTTP_COOKIE' => 'makara-master-indexes=0'}
     Makara.should_receive(:with_master).and_return(redirector_app.call(get_request))
     middleware('redirector').call(get_request)
+  end
+
+  it 'should stick to individual masters as needed' do
+    adapter
+    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :name => 'secondary')
+
+    adapter.mcon.makara_adapter = adapter
+
+    app = lambda do |env| 
+      adapter.execute('update users set value = 1')
+      [200, {}, 'Updater']
+    end
+    
+    middle = Makara::Middleware.new(app)
+
+    status, headers, body = middle.call(post_request)
+    set_cookie_value(headers).should eql('0')
+
+    adapter.should_receive(:force_master!).once
+    adapter2.should_receive(:force_master!).never
+
+    status, headers, body = middle.call(get_request.merge('HTTP_COOKIE' => 'makara-master-indexes=0'))
+    set_cookie_value(headers).should be_nil
+
   end
 
 end

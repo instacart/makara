@@ -12,6 +12,8 @@ describe 'Makara Connection Decoration' do
 
   it 'should integrate with the underlying adapters, giving reference to the makara adapter' do
     con.should respond_to(:with_makara)
+    con.should respond_to(:makara_adapter)
+    con.should respond_to(:makara_adapter=)
   end
 
   describe '#with_makara' do
