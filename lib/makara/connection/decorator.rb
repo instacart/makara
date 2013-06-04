@@ -32,16 +32,22 @@ module Makara
       end
 
       def execute(*args)
-        with_makara do |acceptor|
-          return (defined?(super) ? super : nil) if acceptor.nil?
-          acceptor.execute(*args)
+        with_makara do |adapter|
+          if adapter.nil?
+            return (defined?(super) ? super : nil)
+          else
+            adapter.execute(*args)
+          end
         end
       end
 
       def exec_query(*args)
-        with_makara do |acceptor|
-          return (defined?(super) ? super : nil) if acceptor.nil?
-          acceptor.exec_query(*args)
+        with_makara do |adapter|
+          if adapter.nil?
+            return (defined?(super) ? super : nil)
+          else
+            adapter.exec_query(*args)
+          end
         end
       end
     end
