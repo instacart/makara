@@ -102,7 +102,7 @@ describe Makara::Middleware do
 
   it 'should stick to individual masters as needed' do
     adapter
-    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :name => 'secondary')
+    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
 
     adapter.mcon.makara_adapter = adapter
 
@@ -122,6 +122,15 @@ describe Makara::Middleware do
     status, headers, body = middle.call(get_request.merge('HTTP_COOKIE' => 'makara-master-indexes=0'))
     set_cookie_value(headers).should be_nil
 
+  end
+
+  context 'with a namespaced config' do
+    let(:config){ namespace_config }
+
+    it 'should lay a cookie based on the namespace provided in the configuration' do
+      adapter.namespace.should eql('my_app')
+      middleware(:responder).send(:cookie_name).should eql('my_app_makara-master-indexes')
+    end
   end
 
 end

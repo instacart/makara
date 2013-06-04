@@ -10,8 +10,8 @@ describe 'Parsing configuration files' do
       :host => 'dog',
       :username => 'cat',
       :db_adapter => 'mysql2',
-      :name => 'sparky',
-      :databases => [
+      :id => 'sparky',
+      :connections => [
         {
           :name => 'master',
           :role => 'master'
@@ -45,7 +45,7 @@ describe 'Parsing configuration files' do
       :role => 'master',
       :host => 'dog',
       :username => 'cat',
-      :adapter => 'mysql2',
+      :adapter => 'mysql2'
     })
   end
 

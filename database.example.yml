@@ -1,4 +1,5 @@
 production:
+  id: 'my_app'
   sticky_slave: true
   sticky_master: true
   adapter: makara
@@ -8,7 +9,7 @@ production:
   password: xxx
   blacklist_duration: 5
   name: default
-  databases:
+  connections:
     - name: master
       role: master
     - name: slave1

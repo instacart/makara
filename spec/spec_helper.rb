@@ -50,16 +50,22 @@ RSpec.configure do |config|
       :database => 'test_db',
       :host => 'localhost',
       :port => '3439',
-      :databases => [
+      :connections => [
         {:name => 'master', :role => 'master'}
       ]
     }
   end
 
+  def namespace_config
+    simple_config.merge({
+      :namespace => 'my_app'
+    })
+  end
+
 
   def single_slave_config
     simple_config.merge({
-      :databases => [
+      :connections => [
         {:name => 'master', :role => 'master'},
         {:name => 'slave1'}
       ]
@@ -68,7 +74,7 @@ RSpec.configure do |config|
 
   def multi_slave_config
     simple_config.merge({
-      :databases => [
+      :connections => [
         {:name => 'master', :role => 'master'},
         {:name => 'Slave One'},
         {:name => 'Slave Two'}
@@ -78,7 +84,7 @@ RSpec.configure do |config|
 
   def multi_slave_weighted_config
     simple_config.merge({
-      :databases => [
+      :connections => [
         {:name => 'master', :role => 'master'},
         {:name => 'Slave One', :weight => 2},
         {:name => 'Slave Two', :weight => 3}
@@ -88,7 +94,7 @@ RSpec.configure do |config|
 
   def massive_slave_config
     simple_config.merge({
-      :databases => [
+      :connections => [
         {:name => 'master', :role => 'master'},
         {:name => 'Slave One'   },
         {:name => 'Slave Two'   },

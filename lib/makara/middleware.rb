@@ -27,14 +27,17 @@ module Makara
       response.finish
 
     ensure
-      Makara.unstick!
+      Makara.to_all(:unstick!)
     end
 
     protected
 
+    def cookie_name
+      [Makara.namespace, 'makara-master-indexes'].compact.join('_')
+    end
 
     def indexes_using_master(request)
-      cookie_value = request.cookies['makara-master-indexes']
+      cookie_value = request.cookies[cookie_name]
       return [] if cookie_value.blank?
       cookie_value.split(',').map(&:to_i)
     end
@@ -44,12 +47,12 @@ module Makara
         return if [301, 302].include?(response.status.to_i)
 
         if response.header['Set-Cookie'].present? 
-          response.delete_cookie('makara-master-indexes')
+          response.delete_cookie(cookie_name)
         end
       else
         current_indexes = Makara.indexes_currently_using_master
         unless current_indexes.empty?
-          response.set_cookie('makara-master-indexes', {:value => current_indexes.join(','), :path => '/', :expires => Time.now + 5})
+          response.set_cookie(cookie_name, {:value => current_indexes.join(','), :path => '/', :expires => Time.now + 5})
         end
       end
     end

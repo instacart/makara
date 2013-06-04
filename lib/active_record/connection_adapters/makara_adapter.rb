@@ -42,7 +42,7 @@ module ActiveRecord
         "ActiveRecord::ConnectionAdapters::#{adapter_name.to_s.classify}Adapter".constantize.visitor_for(pool)
       end
 
-      attr_reader :current_wrapper, :name
+      attr_reader :current_wrapper, :id, :namespace
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
@@ -64,7 +64,8 @@ module ActiveRecord
 
         @verbose            = !!options[:verbose]
 
-        @name               =  options[:name] || 'default'
+        @id                 =  options[:id] || 'default'
+        @namespace          =  options[:namespace]
 
         # sticky master by default
         @sticky_master      = true
@@ -74,9 +75,6 @@ module ActiveRecord
         @sticky_slave       = true
         @sticky_slave       = !!options[:sticky_slaves]   if options.has_key?(:sticky_slaves)
         @sticky_slave       = !!options[:sticky_slave]    if options.has_key?(:sticky_slave)
-
-        @ansi_colors        = true
-        @ansi_colors        = !!options[:ansi_colors]     if options.has_key?(:ansi_colors)
 
         @master             = ::Makara::Connection::Group.new(wrappers.select(&:master?))
         @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
@@ -90,7 +88,7 @@ module ActiveRecord
       MASS_ANY_DELEGATION_METHODS.each do |meth|
         class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
           def #{meth}
-            info("Sending #{meth} to all connections of \#{@name} and evaluating as any?")
+            info("[\#{@id}] Sending #{meth} to all connections and evaluating as any?")
             hijacking! do
               all_connections.select(&:#{meth}).present?
             end
@@ -102,7 +100,7 @@ module ActiveRecord
       MASS_DELEGATION_METHODS.each do |aggregate_method|
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
           def #{aggregate_method}(*args)
-            info("Sending #{aggregate_method} to all connections of \#{@name}")
+            info("[\#{@id} Sending #{aggregate_method} to all connections")
             send_to_all!(:#{aggregate_method}, *args)
           end
         AGG_METHOD
@@ -113,7 +111,10 @@ module ActiveRecord
       # if we're already stuck on a connection, continue using it. if we want to be stuck on a connection, stick to it.
       def execute(sql, name = nil, binds = [])
         makara_block(sql) do |wrapper|
+
           ar = wrapper.method(:execute).arity
+          
+          # rails version compatability
           if ar >= 3 || ar <= -3
             wrapper.execute(sql, name, binds)
           else
@@ -122,8 +123,8 @@ module ActiveRecord
         end
       end
 
+      # the exec_query method which routes it's call to the correct underlying adapter.
       def exec_query(sql, name = 'SQL', binds = [])
-
         makara_block(sql) do |wrapper|
           wrapper.exec_query(sql, name, binds)
         end
@@ -150,6 +151,7 @@ module ActiveRecord
         send(method_name, *args, &block)
       end
 
+      # TODO: consider using respond_to_missing? once 1.8.7 is gone
       def respond_to?(method_name, include_private = false)
         super || @master.any.connection.respond_to?(method_name, include_private)
       end
@@ -159,22 +161,10 @@ module ActiveRecord
         !!@current_wrapper.try(:master?)
       end
 
-      def sticky_master?
-        @sticky_master
-      end
-
-      def sticky_slave?
-        @sticky_slave
-      end
-
-      def ansi_colors?
-        @ansi_colors
-      end
-
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
         @stuck_on = nil
-        info("Unstuck: #{@name}/#{@current_wrapper}")
+        info("Unstuck: #{@current_wrapper}")
       end
 
       # denote that we're hijacking an execute call
@@ -193,7 +183,7 @@ module ActiveRecord
       # force us to use a master connection
       def force_master!
         @master_forced = true
-        info("Forcing master on #{@name}")
+        info("[#{@name}] Forcing master")
       end
 
       def forced_to_master?
@@ -202,11 +192,7 @@ module ActiveRecord
 
       def release_master!
         @master_forced = false
-        info("Releasing master on #{@name}")
-      end
-
-      def any_master_connection
-        @master.any.connection
+        info("[#{@name}] Releasing master")
       end
 
 
@@ -216,7 +202,7 @@ module ActiveRecord
 
 
       def info(text)
-        self.logger.try(:info, format_log(text))
+        self.logger.try(:info, format_log(text)) if @verbose
       end
       def warn(text)
         self.logger.try(:warn, format_log(text))
@@ -233,6 +219,7 @@ module ActiveRecord
       end
 
       # send the provided method and args to all the underlying adapters
+      # act like we're hijacking the execution so it doesn't raise the invocation back up to this adapter.
       def send_to_all!(method_name, *args)
         hijacking! do
           all_connections.each do |con|
@@ -240,6 +227,7 @@ module ActiveRecord
           end
         end
       end
+
 
       # provide a way to access all our wrappers
       def all_wrappers
@@ -265,7 +253,7 @@ module ActiveRecord
 
       # let's get stuck on a wrapper so we continue utilizing the same connection for the duration of this request (or until we're unstuck)
       def stick!
-        info("Sticking to: #{@name}/#{@current_wrapper}")
+        info("Sticking to: #{@current_wrapper}")
         @stuck_on = @current_wrapper
       end
 
@@ -305,6 +293,8 @@ module ActiveRecord
         !(!!(sql.to_s.downcase =~ SQL_SLAVE_MATCHER))
       end
 
+
+      # yields the wrapper which should handle the provided sql.
       def makara_block(sql)
         # the connection wrapper that should handle the execute call
         @current_wrapper = current_wrapper_for(sql)
@@ -312,7 +302,7 @@ module ActiveRecord
         # stick to it if we determine that's the right thing to do
         stick! if should_stick?(sql)
 
-        # mark ourselves as being in a hijack block so we don't invoke this execute() unecessarily
+        # mark ourselves as being in a hijack block so we don't invoke this adapter's execute() unecessarily
         hijacking! do
           
           # hand off control to the wrapper
@@ -325,7 +315,7 @@ module ActiveRecord
         # handle the exception properly
         @exception_handler.handle(e)
 
-        # do it again!
+        # do it again! if all slaves are eventually blacklisted the master connection will raise the error.
         retry
       end
 

@@ -17,7 +17,7 @@ module Makara
         @connection         = connection
         @config             = @connection.instance_variable_get('@config') || {}
 
-        raise "No name was provided for configuration:\n#{@config.to_yaml}" if @config[:name].blank?
+        raise "No name was provided for configuration within #{@adapter.id} adapter:\n#{@config.to_yaml}" if @config[:name].blank?
 
         @name               = @config[:name]
         @master             = @config[:role] == 'master'
@@ -34,8 +34,7 @@ module Makara
       end
 
       def blacklisted?
-        blacklisted = @blacklisted_until.to_i > Time.now.to_i
-        if @previously_blacklisted && !blacklisted
+        if @previously_blacklisted && @blacklisted_until.to_i <= Time.now.to_i
           @previously_blacklisted = false
           begin
             @connection.reconnect!
@@ -44,12 +43,12 @@ module Makara
             return true
           end
         end
-        blacklisted
+        @blacklisted_until.to_i > Time.now.to_i
       end
 
       def blacklist!(message = nil)
         for_length = @blacklist_duration
-        for_length = 0.seconds if self.master?
+        for_length = 0.seconds if @master
 
         @previously_blacklisted   = true
         @blacklisted_until        = for_length.from_now
@@ -58,7 +57,7 @@ module Makara
       end
 
       def to_s
-        @name || (@master ? 'master' : 'slave')
+        [@adapter.id, @name || (@master ? 'master' : 'slave')].compact.join('/')
       end
 
       def inspect

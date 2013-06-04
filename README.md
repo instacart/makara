@@ -18,16 +18,19 @@ Read-Write splitting is the notion that if you have synchronized database, you c
 * Provides a middleware for releasing stuck connections
 * Multi-request stickiness via cookies
 * Weighted connection pooling for connection priority
+* Multi-connection compatability
 
 ## Quick Start
 
 Add makara to your gemfile:
 
-    gem 'makara'
+    gem 'makara', git: 'git@github.com:taskrabbit/makara.git', tag: 'v0.1.0'
 
-[Configure your database.yml](./DATABASE_YML_CONFIG.md) as desired.
+Configure your database.yml as desired.
   
     production:
+      id: 'my_app'
+
       sticky_slave: true
       sticky_master: true
 
@@ -39,7 +42,7 @@ Add makara to your gemfile:
       password: xxx
       blacklist_duration: 5
       
-      databases:
+      connections:
         - name: master
           role: master
         - name: slave1
@@ -60,18 +63,20 @@ Profit.
 
 Often times your application will write data and then quickly read it back (user registration is the classic example).  It it is possible that your stack may perform faster than your database synchronization (especially across geographies).  In this case, you may opt to hold "sticky" connections to ensure that for the remainder of a request, your web-worker (Thin, Mongrel, Unicorn, etc) continues utilizing the node it had been previously reading from to ensure a consistent experience. 
 
-Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to in the following request. This avoids reading from a slave which may not have synced the new data yet.
+Makara makes use of cookies to ensure that requests which have just updated a record will read from the database they just wrote to in the following request. This avoids reading from a slave which may not have synced the new data yet. No connection information is stored in the cookie, simply an integer representing the index of the adapter in your app.
 
 ## Failover
 
 If an error is raised while attempting a query on a slave, the query will be retried on another slave (or the master DB), and the slave with the error will be blacklisted.  Every so often, Makara will attempt to reconnect to these lost slaves.  This ensures the highest possible uptime for your application.
 
-In your [database.yml](./DATABASE_YML_CONFIG.md), you can define a `blacklist_duration` to set how often lost connections are retried (default is 1 minute).  Unfortunately, there is no failover if your master database goes down.
+In your database.yml, you can define a `blacklist_duration` to set how often lost connections are retried (default is 1 minute).  Unfortunately, there is no failover if your master database goes down.
 
 ## Questions
 
 - Can I have more than one master database?
   - Yes!  You can define many slave and master roles. Be sure that your database replication is configured to handle multiple masters if you desire multi-master functionality.
+- Can I have multiple connections configured (to different db's or clusters)?
+  - Yes!  Each top-level adapter is handled safely in the context of it's connection specified in it's database.yml.
 - Can I use Makara for my Rails 2 project?
   - Nope.  However, there are other project that [work well for Rails 2](https://github.com/tchandy/octopus) 
   - Also, feel free to submit a pull request.
@@ -80,7 +85,8 @@ In your [database.yml](./DATABASE_YML_CONFIG.md), you can define a `blacklist_du
 - Does Makara solve all my performance problems.
   - Yes! Actually, no.
 
-For more information, you can [read our launch announcment on our blog](http://tech.taskrabbit.com/blog/2013/01/02/makara/)
+Need more information? Check out the [usage doc](USAGE.md)
+For more information on TaskRabbit, [check out our tech blog](http://tech.taskrabbit.com/)
 
 ## Contributing
 

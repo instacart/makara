@@ -10,7 +10,7 @@ module Makara
 
         shared = shared_config(full_config)
 
-        [*full_config[:databases]].compact.map do |config| 
+        [*(full_config[:connections] || full_config[:databases])].compact.map do |config| 
 
           config = config.reverse_merge(shared)
           config = apply_adapter_name(config)
@@ -45,7 +45,7 @@ module Makara
       # strip out the top-level makara configuration keys
       def extract_base_config(whole)
         whole = whole.symbolize_keys
-        whole.except(:databases, :db_adapter, :sticky_slave, :sticky_slaves, :sticky_master, :verbose)
+        whole.except(:connections, :databases, :db_adapter, :id, :namespace, :sticky_slave, :sticky_slaves, :sticky_master, :verbose)
       end
 
     end

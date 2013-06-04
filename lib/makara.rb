@@ -19,21 +19,34 @@ module Makara
 
   class << self
 
+    def namespace=(ns)
+      @namespace = ns
+    end
+
+    def namespace
+      @namespace
+    end
+
     def reset!
       @adapters = []
     end
 
     def register_adapter(adapter)
       @adapters ||= []
-      raise "[Makara] all adapters must be given a unique name. \"#{adapter.name}\" has already been used." if @adapters.map(&:name).include?(adapter.name)
+      raise "[Makara] all adapters must be given a unique id. \"#{adapter.id}\" has already been used." if @adapters.map(&:id).include?(adapter.id)
       @adapters << adapter
-      @adapters = @adapters.sort_by(&:name)
+      self.namespace ||= adapter.namespace
+      @adapters = @adapters.sort_by(&:id)
+    end
+
+    def force_master!
+      to_all(:force_master!)
     end
 
     def with_master(connection_indexes = nil)
       previous_values = {}
       adapters.each do |adapter|
-        previous_values[adapter.name] = adapter.forced_to_master?
+        previous_values[adapter.id] = adapter.forced_to_master?
       end
 
       if connection_indexes
@@ -41,7 +54,7 @@ module Makara
           adapters[index].force_master!
         end
       else
-        adapters.each(&:force_master!)
+        force_master!
       end
 
       yield
@@ -49,14 +62,14 @@ module Makara
     ensure
 
       adapters.each do |adapter|
-        unless previous_values[adapter.name]
+        unless previous_values[adapter.id]
           adapter.release_master!
         end
       end
     end
 
-    def unstick!
-      adapters.each(&:unstick!)
+    def to_all(method_sym)
+      adapters.each(&method_sym)
     end
 
     def adapters
@@ -65,6 +78,10 @@ module Makara
 
     def in_use?
       adapters.any?
+    end
+
+    def multi?
+      adapters.size > 1
     end
 
     def indexes_currently_using_master
