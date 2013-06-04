@@ -109,7 +109,11 @@ module Makara
     protected
 
     def primary_config
+      # active_record 3.1+
       ActiveRecord::Base.connection.pool.spec.config
+    rescue
+      # active_record 3.0.x
+      ActiveRecord::Base.connection_handler.connection_pools['ActiveRecord::Base'].spec.config
     rescue
       {}
     end
