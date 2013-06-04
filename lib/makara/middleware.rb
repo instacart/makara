@@ -10,49 +10,47 @@ module Makara
 
     def call(env)
 
-      return @app.call(env) unless Makara.connection
+      return @app.call(env) unless Makara.in_use?
 
-      @request = Rack::Request.new(env)
+      request = Rack::Request.new(env)
 
-      status, headers, body = if should_force_database?
-        Makara.connection.with_master do
-          @app.call(env)
-        end
-      else
+      indexes = indexes_using_master(request)
+
+      status, headers, body = Makara.with_master(indexes) do
         @app.call(env)
       end
 
-      @response = Rack::Response.new(body, status, headers)
+      response = Rack::Response.new(body, status, headers)
 
-      store_master_cookie!
+      store_master_cookie!(request, response)
 
-      @response.finish
+      response.finish
 
     ensure
-      Makara.connection.try(:unstick!)
+      Makara.unstick!
     end
 
     protected
 
-    def should_force_database?
-      database_to_force.present?
+
+    def indexes_using_master(request)
+      cookie_value = request.cookies['makara-master-indexes']
+      return [] if cookie_value.blank?
+      cookie_value.split(',').map(&:to_i)
     end
 
-    # currently just use master. flexibility coming soon.
-    def database_to_force
-      @request.cookies['makara-force-master']
-    end
+    def store_master_cookie!(request, response)
+      if request.get?
+        return if [301, 302].include?(response.status.to_i)
 
-    def store_master_cookie!
-      if @request.get?
-        return if [301, 302].include?(@response.status.to_i)
-
-        if @response.header['Set-Cookie'].present? 
-          @response.delete_cookie('makara-force-master')
+        if response.header['Set-Cookie'].present? 
+          response.delete_cookie('makara-master-indexes')
         end
-      elsif Makara.connection.sticky_master? && Makara.connection.currently_master?
-        ttl = Time.at(Time.now.to_i + 5)
-        @response.set_cookie('makara-force-master', {:value => Makara.connection.current_wrapper_name, :expires => ttl})
+      else
+        current_indexes = Makara.indexes_currently_using_master
+        unless current_indexes.empty?
+          response.set_cookie('makara-master-indexes', {:value => current_indexes.join(','), :path => '/', :expires => Time.now + 5})
+        end
       end
     end
 

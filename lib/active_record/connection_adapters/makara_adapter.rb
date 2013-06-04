@@ -3,14 +3,11 @@ module ActiveRecord
   class Base
 
     def self.makara_connection(config)
-      wrappers = ::Makara::ConfigParser.each_config(config) do |db_config|
-        connection = underlying_connection_for(db_config)                
-        ::Makara::Connection::Wrapper.new(connection)
+      underlying_connections = ::Makara::ConfigParser.each_config(config) do |db_config|
+        underlying_connection_for(db_config)
       end
 
-      raise "[Makara] You must include at least one connection that serves as a master" unless wrappers.any?(&:master?)
-
-      ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new(wrappers, config)
+      ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new(underlying_connections, config)
     end
 
     protected
@@ -45,7 +42,7 @@ module ActiveRecord
         "ActiveRecord::ConnectionAdapters::#{adapter_name.to_s.classify}Adapter".constantize.visitor_for(pool)
       end
 
-      attr_reader :current_wrapper
+      attr_reader :current_wrapper, :name
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
@@ -53,35 +50,47 @@ module ActiveRecord
       MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
 
-      def initialize(wrappers, options = {})
+      def initialize(connections, options = {})
 
-        Makara.verbose! if !!options.delete(:verbose)
+        wrappers = connections.map{|con| ::Makara::Connection::Wrapper.new(self, con) }
+
+        raise "[Makara] You must include at least one connection that serves as a master" unless wrappers.any?(&:master?)
+
+        connections.each do |con|
+          con.extend ::Makara::Connection::Decorator
+          con.makara_adapter = self
+          con.makara_adapter # ensures that respond_to?() catches up
+        end
+
+        @verbose            = !!options[:verbose]
+
+        @name               =  options[:name] || 'default'
 
         # sticky master by default
         @sticky_master      = true
-        @sticky_master      = !!options.delete(:sticky_master)  if options.has_key?(:sticky_master)
+        @sticky_master      = !!options[:sticky_master]   if options.has_key?(:sticky_master)
     
         # sticky slaves by default
         @sticky_slave       = true
-        @sticky_slave       = !!options.delete(:sticky_slaves)  if options.has_key?(:sticky_slaves)
-        @sticky_slave       = !!options.delete(:sticky_slave)   if options.has_key?(:sticky_slave)
+        @sticky_slave       = !!options[:sticky_slaves]   if options.has_key?(:sticky_slaves)
+        @sticky_slave       = !!options[:sticky_slave]    if options.has_key?(:sticky_slave)
 
         @ansi_colors        = true
-        @ansi_colors        = !!options.delete(:ansi_colors)    if options.has_key?(:ansi_colors)
-            
+        @ansi_colors        = !!options[:ansi_colors]     if options.has_key?(:ansi_colors)
+
         @master             = ::Makara::Connection::Group.new(wrappers.select(&:master?))
         @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
 
         @exception_handler  = ::Makara::Connection::ErrorHandler.new(self)
 
-        decorate_connections!
+        Makara.register_adapter(self)
       end
 
       # not using any?(:meth) because i don't want it short-circuited.
       MASS_ANY_DELEGATION_METHODS.each do |meth|
         class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
           def #{meth}
-            Makara.info("Sending #{meth} to all connections and evaluating as any?")
+            info("Sending #{meth} to all connections of \#{@name} and evaluating as any?")
             hijacking! do
               all_connections.select(&:#{meth}).present?
             end
@@ -93,7 +102,7 @@ module ActiveRecord
       MASS_DELEGATION_METHODS.each do |aggregate_method|
         class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
           def #{aggregate_method}(*args)
-            Makara.info("Sending #{aggregate_method} to all connections")
+            info("Sending #{aggregate_method} to all connections of \#{@name}")
             send_to_all!(:#{aggregate_method}, *args)
           end
         AGG_METHOD
@@ -123,12 +132,11 @@ module ActiveRecord
 
       # temporarily force master within the block provided
       def with_master
-        old_value = @master_forced
+        previously_forced = forced_to_master?
         force_master!        
         yield
       ensure
-        @master_forced = old_value
-        Makara.info("Releasing forced master")
+        release_master! if previously_forced
       end
 
       # if we don't know how to handle it, pass to a master
@@ -144,12 +152,6 @@ module ActiveRecord
 
       def respond_to?(method_name, include_private = false)
         super || @master.any.connection.respond_to?(method_name, include_private)
-      end
-
-      # provide an easy way to get the name of the current wrapper
-      # especially useful for logging
-      def current_wrapper_name
-        @current_wrapper.try(:name)
       end
 
       # provide a way for things like the middleware to determine if we're currently using a master wrapper
@@ -171,8 +173,8 @@ module ActiveRecord
 
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
-        Makara.info("Unstuck: #{@current_wrapper}")
         @stuck_on = nil
+        info("Unstuck: #{@name}/#{@current_wrapper}")
       end
 
       # denote that we're hijacking an execute call
@@ -191,7 +193,16 @@ module ActiveRecord
       # force us to use a master connection
       def force_master!
         @master_forced = true
-        Makara.info("Forcing master")
+        info("Forcing master on #{@name}")
+      end
+
+      def forced_to_master?
+        !!@master_forced
+      end
+
+      def release_master!
+        @master_forced = false
+        info("Releasing master on #{@name}")
       end
 
       def any_master_connection
@@ -204,7 +215,22 @@ module ActiveRecord
       end
 
 
+      def info(text)
+        self.logger.try(:info, format_log(text))
+      end
+      def warn(text)
+        self.logger.try(:warn, format_log(text))
+      end
+      def error(text)
+        self.logger.try(:error, format_log(text))
+      end
+
+
       protected
+
+      def format_log(text)
+        "[Makara] #{text}"
+      end
 
       # send the provided method and args to all the underlying adapters
       def send_to_all!(method_name, *args)
@@ -239,7 +265,7 @@ module ActiveRecord
 
       # let's get stuck on a wrapper so we continue utilizing the same connection for the duration of this request (or until we're unstuck)
       def stick!
-        Makara.info("Sticking to: #{@current_wrapper}")
+        info("Sticking to: #{@name}/#{@current_wrapper}")
         @stuck_on = @current_wrapper
       end
 
@@ -277,23 +303,6 @@ module ActiveRecord
       def requires_master?(sql)
         return true if @master_forced
         !(!!(sql.to_s.downcase =~ SQL_SLAVE_MATCHER))
-      end
-
-      # decorate our database adapters to invoke our execute before they invoke their own
-      def decorate_connections!
-        all_wrappers.each do |wrapper|
-          decorate_connection(wrapper)
-        end
-      end
-
-      # extends the connection with the ConnectionDecorator functionality
-      # also passes a reference of ourself to the underlying connection
-      # this reference is then used to ensure we can hijack underlying execute() calls
-      def decorate_connection(wrapper)
-        Makara.info("Decorated connection: #{wrapper}")
-        con = wrapper.connection
-        con.extend ::Makara::Connection::Decorator
-        con
       end
 
       def makara_block(sql)
