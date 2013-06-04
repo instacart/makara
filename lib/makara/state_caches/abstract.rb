@@ -1,5 +1,5 @@
 module Makara
-  module StateCache
+  module StateCaches
     class Abstract
 
       class << self
@@ -31,7 +31,7 @@ module Makara
         session_id = @request.try(:session).try(:[], 'session_id')
         return nil unless session_id
 
-        yield "#{session_id}-#{base_key}"
+        yield ['makara', Makara.namespace, session_id, base_key].compact.join('-')
       end
 
     end

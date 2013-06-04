@@ -33,11 +33,11 @@ module Makara
     protected
 
     def cache_key
-      [Makara.namespace, 'makara-master-indexes'].compact.join('_')
+      'master-idxs'
     end
 
     def state_cache(request, response)
-      Makara.state_cache(request, response)
+      Makara::StateCache.for(request, response)
     end
 
     def indexes_using_master(request)

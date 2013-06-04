@@ -1,5 +1,5 @@
 module Makara
-  module StateCache
+  module StateCaches
     class Rails < Abstract
 
       def get(key)

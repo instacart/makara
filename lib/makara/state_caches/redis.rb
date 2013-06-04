@@ -1,7 +1,7 @@
 require 'redis'
 
 module Makara
-  module StateCache
+  module StateCaches
     class Redis < Abstract
 
       class << self

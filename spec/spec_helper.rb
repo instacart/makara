@@ -31,8 +31,11 @@ RSpec.configure do |config|
   config.order = 'random'
 
   config.before(:each) do
-    Makara.reset!
     Makara::Connection::Group.any_instance.stub(:should_shuffle?).and_return(false)
+  end
+
+  config.after(:each) do
+    Makara.reset!
   end
 
   def connect!(config)

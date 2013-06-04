@@ -4,6 +4,7 @@ module Makara
 
   autoload :ConfigParser,   'makara/config_parser'
   autoload :Middleware,     'makara/middleware'
+  autoload :StateCache,     'makara/state_cache'
   autoload :VERSION,        'makara/version'
 
   module Connection
@@ -17,28 +18,14 @@ module Makara
     autoload :Subscriber,   'makara/logging/subscriber'
   end
 
-  module StateCache
-    autoload :Access,       'makara/state_cache/access'
-    autoload :Abstract,     'makara/state_cache/abstract'
-    autoload :Cookie,       'makara/state_cache/cookie'
-    autoload :Rails,        'makara/state_cache/rails'
-    autoload :Redis,        'makara/state_cache/redis'
+  module StateCaches
+    autoload :Abstract,     'makara/state_caches/abstract'
+    autoload :Cookie,       'makara/state_caches/cookie'
+    autoload :Rails,        'makara/state_caches/rails'
+    autoload :Redis,        'makara/state_caches/redis'
   end
 
   class << self
-
-
-    def state_cache(request, response)
-      klass = state_cache_class
-
-      unless @connected_state_cache
-        state_cache_config = primary_config[:state_cache]
-        klass.connect(state_cache_config) unless state_cache_config.blank?
-        @connected_state_cache = true
-      end
-
-      klass.new(request, response)
-    end
 
     def namespace
       primary_config[:namespace]
@@ -46,6 +33,7 @@ module Makara
 
     def reset!
       @adapters = []
+      @primary_config = nil
     end
 
     def register_adapter(adapter)
@@ -106,27 +94,17 @@ module Makara
       indexes
     end
 
-    protected
-
     def primary_config
-      # active_record 3.1+
-      ActiveRecord::Base.connection.pool.spec.config
-    rescue
-      # active_record 3.0.x
-      ActiveRecord::Base.connection_handler.connection_pools['ActiveRecord::Base'].spec.config
-    rescue
-      {}
-    end
-
-
-    def state_cache_class
-      key_or_class_name = primary_config[:state_cache_store] || :cookie
-
-      case key_or_class_name
-      when Symbol
-        "::Makara::StateCache::#{key_or_class_name.to_s.camelize}".constantize
-      else
-        key_or_class_name.to_s.constantize
+      @primary_config ||= begin
+        # active_record 3.1+
+        ActiveRecord::Base.connection.pool.spec.config
+      rescue
+        begin
+          # active_record 3.0.x
+          ActiveRecord::Base.connection_handler.connection_pools['ActiveRecord::Base'].spec.config
+        rescue
+          {}
+        end
       end
     end
   end
