@@ -17,14 +17,31 @@ module Makara
     autoload :Subscriber,   'makara/logging/subscriber'
   end
 
+  module StateCache
+    autoload :Access,       'makara/state_cache/access'
+    autoload :Abstract,     'makara/state_cache/abstract'
+    autoload :Cookie,       'makara/state_cache/cookie'
+    autoload :Rails,        'makara/state_cache/rails'
+    autoload :Redis,        'makara/state_cache/redis'
+  end
+
   class << self
 
-    def namespace=(ns)
-      @namespace = ns
+
+    def state_cache(request, response)
+      klass = state_cache_class
+
+      unless @connected_state_cache
+        state_cache_config = primary_config[:state_cache]
+        klass.connect(state_cache_config) unless state_cache_config.blank?
+        @connected_state_cache = true
+      end
+
+      klass.new(request, response)
     end
 
     def namespace
-      @namespace
+      primary_config[:namespace]
     end
 
     def reset!
@@ -35,7 +52,6 @@ module Makara
       @adapters ||= []
       raise "[Makara] all adapters must be given a unique id. \"#{adapter.id}\" has already been used." if @adapters.map(&:id).include?(adapter.id)
       @adapters << adapter
-      self.namespace ||= adapter.namespace
       @adapters = @adapters.sort_by(&:id)
     end
 
@@ -88,6 +104,26 @@ module Makara
       indexes = []
       adapters.each_with_index{|con, i| indexes << i if con.currently_master? }
       indexes
+    end
+
+    protected
+
+    def primary_config
+      ActiveRecord::Base.connection.pool.spec.config
+    rescue
+      {}
+    end
+
+
+    def state_cache_class
+      key_or_class_name = primary_config[:state_cache_store] || :cookie
+
+      case key_or_class_name
+      when Symbol
+        "::Makara::StateCache::#{key_or_class_name.to_s.camelize}".constantize
+      else
+        key_or_class_name.to_s.constantize
+      end
     end
   end
 end

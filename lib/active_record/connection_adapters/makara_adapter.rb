@@ -42,7 +42,7 @@ module ActiveRecord
         "ActiveRecord::ConnectionAdapters::#{adapter_name.to_s.classify}Adapter".constantize.visitor_for(pool)
       end
 
-      attr_reader :current_wrapper, :id, :namespace
+      attr_reader :current_wrapper, :id
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
@@ -65,7 +65,6 @@ module ActiveRecord
         @verbose            = !!options[:verbose]
 
         @id                 =  options[:id] || 'default'
-        @namespace          =  options[:namespace]
 
         # sticky master by default
         @sticky_master      = true
@@ -183,7 +182,7 @@ module ActiveRecord
       # force us to use a master connection
       def force_master!
         @master_forced = true
-        info("[#{@name}] Forcing master")
+        info("[#{@id}] Forcing master")
       end
 
       def forced_to_master?
@@ -192,7 +191,7 @@ module ActiveRecord
 
       def release_master!
         @master_forced = false
-        info("[#{@name}] Releasing master")
+        info("[#{@id}] Releasing master")
       end
 
 

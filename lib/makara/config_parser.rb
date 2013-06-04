@@ -45,7 +45,7 @@ module Makara
       # strip out the top-level makara configuration keys
       def extract_base_config(whole)
         whole = whole.symbolize_keys
-        whole.except(:connections, :databases, :db_adapter, :id, :namespace, :sticky_slave, :sticky_slaves, :sticky_master, :verbose)
+        whole.except(:connections, :databases, :db_adapter, :id, :namespace, :state_cache, :sticky_slave, :sticky_slaves, :sticky_master, :verbose)
       end
 
     end

@@ -32,12 +32,16 @@ module Makara
 
     protected
 
-    def cookie_name
+    def cache_key
       [Makara.namespace, 'makara-master-indexes'].compact.join('_')
     end
 
+    def state_cache(request, response)
+      Makara.state_cache(request, response)
+    end
+
     def indexes_using_master(request)
-      cookie_value = request.cookies[cookie_name]
+      cookie_value = state_cache(request, nil).get(cache_key)
       return [] if cookie_value.blank?
       cookie_value.split(',').map(&:to_i)
     end
@@ -46,13 +50,11 @@ module Makara
       if request.get?
         return if [301, 302].include?(response.status.to_i)
 
-        if response.header['Set-Cookie'].present? 
-          response.delete_cookie(cookie_name)
-        end
+        state_cache(request, response).del(cache_key)
       else
         current_indexes = Makara.indexes_currently_using_master
         unless current_indexes.empty?
-          response.set_cookie(cookie_name, {:value => current_indexes.join(','), :path => '/', :expires => Time.now + 5})
+          state_cache(request, response).set(cache_key, current_indexes.join(','), 5)
         end
       end
     end

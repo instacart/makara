@@ -127,9 +127,9 @@ describe Makara::Middleware do
   context 'with a namespaced config' do
     let(:config){ namespace_config }
 
-    it 'should lay a cookie based on the namespace provided in the configuration' do
-      adapter.namespace.should eql('my_app')
-      middleware(:responder).send(:cookie_name).should eql('my_app_makara-master-indexes')
+    it 'should use the app namespace as the cache key' do
+      Makara.namespace.should eql('my_app')
+      middleware(:responder).send(:cache_key).should eql('my_app_makara-master-indexes')
     end
   end
 
