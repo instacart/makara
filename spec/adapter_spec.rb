@@ -5,10 +5,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
   class Model < ActiveRecord::Base
   end
 
-  before do
-    connect!(config)
-  end
-
   context "a config with a makara adapter and a db_adapter provided" do
 
     let(:config){ dry_single_slave_config }
@@ -65,21 +61,29 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
 
   end
 
-  it 'should register with the top level Makara' do
-    adapter
-    Makara.adapters.should eql([adapter])
-  end
+  describe "registration" do
 
-  it 'should not allow multiple adapters with the same id' do
-    lambda{
-      ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon])
-    }.should raise_error('[Makara] all adapters must be given a unique id. "default" has already been used.')
-  end
+    let(:config){ simple_config }
 
-  it 'should allow multiple adapters as long as they have different id' do
-    lambda{
-      ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
-    }.should_not raise_error
-  end
+    before do
+      connect!(config)
+    end
 
+    it 'should register with the top level Makara' do
+      adapter
+      Makara.adapters.should eql([adapter])
+    end
+
+    it 'should not allow multiple adapters with the same id' do
+      lambda{
+        ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon])
+      }.should raise_error('[Makara] all adapters must be given a unique id. "default" has already been used.')
+    end
+
+    it 'should allow multiple adapters as long as they have different id' do
+      lambda{
+        ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
+      }.should_not raise_error
+    end
+  end
 end
