@@ -28,8 +28,8 @@ describe Makara::Middleware do
 
   def set_cookie_value(headers)
     s = headers['Set-Cookie'].to_s
-    s =~ /makara-master-indexes=(.+)/
-    $1 ? $1.to_s.split(';').first : nil
+    s =~ /makara-(.+)?master-idxs=(.+)/
+    $2 ? $2.to_s.split(';').first : nil
   end
 
   before do
@@ -83,7 +83,7 @@ describe Makara::Middleware do
       it "should force master if the previous request stuck to master in a #{app} app handling a #{req} request" do
         adapter
 
-        @env = {'HTTP_COOKIE' => 'makara-master-indexes=0'}
+        @env = {'HTTP_COOKIE' => 'makara-master-idxs=0'}
         request = send("#{req}_request")
         Makara.should_receive(:with_master).and_return(send("#{app}_app").call(request))
         middleware(app).call(request)
@@ -95,14 +95,14 @@ describe Makara::Middleware do
   it "should not unset the cookie when a redirect is encountered and the cookie is present" do
     adapter
 
-    @env = {'HTTP_COOKIE' => 'makara-master-indexes=0'}
+    @env = {'HTTP_COOKIE' => 'makara-master-idxs=0'}
     Makara.should_receive(:with_master).and_return(redirector_app.call(get_request))
     middleware('redirector').call(get_request)
   end
 
   it 'should stick to individual masters as needed' do
     adapter
-    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :name => 'secondary')
+    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
 
     adapter.mcon.makara_adapter = adapter
 
@@ -119,9 +119,31 @@ describe Makara::Middleware do
     adapter.should_receive(:force_master!).once
     adapter2.should_receive(:force_master!).never
 
-    status, headers, body = middle.call(get_request.merge('HTTP_COOKIE' => 'makara-master-indexes=0'))
+    status, headers, body = middle.call(get_request.merge('HTTP_COOKIE' => 'makara-master-idxs=0'))
     set_cookie_value(headers).should be_nil
 
+  end
+
+  context 'with a namespaced config' do
+    let(:config){ namespace_config }
+
+    it 'should use the app namespace as the cache key' do
+      Makara.namespace.should eql('my_app')
+
+      app = lambda do |env| 
+        adapter.execute('update users set value = 1')
+        [200, {}, 'Updater']
+      end
+      
+      middle = Makara::Middleware.new(app)
+
+      status, headers, body = middle.call(post_request)
+
+      headers['Set-Cookie'].should =~ /makara-my_app-master-idxs/
+      headers['Set-Cookie'].should_not =~ /makara-master-idxs/
+      
+      set_cookie_value(headers).should eql('0')
+    end
   end
 
 end

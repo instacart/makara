@@ -36,7 +36,7 @@ module Makara
       end
 
       def handle_exception_harshly(e)
-        @adapter.error("Error caught in makara adapter while using #{current_wrapper}: #{e}")
+        @adapter.error("[#{current_wrapper}] Error caught in makara adapter: #{e}")
         raise e 
       end
 
