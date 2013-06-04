@@ -32,11 +32,11 @@ module Makara
         @adapter.unstick!
 
         # let's blacklist this slave to ensure it's removed from the slave cycle
-        current_wrapper.blacklist!(e.to_s)
+        current_wrapper.blacklist!
       end
 
       def handle_exception_harshly(e)
-        Makara.error("Error caught in makara adapter while using #{current_wrapper}: #{e}")
+        @adapter.error("Error caught in makara adapter while using #{current_wrapper}: #{e}")
         raise e 
       end
 
