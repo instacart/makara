@@ -4,9 +4,14 @@ module ActiveRecord
 
     def self.makara_connection(config)
       wrappers = ::Makara::ConfigParser.each_config(config) do |db_config|
-        connection = underlying_connection_for(db_config)                
-        ::Makara::Connection::Wrapper.new(connection)
-      end
+        begin
+          connection = underlying_connection_for(db_config)
+          ::Makara::Connection::Wrapper.new(connection)
+        rescue StandardError => e
+          raise e if db_config[:role] == 'master'
+          nil
+        end
+      end.compact
 
       raise "[Makara] You must include at least one connection that serves as a master" unless wrappers.any?(&:master?)
 
@@ -48,7 +53,7 @@ module ActiveRecord
       attr_reader :current_wrapper
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
-      SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
+      SQL_SLAVE_MATCHER       = /^\s*(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
       MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
@@ -172,6 +177,7 @@ module ActiveRecord
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
         Makara.info("Unstuck: #{@current_wrapper}")
+        unforce_master!
         @stuck_on = nil
       end
 
@@ -192,6 +198,11 @@ module ActiveRecord
       def force_master!
         @master_forced = true
         Makara.info("Forcing master")
+      end
+
+      def unforce_master!
+        Makara.info("Unforcing master") if @master_forced
+        @master_forced = false
       end
 
       def any_master_connection
