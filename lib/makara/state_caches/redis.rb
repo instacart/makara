@@ -1,3 +1,4 @@
+require 'timeout'
 require 'redis'
 
 module Makara
@@ -7,12 +8,19 @@ module Makara
       class << self
 
         def connect(options = {})
-          @client ||= ::Redis.new(options)
+          @client ||= begin
+            @timeout = options[:makara_timeout]
+            ::Redis.new(options.except(:makara_timeout))
+          end
           true
         end
 
         def client
           @client || ::Redis.current
+        end
+
+        def timeout
+          @timeout || 1
         end
 
       end
@@ -39,6 +47,12 @@ module Makara
 
       def client
         self.class.client
+      end
+
+      def with_session_key(key)
+        Timeout::timeout(self.class.timeout) do
+          super(key)
+        end
       end
 
     end
