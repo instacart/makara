@@ -1,6 +1,7 @@
 # Makara: *A Read-Write splitting adaptor for Active Record*
 
 [![Build Status](https://secure.travis-ci.org/taskrabbit/makara.png)](http://travis-ci.org/taskrabbit/makara)
+[![Code Climate](https://codeclimate.com/github/taskrabbit/makara.png)](https://codeclimate.com/github/taskrabbit/makara)
 
 ## What?
 
