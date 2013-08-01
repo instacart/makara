@@ -43,6 +43,11 @@ module Makara
       @adapters = @adapters.sort_by(&:id)
     end
 
+    def unregister_adapter(adapter)
+      @adapters ||= []
+      @adapters.delete(adapter)
+    end
+
     def force_master!
       to_all(:force_master!)
     end

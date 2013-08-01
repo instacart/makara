@@ -47,7 +47,7 @@ module ActiveRecord
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
-      MASS_DELEGATION_METHODS = %w(reconnect! disconnect! reset!)
+      MASS_DELEGATION_METHODS = %w(reconnect! reset!)
       MASS_ANY_DELEGATION_METHODS = %w(active?)
 
       def initialize(connections, options = {})
@@ -103,6 +103,11 @@ module ActiveRecord
             send_to_all!(:#{aggregate_method}, *args)
           end
         AGG_METHOD
+      end
+
+      def disconnect!(*args)
+        send_to_all!(:disconnect!, *args)
+        Makara.unregister_adapter(self)
       end
 
 
