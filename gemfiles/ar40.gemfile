@@ -1,11 +1,12 @@
 source 'https://rubygems.org'
 
 # Specify your gem's dependencies in makara.gemspec
-gemspec
+gemspec :path => '../'
+
 
 gem 'activerecord', '4.0.0'
-gem 'rack'
 gem 'rake'
+gem 'rack'
 gem 'mysql2'
 gem 'rspec'
 gem 'delorean'
