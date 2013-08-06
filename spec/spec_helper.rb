@@ -11,7 +11,7 @@ require 'makara'
 require 'delorean'
 
 begin
-  require 'ruby-debug'
+  require 'debugger'
 rescue LoadError => e
 end
 
