@@ -38,8 +38,7 @@ module Makara
 
     def register_adapter(adapter)
       @adapters ||= []
-      raise "[Makara] all adapters must be given a unique id. \"#{adapter.id}\" has already been used." if @adapters.map(&:id).include?(adapter.id)
-      @adapters << adapter
+      @adapters << adapter unless @adapters.map(&:id).include?(adapter.id)
       @adapters = @adapters.sort_by(&:id)
     end
 
