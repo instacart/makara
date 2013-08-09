@@ -27,7 +27,13 @@ module Makara
 
   class << self
 
-    mattr_accessor :context
+    def context=(c)
+      @context = c.to_s
+    end
+
+    def context
+      @context || 'global'
+    end
 
     def namespace
       primary_config[:namespace]
