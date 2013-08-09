@@ -155,6 +155,7 @@ module ActiveRecord
       # if we want to unstick the current connection (request is over, testing, etc)
       def unstick!
         @stuck_on = nil
+        @stuck_on_context = nil
         info("Unstuck: #{@current_wrapper}")
       end
 
@@ -236,9 +237,9 @@ module ActiveRecord
       # otherwise, let's use the currently stuck connection, the next available slave, or the master connection
       def current_wrapper_for(sql)
         if requires_master?(sql)
-          @stuck_on.try(:master?) ? @stuck_on : @master.next
+          stuck_on.try(:master?) ? stuck_on : @master.next
         else
-          @stuck_on || @slave.next || @master.next
+          stuck_on || @slave.next || @master.next
         end
       end
 
@@ -246,15 +247,23 @@ module ActiveRecord
       def stick!
         info("Sticking to: #{@current_wrapper}")
         @stuck_on = @current_wrapper
+        @stuck_on_context = Makara.context
         if @stuck_on.master?
           Makara.stick_id!(self.id)
         end
         @stuck_on
       end
 
+      def stuck_on
+        unless @stuck_on_context == Makara.context
+          @stuck_on = nil 
+        end
+        @stuck_on
+      end
+
       # are we currently stuck on a wrapper?
       def currently_stuck?
-        !!@stuck_on
+        !!stuck_on
       end
 
       # given the wrapper and the current configuration, should we stick to this guy?
@@ -264,7 +273,7 @@ module ActiveRecord
 
         return false  if ignore_stickiness?(sql)
 
-        return false  if currently_stuck?   && @stuck_on.master?
+        return false  if currently_stuck?   && stuck_on.master?
         return true   if @sticky_master     && @current_wrapper.master?
 
         return false  if currently_stuck?

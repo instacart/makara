@@ -27,15 +27,10 @@ module Makara
 
   class << self
 
+    mattr_accessor :context
+
     def namespace
       primary_config[:namespace]
-    end
-
-    def reset!
-      release_master!
-      release_forced_ids!
-      release_stuck_ids!
-      @primary_config = nil
     end
 
     # force connections with this id to master

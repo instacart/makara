@@ -12,6 +12,8 @@ module Makara
 
       request = Rack::Request.new(env)
 
+      Makara.context = env["action_dispatch.request_id"]
+
       force_necessary_ids_to_master!(request)
 
       status, headers, body = @app.call(env)
@@ -25,6 +27,7 @@ module Makara
     ensure
       Makara.release_forced_ids!
       Makara.release_stuck_ids!
+      Makara.context = nil
     end
 
     protected
