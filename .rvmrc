@@ -1,1 +1,1 @@
-rvm use 1.9.3-p194@makara --create
+rvm use 2.0.0-p247@makara --create
