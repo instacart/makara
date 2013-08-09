@@ -47,8 +47,6 @@ module ActiveRecord
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/
 
-      MASS_DELEGATION_METHODS = %w(reconnect! reset!)
-      MASS_ANY_DELEGATION_METHODS = %w(active?)
 
       def initialize(connections, options = {})
 
@@ -79,35 +77,24 @@ module ActiveRecord
         @slave              = ::Makara::Connection::Group.new(wrappers.select(&:slave?))
 
         @exception_handler  = ::Makara::Connection::ErrorHandler.new(self)
-
-        Makara.register_adapter(self)
       end
 
-      # not using any?(:meth) because i don't want it short-circuited.
-      MASS_ANY_DELEGATION_METHODS.each do |meth|
-        class_eval <<-DEL_METHOD, __FILE__, __LINE__ + 1
-          def #{meth}
-            info("[\#{@id}] Sending #{meth} to all connections and evaluating as any?")
-            hijacking! do
-              all_connections.select(&:#{meth}).present?
-            end
-          end
-        DEL_METHOD
+      def active?
+        hijacking! do
+          all_connections.any?(&:active?)
+        end
       end
 
-      # these methods must be forwarded on all adapters
-      MASS_DELEGATION_METHODS.each do |aggregate_method|
-        class_eval <<-AGG_METHOD, __FILE__, __LINE__ + 1
-          def #{aggregate_method}(*args)
-            info("[\#{@id} Sending #{aggregate_method} to all connections")
-            send_to_all!(:#{aggregate_method}, *args)
-          end
-        AGG_METHOD
+      def reset!(*args)
+        send_to_all!(:reset!, *args)
+      end
+
+      def reconnect!(*args)
+        send_to_all!(:reconnect!, *args)
       end
 
       def disconnect!(*args)
         send_to_all!(:disconnect!, *args)
-        Makara.unregister_adapter(self)
       end
 
 
@@ -259,6 +246,10 @@ module ActiveRecord
       def stick!
         info("Sticking to: #{@current_wrapper}")
         @stuck_on = @current_wrapper
+        if @stuck_on.master?
+          Makara.stick_id!(self.id)
+        end
+        @stuck_on
       end
 
       # are we currently stuck on a wrapper?
@@ -293,8 +284,14 @@ module ActiveRecord
       # based on this sql command, should we require the master connection be used?
       # override this if you'd like to globally set to master in a block
       def requires_master?(sql)
-        return true if @master_forced
+        return true if master_forced?
         !(!!(sql.to_s.downcase =~ SQL_SLAVE_MATCHER))
+      end
+
+      def master_forced?
+        return true if @master_forced
+        return true if Makara.forced_to_master?(self.id)
+        false
       end
 
 

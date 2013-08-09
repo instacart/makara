@@ -34,11 +34,7 @@ module Makara
         wrapper_name = adapter.current_wrapper.try(:name)
         return "[#{id}]" unless wrapper_name
 
-        if id == 'default' && !Makara.multi?
-          "[#{wrapper_name}]"
-        else
-          "[#{id}/#{wrapper_name}]"
-        end
+        "[#{id}/#{wrapper_name}]"
       end
     end
 

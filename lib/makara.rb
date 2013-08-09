@@ -32,72 +32,55 @@ module Makara
     end
 
     def reset!
-      @adapters = []
+      release_master!
+      release_forced_ids!
+      release_stuck_ids!
       @primary_config = nil
     end
 
-    def register_adapter(adapter)
-      @adapters ||= []
-      raise "[Makara] all adapters must be given a unique id. \"#{adapter.id}\" has already been used." if @adapters.map(&:id).include?(adapter.id)
-      @adapters << adapter
-      @adapters = @adapters.sort_by(&:id)
+    # force connections with this id to master
+    def force_to_master!(id)
+      @forced_to_master_ids ||= []
+      @forced_to_master_ids |= [id.to_s]
     end
 
-    def unregister_adapter(adapter)
-      @adapters ||= []
-      @adapters.delete(adapter)
+    def forced_to_master?(id)
+      return true if @forced_to_master
+      @forced_to_master_ids ||= []
+      @forced_to_master_ids.include?(id.to_s)
     end
 
+    def currently_forced_ids
+      @forced_to_master_ids ||= []
+    end
+
+    def release_forced_ids!
+      @forced_to_master_ids = []
+    end
+
+    # forces everyone to master all the time
     def force_master!
-      to_all(:force_master!)
+      @forced_to_master = true
     end
 
-    def with_master(connection_indexes = nil)
-      previous_values = {}
-      adapters.each do |adapter|
-        previous_values[adapter.id] = adapter.forced_to_master?
-      end
-
-      if connection_indexes
-        connection_indexes.each do |index|
-          adapters[index].force_master!
-        end
-      else
-        force_master!
-      end
-
-      yield
-
-    ensure
-
-      adapters.each do |adapter|
-        unless previous_values[adapter.id]
-          adapter.release_master!
-        end
-      end
+    # release the global enforcement
+    def release_master!
+      @forced_to_master = false
     end
 
-    def to_all(method_sym)
-      adapters.each(&method_sym)
+    def stick_id!(id)
+      @currently_stuck_ids ||= []
+      @currently_stuck_ids |= [id.to_s]
     end
 
-    def adapters
-      @adapters || []
+    def release_stuck_ids!
+      @currently_stuck_ids = []
     end
 
-    def in_use?
-      adapters.any?
+    def currently_stuck_ids
+      @currently_stuck_ids ||= []
     end
 
-    def multi?
-      adapters.size > 1
-    end
-
-    def indexes_currently_using_master
-      indexes = []
-      adapters.each_with_index{|con, i| indexes << i if con.currently_master? }
-      indexes
-    end
 
     def primary_config
       @primary_config ||= begin

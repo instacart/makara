@@ -10,51 +10,53 @@ module Makara
 
     def call(env)
 
-      return @app.call(env) unless Makara.in_use?
-
       request = Rack::Request.new(env)
 
-      indexes = indexes_using_master(request)
+      force_necessary_ids_to_master!(request)
 
-      status, headers, body = Makara.with_master(indexes) do
-        @app.call(env)
-      end
+      status, headers, body = @app.call(env)
 
       response = Rack::Response.new(body, status, headers)
 
-      store_master_cookie!(request, response)
+      store_forced_ids!(request, response)
 
       response.finish
 
     ensure
-      Makara.to_all(:unstick!)
+      Makara.release_forced_ids!
+      Makara.release_stuck_ids!
     end
 
     protected
 
     def cache_key
-      'master-idxs'
+      'master-ids'
     end
 
     def state_cache(request, response)
       Makara::StateCache.for(request, response)
     end
 
-    def indexes_using_master(request)
-      cookie_value = state_cache(request, nil).get(cache_key)
-      return [] if cookie_value.blank?
-      cookie_value.split(',').map(&:to_i)
+    def force_necessary_ids_to_master!(request)
+      value = state_cache(request, nil).get(cache_key)
+      return if value.blank?
+      ids = value.split(',')
+      ids.each{|id| Makara.force_to_master!(id) }
     end
 
-    def store_master_cookie!(request, response)
-      if request.get?
-        return if [301, 302].include?(response.status.to_i)
-
-        state_cache(request, response).del(cache_key)
+    def store_forced_ids!(request, response)
+      if [301, 302].include?(response.status.to_i)
+        currently_forced = Makara.currently_forced_ids
+        unless currently_forced.empty?
+          state_cache(request, response).set(cache_key, currently_forced.join(','), 5)
+        end
       else
-        current_indexes = Makara.indexes_currently_using_master
-        unless current_indexes.empty?
-          state_cache(request, response).set(cache_key, current_indexes.join(','), 5)
+        currently_stuck = Makara.currently_stuck_ids
+
+        if currently_stuck.empty?
+          state_cache(request, response).del(cache_key)
+        else
+          state_cache(request, response).set(cache_key, currently_stuck.join(','), 5)
         end
       end
     end

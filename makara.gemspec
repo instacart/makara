@@ -16,4 +16,5 @@ Gem::Specification.new do |gem|
   gem.version       = Makara::VERSION
 
   gem.add_dependency 'activerecord', '>= 3.0'
+  gem.add_development_dependency 'debugger'
 end
