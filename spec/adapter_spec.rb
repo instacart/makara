@@ -74,10 +74,15 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
       Makara.adapters.should eql([adapter])
     end
 
-    it 'should not allow multiple adapters with the same id' do
+    it 'should not raise if multiple adapters with the same id are registered' do
       lambda{
         ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon])
-      }.should raise_error('[Makara] all adapters must be given a unique id. "default" has already been used.')
+      }.should_not raise_error
+    end
+
+    it 'should not allow multiple adapters with the same id to be registered' do
+      ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon])
+      Makara.adapters.should eql([adapter])
     end
 
     it 'should allow multiple adapters as long as they have different id' do
