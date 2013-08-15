@@ -195,7 +195,7 @@ Notice that when the store is provided as a :symbol it will load the constant fr
 
 ## Rake Tasks and Other Master-Only Usage
 
-In some cases, such as rake tasks or workers, it's preferred to lock Makara to master to avoid replication lag. To force master on all connections, all you need to do is `Makara.force_master!`. If you only want master forced on a specific connection, you can access it through the `Makara.adapters` and force via `adapter.force_master!`.
+In some cases, such as rake tasks or workers, it's preferred to lock Makara to master to avoid replication lag. To force master on all connections, all you need to do is `Makara.force_master!`. If you only want master forced on a specific connection, you can do so on the connection directly `User.connection.force_master!`.
 
 ### Rakefile setup
 
