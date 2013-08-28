@@ -9,5 +9,6 @@ gem 'rake'
 gem 'rack'
 gem 'mysql2', '0.2.18'
 gem 'rspec'
+gem 'chronic', '0.9.1' # ruby 1.8 compatible
 gem 'delorean'
 gem 'redis'
