@@ -5,7 +5,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
   class Model < ActiveRecord::Base
   end
 
-  context "a config with a makara adapter and a db_adapter provided" do
+  context "a single slave config" do
 
     let(:config){ dry_single_slave_config }
 
@@ -13,7 +13,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
       connect!(config)
     end
 
-    ActiveRecord::ConnectionAdapters::MakaraAdapter::MASS_DELEGATION_METHODS.each do |meth|
+    %w(reconnect! reset! disconnect!).each do |meth|
       it "should delegate #{meth} to all connections" do
         adapter.mcon.should_receive(meth).once
         adapter.scon(1).should_receive(meth).once
@@ -21,7 +21,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
       end
     end
 
-    ActiveRecord::ConnectionAdapters::MakaraAdapter::MASS_ANY_DELEGATION_METHODS.each do |meth|
+    %w(active?).each do |meth|
       it "should delegate and evaluate an any? on #{meth}" do
         adapter.mcon.should_receive(meth).once
         adapter.scon(1).should_receive(meth).once
@@ -42,6 +42,33 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
       adapter.execute('insert into cats (select * from felines)')
 
     end
+
+    it 'should use the master connection if ::Makara is currently forcing it' do
+      Makara.stub(:forced_to_master?).with('default').and_return(true)
+
+      adapter.mcon.should_receive(:execute).with('insert into dogs...', nil).once
+      adapter.mcon.should_receive(:execute).with('insert into cats (select * from felines)', nil).once
+      adapter.mcon.should_receive(:execute).with('select * from felines', nil).once
+      adapter.mcon.should_receive(:execute).with('select * from dogs', nil).once
+
+      adapter.execute('select * from dogs')
+      adapter.execute('insert into dogs...')
+      adapter.execute('select * from felines')
+      adapter.execute('insert into cats (select * from felines)')
+    end
+
+    context 'with sticky connections' do
+
+      let(:config){ single_slave_config }
+
+      it 'should tell ::Makara when a master connection is stuck to' do
+        Makara.should_receive(:stick_id!).with('default').once
+        adapter.execute('select * from dogs')
+        adapter.execute('insert into dogs...')
+      end
+
+    end
+
   end
 
   context "a config with a makara-* adapter and a db_adapter provided" do
@@ -61,29 +88,4 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
 
   end
 
-  describe "registration" do
-
-    let(:config){ simple_config }
-
-    before do
-      connect!(config)
-    end
-
-    it 'should register with the top level Makara' do
-      adapter
-      Makara.adapters.should eql([adapter])
-    end
-
-    it 'should not allow multiple adapters with the same id' do
-      lambda{
-        ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon])
-      }.should raise_error('[Makara] all adapters must be given a unique id. "default" has already been used.')
-    end
-
-    it 'should allow multiple adapters as long as they have different id' do
-      lambda{
-        ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
-      }.should_not raise_error
-    end
-  end
 end
