@@ -128,7 +128,7 @@ module ActiveRecord
         force_master!        
         yield
       ensure
-        release_master! if previously_forced
+        release_master! unless previously_forced
       end
 
       # if we don't know how to handle it, pass to a master
@@ -136,7 +136,9 @@ module ActiveRecord
       def method_missing(method_name, *args, &block)
         class_eval <<-EV, __FILE__, __LINE__+1
           def #{method_name}(*args, &block)
-            @master.any.connection.send(:#{method_name}, *args, &block)
+            with_master do
+              @master.any.connection.send(:#{method_name}, *args, &block)
+            end
           end
         EV
         send(method_name, *args, &block)
@@ -201,6 +203,10 @@ module ActiveRecord
       end
       def error(text)
         self.logger.try(:error, format_log(text))
+      end
+
+      def logger
+        @master.any.connection.logger
       end
 
 
