@@ -7,7 +7,7 @@ describe Makara::Connection::ErrorHandler do
   end
 
   let(:config){ single_slave_config }
-  let(:handler){ adapter.instance_variable_get('@exception_handler') }
+  let(:handler){ adapter.exception_handler }
 
   [
     %|Mysql::Error: : INSERT INTO `watchers` (`user_id`, `watchable_id`, `watchable_type`) VALUES|,
