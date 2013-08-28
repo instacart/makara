@@ -28,34 +28,36 @@ Add makara to your gemfile:
     gem 'makara', git: 'git@github.com:taskrabbit/makara.git', tag: 'v0.1.0'
 
 Configure your database.yml as desired.
+
+```yml  
+production:
+  id: 'my_app'
+
+  sticky_slave: true
+  sticky_master: true
+
+  adapter: makara_mysql2
   
-    production:
-      id: 'my_app'
-
-      sticky_slave: true
-      sticky_master: true
-
-      adapter: makara_mysql2
-      
+  host: xxx
+  user: xxx
+  password: xxx
+  blacklist_duration: 5
+  
+  connections:
+    - name: master
+      role: master
+    - name: slave1
+      role: slave
       host: xxx
       user: xxx
       password: xxx
-      blacklist_duration: 5
-      
-      connections:
-        - name: master
-          role: master
-        - name: slave1
-          role: slave
-          host: xxx
-          user: xxx
-          password: xxx
-          weight: 3
-        - name: slave2
-          role: slave
-          host: xxx
-          user: xxx
-          weight: 2
+      weight: 3
+    - name: slave2
+      role: slave
+      host: xxx
+      user: xxx
+      weight: 2
+```
 
 Profit.
 
@@ -80,48 +82,54 @@ Makara is designed to be configured solely via your `database.yml`. This means t
 
 The minimal `database.yml` you'll need to get things running looks like (optional defaults exposed):
 
-    production:
-      adapter: makara_mysql2
+```yml
+production:
+  adapter: makara_mysql2
 
-      id: default                 // optional
-      namespace: ~                // optional
-      sticky_master: true         // optional
-      sticky_slaves: true         // optional
-      blacklist_duration: 60      // optional
-      verbose: false              // optional
+  id: default                 // optional
+  namespace: ~                // optional
+  sticky_master: true         // optional
+  sticky_slaves: true         // optional
+  blacklist_duration: 60      // optional
+  verbose: false              // optional
 
-      database: my_project_db
-      username: root
-      password: 
+  database: my_project_db
+  username: root
+  password: 
 
-      connections:
-        - name: master
-          role: master
+  connections:
+    - name: master
+      role: master
+```
 
 To define a slave connection, provide another connection with either the role removed or as `slave`.
 
-    production:
-      ...
-      connections:
-        - name: master
-          role: master
-        - name: slave 1
+```yml
+production:
+  ...
+  connections:
+    - name: master
+      role: master
+    - name: slave 1
+```
 
 By default the connections will inherit the top-level connection configuration. The best practice is to put the shared options in the top-level and define all the differences in each sub-config. In the example below, the `db_adapter`, `username`, and `password` options will be shared among all the connections.
 
-    production:
-      adapter: makara_mysql2
-      username: the-user
-      password: the-password
+```yml
+production:
+  adapter: makara_mysql2
+  username: the-user
+  password: the-password
 
-      connections:
-        - name: master
-          role: master
-          database: prod-db-master
-        - name: slave 1
-          database: prod-db-slave-1
-        - name: slave 2
-          database: prod-db-slave-2
+  connections:
+    - name: master
+      role: master
+      database: prod-db-master
+    - name: slave 1
+      database: prod-db-slave-1
+    - name: slave 2
+      database: prod-db-slave-2
+```
 
 ## Configuration options
 
@@ -175,21 +183,27 @@ The following are definitions of the options available to the makara adapter:
 
 To ensure consistency, the makara middleware will try to use a cache between requests to store which connections should be forced to master on the next request. It uses the cookie store by default but you have the option to use others. You can tell Makara which store to use via your database.yml:
 
-    production:
-      state_cache_store: :rails
+```ruby
+production:
+  state_cache_store: :rails
+```
 
 The previous config would use the ::Makara::StateCaches::Rails class to store the information. Keep in mind the data expires in 5 seconds, so it's generally not something to worry about. A more complex config is as follows:
 
-    production:
-      state_cache_store: :redis
-      state_cache:
-        :host: '127.0.0.1'
-        :port: 6380
+```ruby
+production:
+  state_cache_store: :redis
+  state_cache:
+    :host: '127.0.0.1'
+    :port: 6380
+```
 
 In the case of the redis store, if no config options are provided, `Redis.current` will be used. If you want to write a custom store, inherit from ::Makara::StateCaches::Abstract and declare it in your database.yml:
 
-    production:
-      state_cache_store: 'MyCustom::Store'
+```ruby
+production:
+  state_cache_store: 'MyCustom::Store'
+```
 
 Notice that when the store is provided as a :symbol it will load the constant from within ::Makara::StateCaches
 
@@ -199,18 +213,17 @@ In some cases, such as rake tasks or workers, it's preferred to lock Makara to m
 
 ### Rakefile setup
 
-    # Rakefile
-    ENV['lock_makara_to_master'] = 'true'
-    
-    # config/initializers/makara.rb
-    require 'makara'
-    if ENV["lock_makara_to_master"] == "true"
-      Makara.force_master!
-      puts "Locked Makara to master for all connections"
-    end
+```ruby
+# Rakefile
+ENV['lock_makara_to_master'] = 'true'
 
-
-
+# config/initializers/makara.rb
+require 'makara'
+if ENV["lock_makara_to_master"] == "true"
+  Makara.force_master!
+  puts "Locked Makara to master for all connections"
+end
+```
 
 ## Questions
 
@@ -235,7 +248,6 @@ For more information on TaskRabbit, [check out our tech blog](http://tech.taskra
 3. Commit your changes (`git commit -am 'Added some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
-
 
 ## Acknowledgements
 
