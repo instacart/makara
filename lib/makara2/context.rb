@@ -2,12 +2,27 @@ module Makara2
   class Context
     class << self
 
-      def get
-        @context || 'default'
+
+      def generate
+        SecureRandom.hex
       end
 
-      def set(context)
-        @context = context
+
+      def get_previous
+        @previous_context || 'default_previous'
+      end
+
+      def set_previous(context)
+        @previous_context = context
+      end
+
+
+      def get_current
+        @current_context || 'default_current'
+      end
+
+      def set_current(context)
+        @current_context = context
       end
 
     end

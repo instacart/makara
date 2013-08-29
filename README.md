@@ -27,3 +27,7 @@ TODO: Write usage instructions here
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)
 5. Create new Pull Request
+
+## Todo
+
+Allow a cookie cache store to be provided by the middleware. If the cache store is set to :cookie then instantiate a cookie store based on the current request. After the response is handled ensure the store is reset to :cookie.

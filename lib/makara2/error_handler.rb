@@ -5,18 +5,18 @@ module Makara2
     def handle
       yield
 
-    # rescue ActiveRecord::RecordNotUnique => e
-    #   harshly(e)
-    # rescue ActiveRecord::InvalidForeignKey => e
-    #   harshly(e)
-    # rescue ActiveRecord::StatementInvalid => e
-    #   if connection_message?(e)
-    #     harshly(e)
-    #   else
-    #     gracefully(e)
-    #   end
-    # rescue Exception => e
-    #   gracefully(e)
+    rescue ActiveRecord::RecordNotUnique => e
+      harshly(e)
+    rescue ActiveRecord::InvalidForeignKey => e
+      harshly(e)
+    rescue ActiveRecord::StatementInvalid => e
+      if connection_message?(e)
+        harshly(e)
+      else
+        gracefully(e)
+      end
+    rescue Exception => e
+      gracefully(e)
     end
 
 

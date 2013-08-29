@@ -39,10 +39,12 @@ module Makara2
         @query_options
       end
 
+      # this is only invoked after an update so we're guaranteed to be stuck on master
       def affected_rows
         appropriate_pool{|pool| pool.provide{|connection| connection.affected_rows }}
       end
 
+      # this is only invoked after an insert so we're guaranteed to be stuck on master
       def last_id
         appropriate_pool{|pool| pool.provide{|connection| connection.last_id }}
       end
