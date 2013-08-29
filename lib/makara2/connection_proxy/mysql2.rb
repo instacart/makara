@@ -39,6 +39,14 @@ module Makara2
         @query_options
       end
 
+      def affected_rows
+        appropriate_pool{|pool| pool.provide{|connection| connection.affected_rows }}
+      end
+
+      def last_id
+        appropriate_pool{|pool| pool.provide{|connection| connection.last_id }}
+      end
+
       protected
 
       def connection_for(config)

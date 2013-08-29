@@ -6,14 +6,13 @@ module Makara2
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/i
 
       DEFAULT_CONFIG = {
-        blacklist_duration: 30,
-        sticky_slave: true,
-        sticky_mater: true,
+        blacklist_duration: 30
       }
 
       def initialize(config)
-        @config = DEFAULT_CONFIG.merge(config)
-        @config_parser = Makara2::ConfigParser.new(@config)
+        @config         = DEFAULT_CONFIG.merge(config)
+        @config_parser  = Makara2::ConfigParser.new(@config)
+        @context        = Makara2::Context.get
         instantiate_connections
       end
 
@@ -21,6 +20,7 @@ module Makara2
       def query(sql)
         appropriate_pool(sql) do |pool|
           pool.provide do |connection|
+            @last_used_connection = connection
             connection.query(sql)
           end
         end
@@ -45,16 +45,17 @@ module Makara2
       protected
 
 
-      def appropriate_pool(sql)
-        if needs_master?(sql)
-          puts "Using master: #{sql}"
-          yield @master_pool
+      def appropriate_pool(sql = nil)
+
+        if Makara2::Context.get == @context && @current_pool
+          yield @current_pool
+        elsif needs_master?(sql)
+          yield stick(sql, @master_pool)
         else
-          puts "Using slave: #{sql}"
           unless @slave_pool.empty?
-            yield @slave_pool
+            yield stick(sql, @slave_pool)
           else
-            yield @master_pool
+            yield stick(sql, @master_pool)
           end
         end
       end
@@ -62,6 +63,22 @@ module Makara2
 
       def needs_master?(sql)
         return false if sql.to_s =~ SQL_SLAVE_MATCHER
+        true
+      end
+
+
+      def stick(sql, pool)
+        if should_stick?(sql)
+          @current_pool = pool
+          @context = Makara2::Context.get
+        end
+        pool
+      end
+
+
+      def should_stick?(sql)
+        return false if sql.to_s =~ /^show ([\w]+ )?tables?/i
+        return false if sql.to_s =~ /^show (full )?fields?/i
         true
       end
 

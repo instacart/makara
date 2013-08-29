@@ -24,7 +24,7 @@ module Makara2
     end
 
     def base_config
-      @config.except(:connections, :sticky_slave, :sticky_master, :blacklist_duration)
+      @config.except(:connections, :blacklist_duration)
     end
 
   end

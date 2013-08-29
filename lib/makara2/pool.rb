@@ -3,8 +3,8 @@ module Makara2
 
     def initialize(config)
       @config         = config
+      @context        = Makara2::Context.get
       @connections    = []
-      @blacklisted    = []
       @current_idx    = 0
       @error_handler  = Makara2::ErrorHandler.new
     end
@@ -16,25 +16,25 @@ module Makara2
 
 
     def <<(connection)
-      @connections << connection
-      @blacklisted << nil
+      @connections << [connection, nil]
+      @connections.shuffle!
       @current_idx = rand(@connections.length)
     end
 
     def each_connection
-      @connections.each do |connection|
+      @connections.each do |connection, blacklisted_until|
         yield connection
       end
     end
 
 
     def send_to_all(method, *args)
-      @connections.each{|connection| connection.send(method, *args) }
+      @connections.each{|connection, blacklisted_until| connection.send(method, *args) }
     end
 
 
     def any
-      yield @connections.first
+      yield @connections.first[0]
     end
 
 
@@ -60,26 +60,14 @@ module Makara2
     end
 
 
-    def stick
-      previous_stuck_on = @stuck_on
-      @stuck_on ||= self.next
-
-      provide do |connection|
-        yield connection
-      end
-
-    ensure
-      @stuck_on = previous_stuck_on
-    end
-
-
-
     protected
 
 
 
     def next
-      return @stuck_on if @stuck_on
+      if Makara2::Context.get == @context && @current_connection
+        return @current_connection 
+      end
       
       idx = @current_idx
       begin
@@ -109,20 +97,31 @@ module Makara2
     # return the connection if it's not blacklisted
     # otherwise return nil
     # optionally, store the position we're returning
-    def safe_value(idx, store_index = false)
-      @current_idx = idx if store_index
-      con = @connections[idx]
-      blacklisted?(idx) ? nil : con
+    def safe_value(idx, stick = false)
+      con = @connections[idx][0]
+      return nil if blacklisted?(idx)
+
+      if stick
+        @current_idx = idx
+        @current_connection = con
+        @context = Makara2::Context.get
+      end
+
+      con
     end
 
 
     def blacklisted?(idx)
-      @blacklisted[idx].to_i > Time.now.to_i
+      @connections[idx][1].to_i > Time.now.to_i
     end
 
 
     def blacklist!
-      @blacklisted[@current_idx] = Time.now.to_i + @config[:blacklist_duration]
+      if @connections[@current_idx] == @current_connection
+        @current_connection = nil
+      end
+
+      @connections[@current_idx][1] = Time.now.to_i + @config[:blacklist_duration]
     end
 
   end

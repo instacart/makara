@@ -3,6 +3,7 @@ require "makara2/version"
 module Makara2
   
   autoload :ConfigParser, 'makara2/config_parser'
+  autoload :Context,      'makara2/context'
   autoload :ErrorHandler, 'makara2/error_handler'
   autoload :Pool,         'makara2/pool'
 
