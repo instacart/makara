@@ -12,7 +12,6 @@ module Makara2
       def initialize(config)
         @config         = DEFAULT_CONFIG.merge(config)
         @config_parser  = Makara2::ConfigParser.new(@config)
-        @context        = Makara2::Context.get
         instantiate_connections
       end
 
@@ -20,7 +19,6 @@ module Makara2
       def query(sql)
         appropriate_pool(sql) do |pool|
           pool.provide do |connection|
-            @last_used_connection = connection
             connection.query(sql)
           end
         end
@@ -47,15 +45,13 @@ module Makara2
 
       def appropriate_pool(sql = nil)
 
-        if Makara2::Context.get == @context && @current_pool
-          yield @current_pool
-        elsif needs_master?(sql)
-          yield stick(sql, @master_pool)
+        if Makara2::Context.get == @master_context
+          yield @master_pool
         else
-          unless @slave_pool.empty?
-            yield stick(sql, @slave_pool)
+          if needs_master?(sql) || @slave_pool.completely_blacklisted?
+            yield stick_to_master(sql, @master_pool)
           else
-            yield stick(sql, @master_pool)
+            yield @slave_pool
           end
         end
       end
@@ -67,11 +63,12 @@ module Makara2
       end
 
 
-      def stick(sql, pool)
+      def stick_to_master(sql, pool)
+
         if should_stick?(sql)
-          @current_pool = pool
-          @context = Makara2::Context.get
+          @master_context = Makara2::Context.get
         end
+
         pool
       end
 

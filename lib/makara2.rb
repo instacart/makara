@@ -15,7 +15,6 @@ module Makara2
   module Errors
     autoload :AllConnectionsBlacklisted,  'makara2/errors/all_connections_blacklisted'
     autoload :BlacklistConnection,        'makara2/errors/blacklist_connection'
-    autoload :NoConnectionConfigured,     'makara2/errors/no_connections_configured'
   end
 
 end

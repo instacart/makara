@@ -2,7 +2,7 @@ module Makara2
   class Pool
 
     def initialize(config)
-      @config         = config
+      @config         = config.symbolize_keys
       @context        = Makara2::Context.get
       @connections    = []
       @current_idx    = 0
@@ -10,8 +10,11 @@ module Makara2
     end
 
 
-    def empty?
-      @connections.empty?
+    def completely_blacklisted?
+      @connections.each_with_index do |arr, i|
+        return false unless blacklisted?(i)
+      end
+      true
     end
 
 
@@ -47,8 +50,6 @@ module Makara2
           yield provided_connection
         end
 
-      elsif self.empty?
-        raise Makara2::Errors::NoConnectionsConfigured
       else
         raise Makara2::Errors::AllConnectionsBlacklisted
       end
@@ -65,6 +66,7 @@ module Makara2
 
 
     def next
+
       if Makara2::Context.get == @context && @current_connection
         return @current_connection 
       end
