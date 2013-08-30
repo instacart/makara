@@ -3,37 +3,6 @@ module Makara2
     class Base < ::SimpleDelegator
 
 
-      class << self
-
-        def invoke_on_appropriate_connection(*method_names)
-          method_names.each do |method_name|
-            define_method method_name do |sql|
-              invoke_on_appropriate_connection method_name, sql
-            end
-          end
-
-        end
-
-        def invoke_on_master_connection(*method_names)
-          method_names.each do |method_name|
-            define_method method_name do
-              invoke_on_master_connection method_name
-            end
-          end
-        end
-
-        def invoke_on_all_connections(*method_names)
-          method_names.each do |method_name|
-            define_method method_name do |*args|
-              @master_pool.send_to_all method_name, *args
-              @slave_pool.send_to_all method_name, *args
-            end
-          end
-        end
-
-      end
-
-
       SQL_SLAVE_MATCHER       = /^select\s/i
       SQL_ALL_MATCHER         = /^set\s/i
 
@@ -55,8 +24,7 @@ module Makara2
       end
 
       def current_pool_name
-        pool = @current_pool || @slave_pool
-        name = pool == @master_pool ? 'Master' : 'Slave'
+        pool, name = @master_context == Makara2::Context.get_current ? [@master_pool, 'Master'] : [@slave_pool, 'Slave']
         connection_name = pool.current_connection_name
         name << "/#{connection_name}" if connection_name
         name
@@ -65,28 +33,18 @@ module Makara2
       protected
 
 
-      def invoke_on_appropriate_connection(method, sql)
+      def appropriate_connection(sql)
         if needed_by_all?(sql)
-          @master_pool.send_to_all method, sql
-          @slave_pool.send_to_all method, sql
+          @master_pool.each_connection{|con| yield con }
+          @slave_pool.each_connection{|con| yield con }
         else
           appropriate_pool(sql) do |pool|
-            @current_pool = pool
             pool.provide do |connection|
-              connection.send(method, sql)
+              yield connection
             end
           end
         end
       end
-
-
-      def invoke_on_master_connection(method_name)
-        stick_to_master(nil)
-        @master_pool.provide do |con|
-          con.send(method_name)
-        end
-      end
-
 
       def appropriate_pool(sql = nil)
 
