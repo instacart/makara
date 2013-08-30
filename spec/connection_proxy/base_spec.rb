@@ -63,6 +63,7 @@ describe Makara2::ConnectionProxy::Base do
     "describe table" => true,
     "show index" => true,
     "set @@things" => true,
+    "commit" => true,
     "select * from felines" => false
   }.each do |sql, should_go_to_master|
 
@@ -102,6 +103,10 @@ describe Makara2::ConnectionProxy::Base do
     "update users" => true,
     "insert into" => true,
     "delete from" => true,
+    "begin transaction" => true,
+    "begin deferred transaction" => true,
+    "commit transaction" => true,
+    "rollback transaction" => true
   }.each do |sql,should_stick|
 
     it "should #{should_stick ? 'stick' : 'not stick'} to master if handling sql like \"#{sql}\"" do

@@ -20,40 +20,30 @@ module Makara2
         end
       end
 
+
+      invoke_on_appropriate_connection :query
+      invoke_on_master_connection :affected_rows, :last_id
+      invoke_on_all_connections :connect, :close
+
+
       def initialize(*args)
         super
         @query_options = QueryOptionProxy.new(@master_pool, @slave_pool)
       end
 
-      def connect
-        @master_pool.send_to_all :connect
-        @slave_pool.send_to_all :connect
-      end
-
-      def close
-        @master_pool.send_to_all :close
-        @slave_pool.send_to_all :close
-      end
 
       def query_options
         @query_options
       end
 
-      # this is only invoked after an update so we're guaranteed to be stuck on master
-      def affected_rows
-        appropriate_pool{|pool| pool.provide{|connection| connection.affected_rows }}
-      end
-
-      # this is only invoked after an insert so we're guaranteed to be stuck on master
-      def last_id
-        appropriate_pool{|pool| pool.provide{|connection| connection.last_id }}
-      end
 
       protected
+
 
       def connection_for(config)
         ::Mysql2::Client.new(config)
       end
+
 
     end
   end
