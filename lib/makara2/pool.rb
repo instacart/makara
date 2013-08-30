@@ -56,7 +56,7 @@ module Makara2
 
 
     def any
-      con = @connections.sample
+      con = self.next
       if block_given?
         yield con
       else

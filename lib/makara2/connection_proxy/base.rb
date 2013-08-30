@@ -90,7 +90,8 @@ module Makara2
 
       def stick_to_master(sql, write_to_cache = true)
         return unless should_stick?(sql)
-        @master_context = Makara2::Context.get_current    
+        return if @master_context == Makara2::Context.get_current
+        @master_context = Makara2::Context.get_current
         Makara2::Cache.write("makara2::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
       end
 
