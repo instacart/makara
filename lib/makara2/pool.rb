@@ -22,7 +22,7 @@ module Makara2
 
     def add(connection, config = @config)
       wrapper = Makara2::ConnectionWrapper.new(connection, config)
-      wrapper.weight.times{ @connections << wrapper }
+      wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
         @connections.shuffle!
@@ -35,7 +35,7 @@ module Makara2
 
     def current_connection_name
       con = @connections[@current_idx]
-      name = con.name
+      name = con._makara_name
       name ||= @current_idx + 1 if @connections.length > 1
       name
     end
@@ -91,8 +91,9 @@ module Makara2
 
     def next
 
-      if Makara2::Context.get_current == @context && @current_connection
-        return @current_connection 
+      if Makara2::Context.get_current == @context
+        con = @connections[@current_idx]
+        return con unless con.blacklisted? 
       end
       
       idx = @current_idx
@@ -129,7 +130,6 @@ module Makara2
 
       if stick
         @current_idx = idx
-        @current_connection = con
         @context = Makara2::Context.get_current
       end
 
@@ -138,10 +138,6 @@ module Makara2
 
 
     def blacklist!
-      if @connections[@current_idx] == @current_connection
-        @current_connection = nil
-      end
-
       @connections[@current_idx].blacklist!
     end
 

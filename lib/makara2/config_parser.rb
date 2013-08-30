@@ -18,10 +18,6 @@ module Makara2
       end
     end
 
-    def ttl
-      @config[:master_ttl]
-    end
-
 
     def master_configs
       all_configs.select{|config| config[:role] == 'master' }

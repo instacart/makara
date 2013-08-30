@@ -8,11 +8,11 @@ module Makara2
       super(connection)
     end
 
-    def weight
+    def _makara_weight
       @config[:weight] || 1
     end
 
-    def name
+    def _makara_name
       @config[:name]
     end
 

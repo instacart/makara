@@ -15,7 +15,7 @@ module Makara2
         @config         = DEFAULT_CONFIG.merge(config)
         @config_parser  = Makara2::ConfigParser.new(@config)
         @id             = @config_parser.id
-        @ttl            = @config_parser.ttl
+        @ttl            = @config[:master_ttl]
         instantiate_connections
       end
 
@@ -34,14 +34,9 @@ module Makara2
 
 
       def appropriate_connection(sql)
-        if needed_by_all?(sql)
-          @master_pool.each_connection{|con| yield con }
-          @slave_pool.each_connection{|con| yield con }
-        else
-          appropriate_pool(sql) do |pool|
-            pool.provide do |connection|
-              yield connection
-            end
+        appropriate_pool(sql) do |pool|
+          pool.provide do |connection|
+            yield connection
           end
         end
       end

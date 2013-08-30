@@ -33,35 +33,34 @@ module Makara2
 
 
       def query(sql)
-        appropriate_connection(sql) do |con|
-          con.query(sql)
+        if needed_by_all?(sql)
+          @master_pool.send_to_all :query, sql
+          @slave_pool.send_to_all :query, sql
+        else
+          appropriate_connection(sql) do |con|
+            con.query(sql)
+          end
         end
       end
 
       def affected_rows
-        appropriate_connection(nil) do |con|
-          con.affected_rows
-        end
+        @master_pool.provide{|con| con.affected_rows }
       end
 
       def last_id
-        appropriate_connection(nil) do |con|
-          con.last_id
-        end
+        @master_pool.provide{|con| con.last_id }
       end
 
       def connect
         @master_pool.send_to_all :connect
         @slave_pool.send_to_all :connect
-
       end
 
       def close
         @master_pool.send_to_all :close
         @slave_pool.send_to_all :close
       end
-
-
+                    
 
       protected
 
