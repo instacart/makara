@@ -1,5 +1,5 @@
-require "makara2/version"
-
+require 'makara2/version'
+require 'makara2/railtie' if defined?(Rails)
 module Makara2
   
   autoload :Cache,              'makara2/cache'
@@ -7,6 +7,7 @@ module Makara2
   autoload :ConnectionWrapper,  'makara2/connection_wrapper'
   autoload :Context,            'makara2/context'
   autoload :ErrorHandler,       'makara2/error_handler'
+  autoload :Middleware,         'makara2/middleware'
   autoload :Pool,               'makara2/pool'
 
   module ConnectionProxy
@@ -17,6 +18,10 @@ module Makara2
   module Errors
     autoload :AllConnectionsBlacklisted,  'makara2/errors/all_connections_blacklisted'
     autoload :BlacklistConnection,        'makara2/errors/blacklist_connection'
+  end
+
+  module Logging
+    autoload :Subscriber, 'makara2/logging/subscriber'
   end
 
 end

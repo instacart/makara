@@ -13,10 +13,14 @@ RSpec.configure do |config|
   require_relative 'support/connection_proxy_extensions'
   require_relative 'support/pool_extensions'
   require_relative 'support/configurator'
-
+  require_relative 'support/mock_objects'
+  
   config.include Configurator
 
   config.before :each do
     Makara2::Cache.store = :memory
+    Makara2::Context.set_previous Makara2::Context.generate
+    Makara2::Context.set_current Makara2::Context.generate
+    allow_any_instance_of(Makara2::Pool).to receive(:should_shuffle?){ false }
   end
 end

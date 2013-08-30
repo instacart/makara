@@ -1,3 +1,5 @@
+require 'rack'
+
 module Makara2
   class Middleware
 
@@ -15,20 +17,20 @@ module Makara2
 
       store_context(headers)
 
-      [states, headers, body]
+      [status, headers, body]
     end
 
     protected
 
     def new_context(env)
       context = env["action_dispatch.request_id"]
-      context ||= Makara::Context.generate
+      context ||= Makara2::Context.generate
       context
     end
 
     def previous_context(env)
       env['HTTP_COOKIE'].to_s =~ /#{COOKIE_NAME}=([a-z0-9A-Z]+)/
-      $1
+      $1 || Makara2::Context.generate
     end
 
     def store_context(header)

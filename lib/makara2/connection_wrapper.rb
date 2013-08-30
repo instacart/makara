@@ -1,13 +1,19 @@
+require 'active_support/core_ext/hash/keys'
+
 module Makara2
   class ConnectionWrapper < ::SimpleDelegator
 
     def initialize(connection, config)
-      @config = config
+      @config = config.symbolize_keys
       super(connection)
     end
 
     def weight
       @config[:weight] || 1
+    end
+
+    def name
+      @config[:name]
     end
 
     def blacklisted?

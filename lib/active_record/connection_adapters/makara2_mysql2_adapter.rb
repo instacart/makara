@@ -11,11 +11,24 @@ module ActiveRecord
         config[:flags] = Mysql2::Client::FOUND_ROWS
       end
 
+      ActiveRecord::ConnectionAdapters::Makara2Mysql2Adapter.new(config, logger)
+    end
+  end
+end
 
-      client = Makara2::ConnectionProxy::Mysql2.new(config)
-      options = [config[:host], config[:username], config[:password], config[:database], config[:port], config[:socket], 0]
+module ActiveRecord
+  module ConnectionAdapters
+    class Makara2Mysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
 
-      ActiveRecord::ConnectionAdapters::Mysql2Adapter.new(client, logger, options, config)
+      def initialize(config, logger)
+        client = Makara2::ConnectionProxy::Mysql2.new(config)
+        super(client, logger, [], config)
+      end
+
+      def makara2_connection
+        @connection
+      end
+
     end
   end
 end

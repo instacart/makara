@@ -35,7 +35,7 @@ module Makara2
 
     def all_configs
       @config[:connections].map do |connection|
-        base_config.merge(connection).symbolize_keys
+        base_config.merge(connection).symbolize_keys.except(:adapter)
       end
     end
 

@@ -25,6 +25,7 @@ module Makara2
           @slave_pool.send_to_all :query, sql
         else
           appropriate_pool(sql) do |pool|
+            @current_pool = pool
             pool.provide do |connection|
               connection.query(sql)
             end
@@ -33,7 +34,15 @@ module Makara2
       end
 
       def __getobj__
-        @master_pool.any || @slave_pool.any
+        @master_pool.try(:any) || @slave_pool.try(:any) || super
+      end
+
+      def current_pool_name
+        pool = @current_pool || @slave_pool
+        name = pool == @master_pool ? 'Master' : 'Slave'
+        connection_name = pool.current_connection_name
+        name << "/#{connection_name}" if connection_name
+        name
       end
 
       protected
@@ -102,6 +111,8 @@ module Makara2
 
 
       def instantiate_connections
+        debugger
+        
         @master_pool = Makara2::Pool.new(@config)
         @config_parser.master_configs.each do |master_config|
           @master_pool.add connection_for(master_config), master_config
@@ -109,7 +120,7 @@ module Makara2
 
         @slave_pool = Makara2::Pool.new(@config)
         @config_parser.slave_configs.each do |slave_config|
-          @slave_pool.add connection_for(slave_config)
+          @slave_pool.add connection_for(slave_config), slave_config
         end
       end
 

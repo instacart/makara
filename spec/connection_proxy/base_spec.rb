@@ -2,18 +2,6 @@ require 'spec_helper'
 
 describe Makara2::ConnectionProxy::Base do
 
-  class FakeConnection < Struct.new(:config)
-    def irespondtothis
-      'hey!'
-    end
-  end
-
-  class ConnectionProxyTest < Makara2::ConnectionProxy::Base
-    def connection_for(config)
-      FakeConnection.new(config)
-    end
-  end
-
   def change_context
     Makara2::Context.set_previous Makara2::Context.get_current
     Makara2::Context.set_current Makara2::Context.generate
@@ -21,7 +9,7 @@ describe Makara2::ConnectionProxy::Base do
 
 
 
-  let(:klass){ ConnectionProxyTest }
+  let(:klass){ FakeProxy }
 
 
   it 'sets up a master and slave pool no matter the number of connections' do

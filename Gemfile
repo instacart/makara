@@ -6,3 +6,4 @@ gemspec
 gem 'rspec'
 gem 'timecop'
 gem 'byebug'
+gem 'rack'

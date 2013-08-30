@@ -29,10 +29,6 @@ module PoolExtensions
     @connections.length
   end
 
-  def blacklisted?(i)
-    super
-  end
-
 end
 
 

@@ -43,17 +43,16 @@ describe Makara2::Pool do
 
   it 'provides the next connection and blacklists' do
 
-    a = 'a'
-    b = 'b'
+    Timecop.freeze
 
-    wrapper_a = pool.add a
-    wrapper_b = pool.add b
+    wrapper_a = pool.add 'a'
+    wrapper_b = pool.add 'b'
 
-    allow(pool).to receive(:next).and_return(a, b)
+    allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b)
 
     pool.provide do |connection|
       if connection.to_s == 'a'
-        raise Makara2::Errors::BlacklistConnection(StandardError.new('failure'))
+        raise Makara2::Errors::BlacklistConnection.new(StandardError.new('failure'))
       end
     end
 
@@ -69,19 +68,28 @@ describe Makara2::Pool do
 
   it 'raises an error when all connections are blacklisted' do
 
-    a = 'a'
-    b = 'b'
+    wrapper_a = pool.add 'a'
+    wrapper_b = pool.add 'b'
 
-    wrapper_a = pool.add a
-    wrapper_b = pool.add b
-
-    allow(pool).to receive(:next).and_return(a, b, nil)
+    allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b, nil)
 
     expect{
       pool.provide do |connection|
-        raise Makara2::Errors::BlacklistConnection(StandardError.new('failure'))
+        raise Makara2::Errors::BlacklistConnection.new(StandardError.new('failure'))
       end
     }.to raise_error(Makara2::Errors::AllConnectionsBlacklisted)
+  end
+
+  it 'skips blacklisted connections when choosing the next one' do
+
+    wrapper_a = pool.add 'a'
+    wrapper_b = pool.add 'b'
+    wrapper_c = pool.add 'c'
+
+    wrapper_b.blacklist!
+
+    10.times{ pool.provide{|connection| expect(connection.to_s).not_to eq('b') } }
+
   end
 
 end

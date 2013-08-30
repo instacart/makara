@@ -23,10 +23,23 @@ module Makara2
     def add(connection, config = @config)
       wrapper = Makara2::ConnectionWrapper.new(connection, config)
       wrapper.weight.times{ @connections << wrapper }
-      @connections.shuffle!
-      @current_idx = rand(@connections.length)
+
+      if should_shuffle?
+        @connections.shuffle!
+        @current_idx = rand(@connections.length)
+      end
+
       wrapper
     end
+
+
+    def current_connection_name
+      con = @connections[@current_idx]
+      name = con.name
+      name ||= @current_idx + 1 if @connections.length > 1
+      name
+    end
+
 
     def each_connection
       @connections.each do |connection|
@@ -130,6 +143,11 @@ module Makara2
       end
 
       @connections[@current_idx].blacklist!
+    end
+
+
+    def should_shuffle?
+      true
     end
 
   end
