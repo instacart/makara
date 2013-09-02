@@ -3,25 +3,24 @@ require 'active_support/core_ext/hash/keys'
 module Makara2
   class Pool
 
-    def initialize(config)
-      @config         = config.symbolize_keys
+    def initialize(proxy)
+      @proxy          = proxy
       @context        = Makara2::Context.get_current
       @connections    = []
       @current_idx    = 0
-      @error_handler  = Makara2::ErrorHandler.new
     end
 
 
     def completely_blacklisted?
       @connections.each do |connection|
-        return false unless connection.blacklisted?
+        return false unless connection._makara_blacklisted?
       end
       true
     end
 
 
-    def add(connection, config = @config)
-      wrapper = Makara2::ConnectionWrapper.new(connection, config)
+    def add(connection, config)
+      wrapper = Makara2::ConnectionWrapper.new(connection, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
@@ -70,7 +69,7 @@ module Makara2
 
       if provided_connection
         
-        @error_handler.handle do
+        @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
 
@@ -80,7 +79,7 @@ module Makara2
 
 
     rescue Makara2::Errors::BlacklistConnection => e
-      blacklist!
+      provided_connection._makara_blacklist!
       retry
     end
 
@@ -93,7 +92,7 @@ module Makara2
 
       if Makara2::Context.get_current == @context
         con = @connections[@current_idx]
-        return con unless con.blacklisted? 
+        return con unless con._makara_blacklisted? 
       end
       
       idx = @current_idx
@@ -126,7 +125,7 @@ module Makara2
     # optionally, store the position we're returning
     def safe_value(idx, stick = false)
       con = @connections[idx]
-      return nil if con.blacklisted?
+      return nil if con._makara_blacklisted?
 
       if stick
         @current_idx = idx
@@ -134,11 +133,6 @@ module Makara2
       end
 
       con
-    end
-
-
-    def blacklist!
-      @connections[@current_idx].blacklist!
     end
 
 

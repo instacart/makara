@@ -10,7 +10,7 @@ RSpec.configure do |config|
 
   config.order = 'random'
 
-  require_relative 'support/connection_proxy_extensions'
+  require_relative 'support/proxy_extensions'
   require_relative 'support/pool_extensions'
   require_relative 'support/configurator'
   require_relative 'support/mock_objects'

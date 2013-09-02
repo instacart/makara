@@ -1,52 +1,45 @@
 require 'spec_helper'
 
-describe 'Parsing configuration files' do
+describe Makara::ConfigParser do
 
-  let(:parser){ ::Makara::ConfigParser }
-  let(:mock_config) {
+  let(:config){
     {
-      :adapter => 'makara',
-      :sticky_slaves => true,
-      :host => 'dog',
-      :username => 'cat',
-      :db_adapter => 'mysql2',
-      :id => 'sparky',
-      :connections => [
-        {
-          :name => 'master',
-          :role => 'master'
-        },
-        {
-          :name => 'slave'
-        }
-      ]
+      :top_level => 'value',
+      :makara => {
+        :connections => [
+          {
+            :role => 'master',
+            :name => 'themaster'
+          },
+          {
+            :name => 'slave1'
+          },
+          {
+            :name => 'slave2'
+          }
+        ]
+      }
     }
   }
 
+  it 'should provide an id based on the recursively sorted config' do
+    parsera = described_class.new(config)
+    parserb = described_class.new(config.merge(:other => 'value'))
+    parserc = described_class.new(config)
 
-  it 'should iterate through all databases, applying default configs to each' do
-    dbs = []
-    parser.each_config mock_config do |conf|
-      dbs << conf[:name]
-      conf[:host].should eql('dog')
-      conf[:username].should eql('cat')
-      conf[:adapter].should eql('mysql2')
-      conf[:sticky_slaves].should be_nil
-    end
-
-    dbs.should eql(%w(master slave))
+    expect(parsera.id).not_to eq(parserb.id)
+    expect(parsera.id).to eq(parserc.id)
   end
 
-  it 'should extract the master config' do
-    master = parser.master_config mock_config
-
-    master.should eql({
-      :name => 'master',
-      :role => 'master',
-      :host => 'dog',
-      :username => 'cat',
-      :adapter => 'mysql2'
-    })
+  it 'should provide master and slave configs' do
+    parser = described_class.new(config)
+    expect(parser.master_configs).to eq([
+      {:name => 'themaster', :top_level => 'value'}
+    ])
+    expect(parser.slave_configs).to eq([
+      {:name => 'slave1', :top_level => 'value'},
+      {:name => 'slave2', :top_level => 'value'}
+    ])
   end
 
 end

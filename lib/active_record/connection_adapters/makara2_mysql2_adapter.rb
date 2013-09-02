@@ -1,32 +1,22 @@
+require 'active_record/connection_adapters/makara2_abstract_adapter'
 require 'active_record/connection_adapters/mysql2_adapter'
 
 module ActiveRecord
   module ConnectionHandling
     def makara2_mysql2_connection(config)
-      config = config.symbolize_keys
-
-      config[:username] ||= 'root'
-
-      if Mysql2::Client.const_defined? :FOUND_ROWS
-        config[:flags] = Mysql2::Client::FOUND_ROWS
-      end
-
-      ActiveRecord::ConnectionAdapters::Makara2Mysql2Adapter.new(config, logger)
+      ActiveRecord::ConnectionAdapters::Makara2Mysql2Adapter.new(config)
     end
   end
 end
 
 module ActiveRecord
   module ConnectionAdapters
-    class Makara2Mysql2Adapter < ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
+    class Makara2Mysql2Adapter < ActiveRecord::ConnectionAdapters::Makara2AbstractAdapter
 
-      def initialize(config, logger)
-        client = Makara2::ConnectionProxy::Mysql2.new(config)
-        super(client, logger, [], config)
-      end
+      protected
 
-      def makara2_connection
-        @connection
+      def connection_for(config)
+        ::ActiveRecord::Base.mysql2_connection(config)
       end
 
     end

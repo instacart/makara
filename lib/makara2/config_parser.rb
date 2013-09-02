@@ -5,9 +5,18 @@ require 'active_support/core_ext/hash/keys'
 module Makara2
   class ConfigParser
 
+    DEFAULTS = {
+      master_ttl: 5,
+      blacklist_duration: 30
+    }
+
+    attr_reader :makara_config
+
     def initialize(config)
       @config = config.symbolize_keys
-      @id = @config[:id]
+      @makara_config = DEFAULTS.merge(@config[:makara] || {})
+      @makara_config = @makara_config.symbolize_keys
+      @id = @makara_config[:id]
     end
 
 
@@ -20,24 +29,33 @@ module Makara2
 
 
     def master_configs
-      all_configs.select{|config| config[:role] == 'master' }
+      all_configs.
+        select{|config| config[:role] == 'master' }.
+        map{|config| config.except(:role) }
     end
 
+
     def slave_configs
-      all_configs.reject{|config| config[:role] == 'master' }
+      all_configs.
+        reject{|config| config[:role] == 'master' }.
+        map{|config| config.except(:role) }
     end
+
 
     protected
 
+
     def all_configs
-      @config[:connections].map do |connection|
-        base_config.merge(connection).symbolize_keys.except(:adapter)
+      @makara_config[:connections].map do |connection|
+        base_config.merge(connection).symbolize_keys
       end
     end
 
+
     def base_config
-      @config.except(:id, :master_ttl, :connections)
+      @config.except(:makara)
     end
+
 
     def recursive_sort(thing)
       return thing.to_s unless thing.respond_to?(:sort)

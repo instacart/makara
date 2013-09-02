@@ -1,4 +1,4 @@
-module ConnectionProxyExtensions
+module ProxyExtensions
 
   def master_pool
     @master_pool
@@ -21,7 +21,7 @@ module ConnectionProxyExtensions
   end
 
   def would_stick?(sql)
-    should_stick?(sql)
+    should_stick?([sql])
   end
 
   def connection_for(sql)
@@ -40,4 +40,4 @@ module ConnectionProxyExtensions
 
 end
 
-Makara2::ConnectionProxy::Base.send(:include, ConnectionProxyExtensions)
+Makara2::Proxy.send(:include, ProxyExtensions)

@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Makara2::ConnectionProxy::Base do
+describe Makara2::Proxy do
 
   def change_context
     Makara2::Context.set_previous Makara2::Context.get_current
@@ -49,74 +49,6 @@ describe Makara2::ConnectionProxy::Base do
   end
 
 
-  {
-    "insert into dogs..." => true,
-    "insert into cats (select * from felines)" => true,
-    "savepoint active_record_1" => true,
-    "begin" => true,
-    "rollback" => true,
-    "update users set" => true,
-    "delete from people" => true,
-    "release savepoint" => true,
-    "show tables" => true,
-    "show fields" => true,
-    "describe table" => true,
-    "show index" => true,
-    "set @@things" => true,
-    "commit" => true,
-    "select * from felines" => false
-  }.each do |sql, should_go_to_master|
-
-    it "determines if \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
-      proxy = klass.new(config(1,1))
-      expect(proxy.master_for?(sql)).to eq(should_go_to_master)
-    end
-
-  end
-
-
-  it 'should send SET operations to all underlying connections' do
-    proxy = klass.new(config(1,1))
-    expect(proxy.master_pool).to receive(:send_to_all).with(:query, 'SET @@things').once
-    expect(proxy.slave_pool).to receive(:send_to_all).with(:query, 'SET @@things').once
-
-    proxy.query("SET @@things")
-
-    expect(proxy.master_context).to be_nil
-  end
-
-
-  {
-    "show full tables" => false,
-    "show full table" => false,
-    "show index" => false,
-    "show indexes" => false,
-    "describe stuff" => false,
-    "explain things" => false,
-    "show database" => false,
-    "show schema" => false,
-    "show view" => false,
-    "show views" => false,
-    "show table" => false,
-    "show tables" => false,
-    "set @@things" => false,
-    "update users" => true,
-    "insert into" => true,
-    "delete from" => true,
-    "begin transaction" => true,
-    "begin deferred transaction" => true,
-    "commit transaction" => true,
-    "rollback transaction" => true
-  }.each do |sql,should_stick|
-
-    it "should #{should_stick ? 'stick' : 'not stick'} to master if handling sql like \"#{sql}\"" do
-      proxy = klass.new(config(0,0))
-      expect(proxy.would_stick?(sql)).to eq(should_stick)
-    end
-
-  end
-
-
   context "#appropriate_pool" do
 
     let(:proxy){ klass.new(config(1,1)) }
@@ -153,6 +85,7 @@ describe Makara2::ConnectionProxy::Base do
 
       change_context
 
+      proxy.master_for?('select * from users')
       expect(proxy.master_for?('select * from users')).to eq(true)
 
       Timecop.travel Time.now + 10 do

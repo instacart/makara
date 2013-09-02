@@ -9,11 +9,7 @@ module Makara2
   autoload :ErrorHandler,       'makara2/error_handler'
   autoload :Middleware,         'makara2/middleware'
   autoload :Pool,               'makara2/pool'
-
-  module ConnectionProxy
-    autoload :Base,             'makara2/connection_proxy/base'
-    autoload :Mysql2,           'makara2/connection_proxy/mysql2'
-  end
+  autoload :Proxy,              'makara2/proxy'
 
   module Errors
     autoload :AllConnectionsBlacklisted,  'makara2/errors/all_connections_blacklisted'

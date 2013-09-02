@@ -31,7 +31,7 @@ describe Makara2::Middleware do
   end
 
   it 'should use the cookie-provided context if present' do
-    env['HTTP_COOKIE'] = "#{key}=abcdefg"
+    env['HTTP_COOKIE'] = "#{key}=abcdefg--200; path=/; max-age=5"
 
     response = middleware.call(env)
     current, prev = context_from(response)
@@ -46,7 +46,25 @@ describe Makara2::Middleware do
 
     status, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara2::Context.get_current}")
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara2::Context.get_current}--200; path=/; max-age=5")
+  end
+
+  it 'should preserve the same context if the previous request was a redirect' do
+    env['HTTP_COOKIE'] = "#{key}=abcdefg--301; path=/; max-age=5"
+
+    response    = middleware.call(env)
+    curr, prev  = context_from(response)
+
+    expect(curr).to eq('abcdefg')
+    expect(prev).to eq('abcdefg')
+
+    env['HTTP_COOKIE'] = response[1]['Set-Cookie']
+
+    response = middleware.call(env)
+    curr2, prev2 = context_from(response)
+
+    expect(prev2).to eq('abcdefg')
+    expect(curr2).to eq(Makara2::Context.get_current)
   end
 
   def context_from(response)
