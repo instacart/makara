@@ -1,3 +1,4 @@
+require 'delegate'
 require 'active_support/core_ext/hash/keys'
 
 # Makara::ConnectionWrapper wraps the instance of an underlying connection.
