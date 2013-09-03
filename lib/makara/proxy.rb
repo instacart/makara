@@ -1,4 +1,5 @@
 require 'delegate'
+require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
 
 # The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
