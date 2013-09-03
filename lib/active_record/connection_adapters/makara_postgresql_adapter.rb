@@ -1,10 +1,24 @@
-require 'active_record/connection_adapters/makara_adapter'
+require 'active_record/connection_adapters/makara_abstract_adapter'
+require 'active_record/connection_adapters/postgresql_adapter'
 
 module ActiveRecord
-  class Base
-    def self.makara_postgresql_connection(config)
-      config[:db_adapter] = 'postgresql'
-      self.makara_connection(config)
+  module ConnectionHandling
+    def makara_postgresql_connection(config)
+      ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter.new(config)
+    end
+  end
+end
+
+module ActiveRecord
+  module ConnectionAdapters
+    class MakaraPostgreSQLAdapter < ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
+
+      protected
+
+      def connection_for(config)
+        ::ActiveRecord::Base.postgresql_connection(config)
+      end
+
     end
   end
 end

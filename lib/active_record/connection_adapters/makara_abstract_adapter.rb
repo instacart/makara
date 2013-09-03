@@ -1,9 +1,9 @@
 module ActiveRecord
   module ConnectionAdapters
-    class Makara2AbstractAdapter < ::Makara2::Proxy
+    class MakaraAbstractAdapter < ::Makara::Proxy
 
 
-      class ErrorHandler < ::Makara2::ErrorHandler
+      class ErrorHandler < ::Makara::ErrorHandler
 
 
         def handle(connection)
@@ -28,7 +28,7 @@ module ActiveRecord
           message = message.to_s.downcase
 
           case message
-          when /(closed|lost|no)\s?(\w+)? connection/, /gone away/
+          when /(closed|lost|no)\s?([^\s]+)?\sconnection/, /gone away/
             true
           else
             false
@@ -49,7 +49,7 @@ module ActiveRecord
 
 
       def initialize(config)
-        @error_handler = ::ActiveRecord::ConnectionAdapters::Makara2AbstractAdapter::ErrorHandler.new
+        @error_handler = ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler.new
         super(config)
       end
 

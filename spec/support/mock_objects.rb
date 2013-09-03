@@ -1,4 +1,4 @@
-require 'active_record/connection_adapters/makara2_abstract_adapter'
+require 'active_record/connection_adapters/makara_abstract_adapter'
 
 class FakeConnection < Struct.new(:config)
   def irespondtothis
@@ -26,7 +26,7 @@ class FakeDatabaseAdapter < Struct.new(:config)
 
 end
 
-class FakeProxy < Makara2::Proxy
+class FakeProxy < Makara::Proxy
   def connection_for(config)
     FakeConnection.new(config)
   end
@@ -37,7 +37,7 @@ class FakeProxy < Makara2::Proxy
   end
 end
 
-class FakeAdapter < ::ActiveRecord::ConnectionAdapters::Makara2AbstractAdapter
+class FakeAdapter < ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
   def connection_for(config)
     FakeDatabaseAdapter.new(config)
   end

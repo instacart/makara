@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-describe Makara2::Middleware do
+describe Makara::Middleware do
 
   let(:app){ 
     lambda{|env|
       proxy.query(env[:query] || 'select * from users')
-      [200, {}, ["#{Makara2::Context.get_current}-#{Makara2::Context.get_previous}"]]
+      [200, {}, ["#{Makara::Context.get_current}-#{Makara::Context.get_previous}"]]
     }
   }
 
@@ -13,11 +13,11 @@ describe Makara2::Middleware do
   let(:proxy){ FakeProxy.new(config(1,2)) }
   let(:middleware){ described_class.new(app) }
 
-  let(:key){ Makara2::Middleware::COOKIE_NAME }
+  let(:key){ Makara::Middleware::COOKIE_NAME }
 
   it 'should set the context before the request' do
-    Makara2::Context.set_previous 'old'
-    Makara2::Context.set_current 'old'
+    Makara::Context.set_previous 'old'
+    Makara::Context.set_current 'old'
 
     response = middleware.call(env)
     current, prev = context_from(response)
@@ -25,8 +25,8 @@ describe Makara2::Middleware do
     expect(current).not_to eq('old')
     expect(prev).not_to eq('old')
 
-    expect(current).to eq(Makara2::Context.get_current)
-    expect(prev).to eq(Makara2::Context.get_previous)
+    expect(current).to eq(Makara::Context.get_current)
+    expect(prev).to eq(Makara::Context.get_previous)
   end
 
   it 'should use the cookie-provided context if present' do
@@ -36,7 +36,7 @@ describe Makara2::Middleware do
     current, prev = context_from(response)
 
     expect(prev).to eq('abcdefg')
-    expect(current).to eq(Makara2::Context.get_current)
+    expect(current).to eq(Makara::Context.get_current)
     expect(current).not_to eq('abcdefg')
   end
 
@@ -45,7 +45,7 @@ describe Makara2::Middleware do
 
     status, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara2::Context.get_current}--200; path=/; max-age=5")
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5")
   end
 
   it 'should preserve the same context if the previous request was a redirect' do
@@ -63,7 +63,7 @@ describe Makara2::Middleware do
     curr2, prev2  = context_from(response)
 
     expect(prev2).to eq('abcdefg')
-    expect(curr2).to eq(Makara2::Context.get_current)
+    expect(curr2).to eq(Makara::Context.get_current)
   end
 
   def context_from(response)

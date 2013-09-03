@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Makara2::Cache do
+describe Makara::Cache do
 
   it 'should not require a store be set' do
     described_class.store = nil
@@ -26,9 +26,9 @@ describe Makara2::Cache do
 
 
   # this will be used in tests so we have to ensure this works as expected
-  context Makara2::Cache::MemoryStore do
+  context Makara::Cache::MemoryStore do
 
-    let(:store){ Makara2::Cache::MemoryStore.new }
+    let(:store){ Makara::Cache::MemoryStore.new }
     let(:data){ store.instance_variable_get('@data') }
 
     it 'should read and write keys' do

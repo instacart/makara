@@ -1,15 +1,15 @@
 require 'active_support/core_ext/hash/keys'
 
 # Wraps a collection of similar connections and chooses which one to use
-# Uses the Makara2::Context to determine if the connection needs rotation.
+# Uses the Makara::Context to determine if the connection needs rotation.
 # Provides convenience methods for accessing underlying connections
 
-module Makara2
+module Makara
   class Pool
 
     def initialize(proxy)
       @proxy          = proxy
-      @context        = Makara2::Context.get_current
+      @context        = Makara::Context.get_current
       @connections    = []
       @current_idx    = 0
     end
@@ -23,9 +23,9 @@ module Makara2
     end
 
 
-    # Add a connection to this pool, wrapping the connection with a Makara2::ConnectionWrapper
+    # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(connection, config)
-      wrapper = Makara2::ConnectionWrapper.new(connection, @proxy, config)
+      wrapper = Makara::ConnectionWrapper.new(connection, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
@@ -82,11 +82,11 @@ module Makara2
         end
 
       else
-        raise Makara2::Errors::AllConnectionsBlacklisted
+        raise Makara::Errors::AllConnectionsBlacklisted
       end
 
 
-    rescue Makara2::Errors::BlacklistConnection => e
+    rescue Makara::Errors::BlacklistConnection => e
       provided_connection._makara_blacklist!
       retry
     end
@@ -100,7 +100,7 @@ module Makara2
     # not blacklisted.
     def next
 
-      if @proxy.sticky && Makara2::Context.get_current == @context
+      if @proxy.sticky && Makara::Context.get_current == @context
         con = @connections[@current_idx]
         return con unless con._makara_blacklisted? 
       end
@@ -139,7 +139,7 @@ module Makara2
 
       if stick
         @current_idx = idx
-        @context = Makara2::Context.get_current
+        @context = Makara::Context.get_current
       end
 
       con

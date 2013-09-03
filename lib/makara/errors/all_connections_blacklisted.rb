@@ -1,9 +1,9 @@
-module Makara2
+module Makara
   module Errors
     class AllConnectionsBlacklisted < StandardError
 
       def initialize
-        super "[Makara2] All connections are blacklisted"
+        super "[Makara] All connections are blacklisted"
       end
 
     end

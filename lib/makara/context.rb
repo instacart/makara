@@ -1,9 +1,9 @@
 require 'digest/md5'
 
 # Keeps track of the current and previous context (hexdigests)
-# If a new context is needed it can be generated via Makara2::Context.generate
+# If a new context is needed it can be generated via Makara::Context.generate
 
-module Makara2
+module Makara
   class Context
     class << self
 

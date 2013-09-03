@@ -1,5 +1,5 @@
 require 'active_record'
-require 'makara2'
+require 'makara'
 require 'timecop'
 
 begin
@@ -22,9 +22,9 @@ RSpec.configure do |config|
   config.include Configurator
 
   config.before :each do
-    Makara2::Cache.store = :memory
-    Makara2::Context.set_previous Makara2::Context.generate
-    Makara2::Context.set_current Makara2::Context.generate
-    allow_any_instance_of(Makara2::Pool).to receive(:should_shuffle?){ false }
+    Makara::Cache.store = :memory
+    Makara::Context.set_previous Makara::Context.generate
+    Makara::Context.set_current Makara::Context.generate
+    allow_any_instance_of(Makara::Pool).to receive(:should_shuffle?){ false }
   end
 end

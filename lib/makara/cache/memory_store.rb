@@ -1,4 +1,4 @@
-module Makara2
+module Makara
   module Cache
     class MemoryStore
 

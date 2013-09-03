@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe Makara2::Pool do
+describe Makara::Pool do
 
   let(:proxy){ FakeProxy.new({makara: pool_config.merge(connections: [])}) }
-  let(:pool){ Makara2::Pool.new(proxy) }
+  let(:pool){ Makara::Pool.new(proxy) }
   let(:pool_config){ {:blacklist_duration => 5} }
 
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
@@ -14,7 +14,7 @@ describe Makara2::Pool do
 
     expect(pool.connections.length).to eq(3)
 
-    expect(wrappera).to be_a(Makara2::ConnectionWrapper)
+    expect(wrappera).to be_a(Makara::ConnectionWrapper)
     expect(wrappera.to_s).to eq('a')
 
     as, bs = pool.connections.partition{|c| c.to_s == 'a'}
@@ -56,7 +56,7 @@ describe Makara2::Pool do
 
     pool.provide do |connection|
       if connection.to_s == 'a'
-        raise Makara2::Errors::BlacklistConnection.new(StandardError.new('failure'))
+        raise Makara::Errors::BlacklistConnection.new(StandardError.new('failure'))
       end
     end
 
@@ -105,9 +105,9 @@ describe Makara2::Pool do
 
     expect{
       pool.provide do |connection|
-        raise Makara2::Errors::BlacklistConnection.new(StandardError.new('failure'))
+        raise Makara::Errors::BlacklistConnection.new(StandardError.new('failure'))
       end
-    }.to raise_error(Makara2::Errors::AllConnectionsBlacklisted)
+    }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
   end
 
   it 'skips blacklisted connections when choosing the next one' do

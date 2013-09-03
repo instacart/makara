@@ -1,68 +1,103 @@
 require 'rack'
-require 'rack/request'
+
+# Persists the Makara::Context across requests ensuring the same master pool is used on the subsequent request.
+# Simply sets the cookie with the current context and the status code of this request. The next request then sets
+# the Makara::Context's previous context based on the the previous request. If a redirect is encountered the middleware 
+# will defer generation of a new context until a non-redirect request occurs.
 
 module Makara
   class Middleware
+
+    COOKIE_NAME = '_mkra_ctxt'
+
 
     def initialize(app)
       @app = app
     end
 
+
     def call(env)
 
-      request = Rack::Request.new(env)
-
-      Makara.context = env["action_dispatch.request_id"]
-
-      force_necessary_ids_to_master!(request)
+      return @app.call(env) if ignore_request?(env)
+      
+      Makara::Context.set_previous previous_context(env)
+      Makara::Context.set_current new_context(env)
 
       status, headers, body = @app.call(env)
 
-      response = Rack::Response.new(body, status, headers)
+      store_context(status, headers)
 
-      store_forced_ids!(request, response)
-
-      response.finish
-
-    ensure
-      Makara.release_forced_ids!
-      Makara.release_stuck_ids!
-      Makara.context = nil
+      [status, headers, body]
     end
+
 
     protected
 
-    def cache_key
-      'master-ids'
-    end
 
-    def state_cache(request, response)
-      Makara::StateCache.for(request, response)
-    end
-
-    def force_necessary_ids_to_master!(request)
-      value = state_cache(request, nil).get(cache_key)
-      return if value.blank?
-      ids = value.split(',')
-      ids.each{|id| Makara.force_to_master!(id) }
-    end
-
-    def store_forced_ids!(request, response)
-      if [301, 302].include?(response.status.to_i)
-        currently_forced = Makara.currently_forced_ids
-        unless currently_forced.empty?
-          state_cache(request, response).set(cache_key, currently_forced.join(','), 5)
-        end
-      else
-        currently_stuck = Makara.currently_stuck_ids
-
-        if currently_stuck.empty?
-          state_cache(request, response).del(cache_key)
-        else
-          state_cache(request, response).set(cache_key, currently_stuck.join(','), 5)
+    # ignore asset paths
+    # consider allowing a filter proc to be provided in an initializer
+    def ignore_request?(env)
+      if defined?(Rails)
+        if env['PATH_INFO'].to_s =~ /^#{Rails.application.config.assets.prefix}/
+          return true
         end
       end
+      false
     end
 
+
+    # generate a new context based on the request
+    # if the previous request was a redirect, we keep the same context
+    def new_context(env)
+
+      cookie_context, cookie_status = cookie_values(env)
+
+      context = nil
+
+      # if the previous request was a redirect, let's keep that context
+      if cookie_status.to_s =~ /^3/ # 300+ redirect
+        context = cookie_context
+      end
+
+      context ||= Makara::Context.get_current if env['rack.test']
+      context ||= Makara::Context.generate(env["action_dispatch.request_id"])
+      context
+    end
+
+
+    # pulls the previous context out of the cookie
+    def previous_context(env)
+      context = cookie_values(env).first
+      context ||= Makara::Context.get_previous if env['rack.test']
+      context ||= Makara::Context.generate
+      context
+    end
+
+
+    # retrieve the stored content for the cookie.
+    # The cookie contains the hexdigest and status code of the previous
+    # response in the format: $digest--$status
+    def cookie_values(env)
+      env['HTTP_COOKIE'].to_s =~ /#{COOKIE_NAME}=([\-a-z0-9A-Z]+)/
+      return $1.split('--') if $1
+      [nil, nil]
+    end
+
+
+    # push the current context into the cookie
+    # it should always be for the same path, only
+    # accessible via http and live for a short amount
+    # of time
+    def store_context(status, header)
+
+      cookie_value = {
+        path: '/',
+        value: "#{Makara::Context.get_current}--#{status}",
+        http_only: true,
+        max_age: '5'
+      }
+
+      Rack::Utils.set_cookie_header!(header, COOKIE_NAME, cookie_value)
+    end
   end
 end

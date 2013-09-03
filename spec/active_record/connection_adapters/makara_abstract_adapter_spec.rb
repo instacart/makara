@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'active_record/connection_adapters/makara2_abstract_adapter'
+require 'active_record/connection_adapters/makara_abstract_adapter'
 
-describe ActiveRecord::ConnectionAdapters::Makara2AbstractAdapter do
+describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
 
   let(:klass){ FakeAdapter }
 

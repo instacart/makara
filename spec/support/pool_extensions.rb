@@ -11,4 +11,4 @@ module PoolExtensions
 end
 
 
-Makara2::Pool.send(:include, PoolExtensions)
+Makara::Pool.send(:include, PoolExtensions)

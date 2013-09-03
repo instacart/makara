@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-describe Makara2::Proxy do
+describe Makara::Proxy do
 
   def change_context
-    Makara2::Context.set_previous Makara2::Context.get_current
-    Makara2::Context.set_current Makara2::Context.generate
+    Makara::Context.set_previous Makara::Context.get_current
+    Makara::Context.set_current Makara::Context.generate
   end
 
 
@@ -14,20 +14,20 @@ describe Makara2::Proxy do
 
   it 'sets up a master and slave pool no matter the number of connections' do
     proxy = klass.new(config(0,0))
-    expect(proxy.master_pool).to be_a(Makara2::Pool)
-    expect(proxy.slave_pool).to be_a(Makara2::Pool)
+    expect(proxy.master_pool).to be_a(Makara::Pool)
+    expect(proxy.slave_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(2,0))
-    expect(proxy.master_pool).to be_a(Makara2::Pool)
-    expect(proxy.slave_pool).to be_a(Makara2::Pool)
+    expect(proxy.master_pool).to be_a(Makara::Pool)
+    expect(proxy.slave_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(0,2))
-    expect(proxy.master_pool).to be_a(Makara2::Pool)
-    expect(proxy.slave_pool).to be_a(Makara2::Pool)
+    expect(proxy.master_pool).to be_a(Makara::Pool)
+    expect(proxy.slave_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(2,2))
-    expect(proxy.master_pool).to be_a(Makara2::Pool)
-    expect(proxy.slave_pool).to be_a(Makara2::Pool)
+    expect(proxy.master_pool).to be_a(Makara::Pool)
+    expect(proxy.slave_pool).to be_a(Makara::Pool)
   end
 
 

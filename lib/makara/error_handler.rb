@@ -2,7 +2,7 @@
 # Each concrete implementation of a MakaraProxy can provide it's own ErrorHandler which should inherit
 # from this class.
 
-module Makara2
+module Makara
   class ErrorHandler
 
 
@@ -18,7 +18,7 @@ module Makara2
 
 
     def gracefully(connection, e)
-      raise Makara2::Errors::BlacklistConnection.new(connection, e)
+      raise Makara::Errors::BlacklistConnection.new(connection, e)
     end
 
 

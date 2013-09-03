@@ -1,10 +1,10 @@
 require 'active_support/core_ext/hash/keys'
 
-# The entry point of Makara2. It contains a master and slave pool which are chosen based on the invocation
-# being proxied. Makara2::Proxy implementations should declare which methods they are hijacking via the 
+# The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
+# being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the 
 # `hijack_method` class method.
 
-module Makara2
+module Makara
   class Proxy < ::SimpleDelegator
 
     class_attribute :hijack_methods
@@ -39,12 +39,12 @@ module Makara2
 
     def initialize(config)
       @config         = config.symbolize_keys
-      @config_parser  = Makara2::ConfigParser.new(@config)
+      @config_parser  = Makara::ConfigParser.new(@config)
       @id             = @config_parser.id
       @ttl            = @config_parser.makara_config[:master_ttl]
       @sticky         = @config_parser.makara_config[:sticky]
       @hijacked       = false
-      @error_handler  ||= ::Makara2::ErrorHandler.new
+      @error_handler  ||= ::Makara::ErrorHandler.new
       instantiate_connections
     end
 
@@ -54,7 +54,7 @@ module Makara2
 
 
     def current_pool_name
-      pool, name = @master_context == Makara2::Context.get_current ? [@master_pool, 'Master'] : [@slave_pool, 'Slave']
+      pool, name = @master_context == Makara::Context.get_current ? [@master_pool, 'Master'] : [@slave_pool, 'Slave']
       connection_name = pool.current_connection_name
       name << "/#{connection_name}" if connection_name
       name
@@ -98,7 +98,7 @@ module Makara2
         yield @master_pool
 
       # in this context, we've already stuck to master
-      elsif Makara2::Context.get_current == @master_context
+      elsif Makara::Context.get_current == @master_context
         yield @master_pool
 
       # the previous context stuck us to master
@@ -138,16 +138,16 @@ module Makara2
 
     def previously_stuck_to_master?
       return false unless @sticky
-      !!Makara2::Cache.read("makara2::#{Makara2::Context.get_previous}-#{@id}")
+      !!Makara::Cache.read("makara::#{Makara::Context.get_previous}-#{@id}")
     end
 
 
     def stick_to_master(method_name, args, write_to_cache = true)
       return unless @sticky
       return unless should_stick?(method_name, args)
-      return if @master_context == Makara2::Context.get_current
-      @master_context = Makara2::Context.get_current
-      Makara2::Cache.write("makara2::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+      return if @master_context == Makara::Context.get_current
+      @master_context = Makara::Context.get_current
+      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
     end
 
 
@@ -158,12 +158,12 @@ module Makara2
 
     # use the config parser to generate a master and slave pool
     def instantiate_connections
-      @master_pool = Makara2::Pool.new(self)
+      @master_pool = Makara::Pool.new(self)
       @config_parser.master_configs.each do |master_config|
         @master_pool.add connection_for(master_config), master_config
       end
 
-      @slave_pool = Makara2::Pool.new(self)
+      @slave_pool = Makara::Pool.new(self)
       @config_parser.slave_configs.each do |slave_config|
         @slave_pool.add connection_for(slave_config), slave_config
       end
