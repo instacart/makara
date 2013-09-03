@@ -14,10 +14,10 @@ RSpec.configure do |config|
 
   config.order = 'random'
 
-  require_relative 'support/proxy_extensions'
-  require_relative 'support/pool_extensions'
-  require_relative 'support/configurator'
-  require_relative 'support/mock_objects'
+  require "#{File.dirname(__FILE__)}/support/proxy_extensions"
+  require "#{File.dirname(__FILE__)}/support/pool_extensions"
+  require "#{File.dirname(__FILE__)}/support/configurator"
+  require "#{File.dirname(__FILE__)}/support/mock_objects"
   
   config.include Configurator
 

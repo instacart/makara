@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Makara::Pool do
 
-  let(:proxy){ FakeProxy.new({makara: pool_config.merge(connections: [])}) }
+  let(:proxy){ FakeProxy.new({:makara => pool_config.merge(:connections => [])}) }
   let(:pool){ Makara::Pool.new(proxy) }
   let(:pool_config){ {:blacklist_duration => 5} }
 

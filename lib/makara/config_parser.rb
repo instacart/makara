@@ -21,9 +21,9 @@ module Makara
   class ConfigParser
 
     DEFAULTS = {
-      master_ttl: 5,
-      blacklist_duration: 30,
-      sticky: true
+      :master_ttl => 5,
+      :blacklist_duration => 30,
+      :sticky => true
     }
 
     attr_reader :makara_config
@@ -74,7 +74,7 @@ module Makara
 
 
     def recursive_sort(thing)
-      return thing.to_s unless thing.respond_to?(:sort)
+      return thing.to_s unless thing.include?(Enumerable)
 
       thing.map do |part|
         recursive_sort(part)

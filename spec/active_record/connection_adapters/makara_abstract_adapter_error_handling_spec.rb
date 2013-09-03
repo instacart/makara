@@ -25,6 +25,4 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     end
   end
 
-  [ActiveRecord::RecordNotUnique]
-
 end

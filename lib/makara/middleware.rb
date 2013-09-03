@@ -91,10 +91,10 @@ module Makara
     def store_context(status, header)
 
       cookie_value = {
-        path: '/',
-        value: "#{Makara::Context.get_current}--#{status}",
-        http_only: true,
-        max_age: '5'
+        :path => '/',
+        :value => "#{Makara::Context.get_current}--#{status}",
+        :http_only => true,
+        :max_age => '5'
       }
 
       Rack::Utils.set_cookie_header!(header, COOKIE_NAME, cookie_value)

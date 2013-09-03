@@ -61,7 +61,7 @@ module Makara
 
     # Provide a way to get any random connection out of the pool, not worrying about blacklisting
     def any
-      con = @connections.sample
+      con = @connections[rand(@connections.length)]
       if block_given?
         yield con
       else

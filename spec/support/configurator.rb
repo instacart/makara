@@ -4,8 +4,8 @@ module Configurator
     masters.times{ connections << {:role => 'master'} }
     slaves.times{ connections << {:role => 'slave'} }
     {
-      makara: {
-        connections: connections
+      :makara => {
+        :connections => connections
       }
     }
   end
