@@ -1,3 +1,5 @@
+require 'active_record'
+
 module ActiveRecord
   module ConnectionAdapters
     class MakaraAbstractAdapter < ::Makara::Proxy
