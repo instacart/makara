@@ -1,5 +1,9 @@
 require 'active_support/core_ext/hash/keys'
 
+# The entry point of Makara2. It contains a master and slave pool which are chosen based on the invocation
+# being proxied. Makara2::Proxy implementations should declare which methods they are hijacking via the 
+# `hijack_method` class method.
+
 module Makara2
   class Proxy < ::SimpleDelegator
 
@@ -13,7 +17,7 @@ module Makara2
 
         method_names.each do |method_name|
           define_method method_name do |*args|
-            appropriate_connection(*args) do |con|
+            appropriate_connection(method_name, args) do |con|
               con.send(method_name, *args)
             end
           end
@@ -31,19 +35,21 @@ module Makara2
 
 
     attr_reader :error_handler
+    attr_reader :sticky
 
     def initialize(config)
       @config         = config.symbolize_keys
       @config_parser  = Makara2::ConfigParser.new(@config)
       @id             = @config_parser.id
       @ttl            = @config_parser.makara_config[:master_ttl]
+      @sticky         = @config_parser.makara_config[:sticky]
       @hijacked       = false
       @error_handler  ||= ::Makara2::ErrorHandler.new
       instantiate_connections
     end
 
     def __getobj__
-      @master_pool.try(:any) || @slave_pool.try(:any) || super
+      @master_pool.try(:any) || @slave_pool.try(:any) || nil
     end
 
 
@@ -69,8 +75,11 @@ module Makara2
     end
 
 
-    def appropriate_connection(*args)
-      appropriate_pool(*args) do |pool|
+    # based on the method_name and args, provide the appropriate connection
+    # mark this proxy as hijacked so the underlying connection does not attempt to check
+    # with back with this proxy.
+    def appropriate_connection(method_name, args)
+      appropriate_pool(method_name, args) do |pool|
         pool.provide do |connection|
           hijacked do
             yield connection
@@ -79,11 +88,13 @@ module Makara2
       end
     end
 
-    def appropriate_pool(*args)
+
+    # master or slave
+    def appropriate_pool(method_name, args)
 
       # the args provided absolutely need master
-      if needs_master?(args)
-        stick_to_master(args)
+      if needs_master?(method_name, args)
+        stick_to_master(method_name, args)
         yield @master_pool
 
       # in this context, we've already stuck to master
@@ -92,12 +103,15 @@ module Makara2
 
       # the previous context stuck us to master
       elsif previously_stuck_to_master?
-        stick_to_master(args, false)
+
+        # we're only on master because of the previous context so 
+        # behave like we're sticking to master but store the current context
+        stick_to_master(method_name, args, false)
         yield @master_pool
 
-      # all slaves are down
+      # all slaves are down (or empty)
       elsif @slave_pool.completely_blacklisted?
-        stick_to_master(args)
+        stick_to_master(method_name, args)
         yield @master_pool
 
       # yay! use a slave
@@ -109,7 +123,7 @@ module Makara2
 
 
     # do these args require a master connection
-    def needs_master?(*args)
+    def needs_master?(method_name, args)
       true
     end
 
@@ -123,23 +137,26 @@ module Makara2
 
 
     def previously_stuck_to_master?
+      return false unless @sticky
       !!Makara2::Cache.read("makara2::#{Makara2::Context.get_previous}-#{@id}")
     end
 
 
-    def stick_to_master(args, write_to_cache = true)
-      return unless should_stick?(args)
+    def stick_to_master(method_name, args, write_to_cache = true)
+      return unless @sticky
+      return unless should_stick?(method_name, args)
       return if @master_context == Makara2::Context.get_current
       @master_context = Makara2::Context.get_current
       Makara2::Cache.write("makara2::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
     end
 
 
-    def should_stick?(args)
+    def should_stick?(method_name, args)
       true
     end
 
 
+    # use the config parser to generate a master and slave pool
     def instantiate_connections
       @master_pool = Makara2::Pool.new(self)
       @config_parser.master_configs.each do |master_config|

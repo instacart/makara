@@ -1,5 +1,8 @@
 require 'digest/md5'
 
+# Keeps track of the current and previous context (hexdigests)
+# If a new context is needed it can be generated via Makara2::Context.generate
+
 module Makara2
   class Context
     class << self
@@ -12,7 +15,7 @@ module Makara2
 
 
       def get_previous
-        @previous_context || 'default_previous'
+        @previous_context ||= generate
       end
 
 
@@ -22,7 +25,7 @@ module Makara2
 
 
       def get_current
-        @current_context || 'default_current'
+        @current_context ||= generate
       end
 
 

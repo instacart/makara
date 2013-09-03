@@ -1,7 +1,11 @@
 require 'active_record'
 require 'makara2'
 require 'timecop'
-require 'byebug'
+
+begin
+  require 'byebug'
+rescue LoadError
+end
 
 RSpec.configure do |config|
   config.treat_symbols_as_metadata_keys_with_true_values = true

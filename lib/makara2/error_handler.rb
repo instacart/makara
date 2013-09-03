@@ -1,3 +1,7 @@
+# Base class to handle errors when invoking an underlying connection from a makara proxy.
+# Each concrete implementation of a MakaraProxy can provide it's own ErrorHandler which should inherit
+# from this class.
+
 module Makara2
   class ErrorHandler
 

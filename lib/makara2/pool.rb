@@ -1,5 +1,9 @@
 require 'active_support/core_ext/hash/keys'
 
+# Wraps a collection of similar connections and chooses which one to use
+# Uses the Makara2::Context to determine if the connection needs rotation.
+# Provides convenience methods for accessing underlying connections
+
 module Makara2
   class Pool
 
@@ -19,6 +23,7 @@ module Makara2
     end
 
 
+    # Add a connection to this pool, wrapping the connection with a Makara2::ConnectionWrapper
     def add(connection, config)
       wrapper = Makara2::ConnectionWrapper.new(connection, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
@@ -54,8 +59,9 @@ module Makara2
     end
 
 
+    # Provide a way to get any random connection out of the pool, not worrying about blacklisting
     def any
-      con = self.next
+      con = @connections.sample
       if block_given?
         yield con
       else
@@ -64,6 +70,8 @@ module Makara2
     end
 
 
+    # Provide a connection that is not blacklisted and handle any errors
+    # that may occur within the block.
     def provide
       provided_connection = self.next
 
@@ -87,10 +95,12 @@ module Makara2
     protected
 
 
-
+    # Get the next non-blacklisted connection. If the proxy is setup
+    # to be sticky, provide back the current connection assuming it is
+    # not blacklisted.
     def next
 
-      if Makara2::Context.get_current == @context
+      if @proxy.sticky && Makara2::Context.get_current == @context
         con = @connections[@current_idx]
         return con unless con._makara_blacklisted? 
       end
@@ -122,7 +132,7 @@ module Makara2
 
     # return the connection if it's not blacklisted
     # otherwise return nil
-    # optionally, store the position we're returning
+    # optionally, store the position and context we're returning
     def safe_value(idx, stick = false)
       con = @connections[idx]
       return nil if con._makara_blacklisted?
@@ -136,6 +146,7 @@ module Makara2
     end
 
 
+    # stub in test mode to ensure consistency
     def should_shuffle?
       true
     end

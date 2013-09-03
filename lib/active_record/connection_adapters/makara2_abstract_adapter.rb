@@ -57,8 +57,8 @@ module ActiveRecord
       protected
 
 
-      def appropriate_connection(*args)
-        if needed_by_all?(args)
+      def appropriate_connection(method_name, args)
+        if needed_by_all?(method_name, args)
           
           @master_pool.each_connection do |con|
             hijacked do
@@ -74,7 +74,7 @@ module ActiveRecord
 
         else
 
-          super(*args) do |con|
+          super(method_name, args) do |con|
             yield con
           end
 
@@ -82,7 +82,7 @@ module ActiveRecord
       end
 
 
-      def should_stick?(args)
+      def should_stick?(method_name, args)
         sql = args.first
         
         return true if sql.nil?
@@ -91,13 +91,13 @@ module ActiveRecord
         true
       end
 
-      def needed_by_all?(args)
+      def needed_by_all?(method_name, args)
         sql = args.first
         return true if sql.to_s =~ SQL_ALL_MATCHER
         false
       end
 
-      def needs_master?(args)
+      def needs_master?(method_name, args)
         sql = args.first
         return false if sql.to_s =~ SQL_SLAVE_MATCHER
         true

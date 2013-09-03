@@ -1,13 +1,28 @@
 require 'digest/md5'
 require 'active_support/core_ext/hash/keys'
 
-# convenience methods to grab subconfigs out of the primary database.yml configuration.
+# Convenience methods to grab subconfigs out of the primary configuration.
+# Provides a way to generate a consistent ID based on a unique config.
+# Makara configs should be formatted like so:
+# --
+#   top_level: 'variable'
+#   another: 'top level variable'
+#   makara:
+#     master_ttl: 3
+#     blacklist_duration: 20
+#     connections:
+#       - role: 'master'
+#       - role: 'slave'
+#       - role: 'slave'
+#         name: 'slave2'
+
 module Makara2
   class ConfigParser
 
     DEFAULTS = {
       master_ttl: 5,
-      blacklist_duration: 30
+      blacklist_duration: 30,
+      sticky: true
     }
 
     attr_reader :makara_config
@@ -47,7 +62,7 @@ module Makara2
 
     def all_configs
       @makara_config[:connections].map do |connection|
-        base_config.merge(connection).symbolize_keys
+        base_config.merge(connection.symbolize_keys)
       end
     end
 

@@ -1,5 +1,10 @@
 require 'active_support/core_ext/hash/keys'
 
+# Makara2::ConnectionWrapper wraps the instance of an underlying connection.
+# The wrapper provides methods for tracking blacklisting and individual makara configurations.
+# Upon creation, the wrapper defines methods in the underlying object giving it access to the
+# Makara2::Proxy.
+
 module Makara2
   class ConnectionWrapper < ::SimpleDelegator
 
@@ -49,12 +54,14 @@ module Makara2
         end
       }
 
+      # Each method the Makara2::Proxy needs to hijack should be redefined in the underlying connection.
+      # The new definition should allow for the proxy to intercept the invocation
       @proxy.class.hijack_methods.each do |meth|
         extension << %Q{
           def #{meth}(*args)
-            _makara_hijack do |target|
-              if target
-                target.#{meth}(*args)
+            _makara_hijack do |proxy|
+              if proxy
+                proxy.#{meth}(*args)
               else
                 super
               end
@@ -65,6 +72,7 @@ module Makara2
 
       __getobj__.instance_eval(extension)
       __getobj__._makara = @proxy
+      __getobj__._makara
     end
 
   end

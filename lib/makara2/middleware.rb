@@ -1,5 +1,10 @@
 require 'rack'
 
+# Persists the Makara2::Context across requests ensuring the same master pool is used on the subsequent request.
+# Simply sets the cookie with the current context and the status code of this request. The next request then sets
+# the Makara2::Context's previous context based on the the previous request. If a redirect is encountered the middleware 
+# will defer generation of a new context until a non-redirect request occurs.
+
 module Makara2
   class Middleware
 
@@ -29,6 +34,8 @@ module Makara2
     protected
 
 
+    # ignore asset paths
+    # consider allowing a filter proc to be provided in an initializer
     def ignore_request?(env)
       if defined?(Rails)
         if env['PATH_INFO'].to_s =~ /^#{Rails.application.config.assets.prefix}/
@@ -39,6 +46,8 @@ module Makara2
     end
 
 
+    # generate a new context based on the request
+    # if the previous request was a redirect, we keep the same context
     def new_context(env)
 
       cookie_context, cookie_status = cookie_values(env)
@@ -56,6 +65,7 @@ module Makara2
     end
 
 
+    # pulls the previous context out of the cookie
     def previous_context(env)
       context = cookie_values(env).first
       context ||= Makara2::Context.get_previous if env['rack.test']
@@ -63,6 +73,10 @@ module Makara2
       context
     end
 
+
+    # retrieve the stored content for the cookie.
+    # The cookie contains the hexdigest and status code of the previous
+    # response in the format: $digest--$status
     def cookie_values(env)
       env['HTTP_COOKIE'].to_s =~ /#{COOKIE_NAME}=([\-a-z0-9A-Z]+)/
       return $1.split('--') if $1
@@ -70,6 +84,10 @@ module Makara2
     end
 
 
+    # push the current context into the cookie
+    # it should always be for the same path, only
+    # accessible via http and live for a short amount
+    # of time
     def store_context(status, header)
 
       cookie_value = {

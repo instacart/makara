@@ -53,6 +53,10 @@ describe Makara2::Proxy do
 
     let(:proxy){ klass.new(config(1,1)) }
 
+    it 'should be sticky by default' do
+      expect(proxy.sticky).to eq(true)
+    end
+
     it 'should provide the slave pool for a read' do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
@@ -65,6 +69,12 @@ describe Makara2::Proxy do
     it 'should stick to master once used for a sticky operation' do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
+    end
+
+    it 'should not stick to master if stickiness is disabled' do
+      proxy.sticky = false
+      expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
+      expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
     # if the context changes we should still use master until the previous context is no longer relevant

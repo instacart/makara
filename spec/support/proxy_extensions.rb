@@ -21,7 +21,7 @@ module ProxyExtensions
   end
 
   def would_stick?(sql)
-    should_stick?([sql])
+    should_stick?(:execute, [sql])
   end
 
   def connection_for(sql)
@@ -33,9 +33,13 @@ module ProxyExtensions
   end
 
   def pool_for(sql)
-    appropriate_pool(sql) do |pool|
+    appropriate_pool(:execute, [sql]) do |pool|
       pool
     end
+  end
+
+  def sticky=(s)
+    @sticky = s
   end
 
 end

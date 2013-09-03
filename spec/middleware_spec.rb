@@ -1,4 +1,3 @@
-require 'ostruct'
 require 'spec_helper'
 
 describe Makara2::Middleware do
@@ -60,8 +59,8 @@ describe Makara2::Middleware do
 
     env['HTTP_COOKIE'] = response[1]['Set-Cookie']
 
-    response = middleware.call(env)
-    curr2, prev2 = context_from(response)
+    response      = middleware.call(env)
+    curr2, prev2  = context_from(response)
 
     expect(prev2).to eq('abcdefg')
     expect(curr2).to eq(Makara2::Context.get_current)

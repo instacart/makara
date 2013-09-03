@@ -1,42 +1,13 @@
 require 'active_support/core_ext/object/try'
 
+# The Makara2 Cache should have access to your centralized cache store.
+# It serves the purpose of storing the Makara2::Context across requests, servers, etc.
+
 module Makara2
   module Cache
 
-    class MemoryStore
-
-      def initialize
-        @data = {}
-      end
-
-      def read(key)
-        clean
-        @data[key].try(:[], 0)
-      end
-
-      def write(key, value, options = {})
-        clean
-        @data[key] = [value, Time.now.to_i + (options[:expires_in] || 5).to_i]
-        true
-      end
-
-      protected
-
-      def clean
-        @data.delete_if{|k,v| v[1] <= Time.now.to_i }
-      end
-
-    end
-
-    class NoopStore
-      def read(key)
-        nil
-      end
-
-      def write(key, value, options = {})
-        nil
-      end
-    end
+    autoload :MemoryStore, 'makara2/cache/memory_store'
+    autoload :NoopStore,   'makara2/cache/noop_store'
 
     class << self
 
@@ -56,7 +27,7 @@ module Makara2
 
       def store
         case @store
-        when :noop
+        when :noop, :null
           @store = Makara2::Cache::NoopStore.new
         when :memory
           @store = Makara2::Cache::MemoryStore.new

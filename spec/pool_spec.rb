@@ -9,11 +9,17 @@ describe Makara2::Pool do
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
 
-    wrapper = pool.add 'a', pool_config
-    expect(pool.connections.length).to eq(1)
+    wrappera = pool.add 'a', pool_config
+    wrapperb = pool.add 'b', pool_config.merge(:weight => 2)
 
-    expect(wrapper).to be_a(Makara2::ConnectionWrapper)
-    expect(wrapper.to_s).to eq('a')
+    expect(pool.connections.length).to eq(3)
+
+    expect(wrappera).to be_a(Makara2::ConnectionWrapper)
+    expect(wrappera.to_s).to eq('a')
+
+    as, bs = pool.connections.partition{|c| c.to_s == 'a'}
+    expect(as.length).to eq(1)
+    expect(bs.length).to eq(2)
   end
 
   it 'should determine if its completely blacklisted' do
@@ -45,12 +51,8 @@ describe Makara2::Pool do
 
   it 'provides the next connection and blacklists' do
 
-    Timecop.freeze
-
     wrapper_a = pool.add 'a', pool_config
     wrapper_b = pool.add 'b', pool_config
-
-    allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b)
 
     pool.provide do |connection|
       if connection.to_s == 'a'
@@ -66,6 +68,32 @@ describe Makara2::Pool do
       expect(wrapper_b).not_to be__makara_blacklisted
     end
 
+  end
+
+  it 'provides the same connection if the context has not changed and the proxy is sticky' do
+    allow(proxy).to receive(:sticky){ true }
+
+    pool.add 'a', pool_config
+    pool.add 'b', pool_config
+
+    provided = []
+
+    10.times{ pool.provide{|con| provided << con } }
+
+    expect(provided.uniq.length).to eq(1)
+  end
+
+  it 'does not provide the same connection if the proxy is not sticky' do
+    allow(proxy).to receive(:sticky){ false }
+
+    pool.add 'a', pool_config
+    pool.add 'b', pool_config
+
+    provided = []
+
+    10.times{ pool.provide{|con| provided << con } }
+
+    expect(provided.uniq.length).to eq(2)
   end
 
   it 'raises an error when all connections are blacklisted' do
