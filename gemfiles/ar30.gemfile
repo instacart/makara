@@ -4,6 +4,7 @@ source 'https://rubygems.org'
 gemspec :path => '../'
 
 
+gem 'rake'
 gem 'activerecord', '3.0.17'
 gem 'rspec'
 gem 'timecop'
