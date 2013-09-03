@@ -1,5 +1,6 @@
 require 'digest/md5'
 require 'active_support/core_ext/hash/keys'
+require 'active_support/core_ext/hash/except'
 
 # Convenience methods to grab subconfigs out of the primary configuration.
 # Provides a way to generate a consistent ID based on a unique config.
