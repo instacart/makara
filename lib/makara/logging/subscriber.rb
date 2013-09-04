@@ -25,12 +25,9 @@ module Makara
         adapter = ObjectSpace._id2ref(connection_object_id)
 
         return nil unless adapter
-        return nil unless adapter.respond_to?(:_makara)
+        return nil unless adapter.respond_to?(:_makara_name)
         
-        makara = adapter._makara
-        return nil unless makara
-
-        "[#{makara.current_pool_name}]"
+        "[#{adapter._makara_name}]"
       end
     end
 

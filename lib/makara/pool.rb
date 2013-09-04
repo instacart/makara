@@ -7,7 +7,8 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class Pool
 
-    def initialize(proxy)
+    def initialize(role, proxy)
+      @role           = role
       @proxy          = proxy
       @context        = Makara::Context.get_current
       @connections    = []
@@ -25,6 +26,8 @@ module Makara
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(connection, config)
+      config[:name] ||= "#{@role}/#{@connections.length + 1}"
+      
       wrapper = Makara::ConnectionWrapper.new(connection, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
 
@@ -34,14 +37,6 @@ module Makara
       end
 
       wrapper
-    end
-
-
-    def current_connection_name
-      con = @connections[@current_idx]
-      name = con._makara_name
-      name ||= @current_idx + 1 if @connections.length > 1
-      name
     end
 
 

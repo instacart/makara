@@ -50,16 +50,9 @@ module Makara
       instantiate_connections
     end
 
+
     def __getobj__
       @master_pool.try(:any) || @slave_pool.try(:any) || nil
-    end
-
-
-    def current_pool_name
-      pool, name = @master_context == Makara::Context.get_current ? [@master_pool, 'Master'] : [@slave_pool, 'Slave']
-      connection_name = pool.current_connection_name
-      name << "/#{connection_name}" if connection_name
-      name
     end
 
 
@@ -160,12 +153,12 @@ module Makara
 
     # use the config parser to generate a master and slave pool
     def instantiate_connections
-      @master_pool = Makara::Pool.new(self)
+      @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
         @master_pool.add connection_for(master_config), master_config
       end
 
-      @slave_pool = Makara::Pool.new(self)
+      @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
         @slave_pool.add connection_for(slave_config), slave_config
       end

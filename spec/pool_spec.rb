@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Makara::Pool do
 
   let(:proxy){ FakeProxy.new({:makara => pool_config.merge(:connections => [])}) }
-  let(:pool){ Makara::Pool.new(proxy) }
+  let(:pool){ Makara::Pool.new('test', proxy) }
   let(:pool_config){ {:blacklist_duration => 5} }
 
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do

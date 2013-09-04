@@ -22,10 +22,6 @@ module Makara
       @config[:weight] || 1
     end
 
-    def _makara_name
-      @config[:name]
-    end
-
     def _makara_blacklisted?
       @blacklisted_until.to_i > Time.now.to_i
     end
@@ -52,6 +48,10 @@ module Makara
           else
             yield _makara
           end
+        end
+
+        def _makara_name
+          #{@config[:name].inspect}
         end
       }
 
