@@ -121,6 +121,11 @@ module ActiveRecord
         end
       end
 
+      def select_all(arel, name = nil, binds = [])
+        makara_block(to_sql(arel, binds)) do |wrapper|
+          wrapper.select_all(arel, name, binds)
+        end
+      end
 
       # temporarily force master within the block provided
       def with_master
@@ -136,6 +141,8 @@ module ActiveRecord
       def method_missing(method_name, *args, &block)
         class_eval <<-EV, __FILE__, __LINE__+1
           def #{method_name}(*args, &block)
+            info("method_missing called with method_name: #{method_name}")
+
             with_master do
               @master.any.connection.send(:#{method_name}, *args, &block)
             end
