@@ -42,7 +42,11 @@ module ActiveRecord
         "ActiveRecord::ConnectionAdapters::#{adapter_name.to_s.classify}Adapter".constantize.visitor_for(pool)
       end
 
-      attr_reader :current_wrapper, :id
+      undef_method :instance_variable_get
+
+      attr_reader :current_wrapper
+      attr_reader :id
+      attr_reader :exception_handler
 
       SQL_SLAVE_KEYWORDS      = ['select', 'show tables', 'show fields', 'describe', 'show database', 'show schema', 'show view', 'show index']
       SQL_SLAVE_MATCHER       = /^(#{SQL_SLAVE_KEYWORDS.join('|')})/

@@ -88,4 +88,13 @@ describe ActiveRecord::ConnectionAdapters::MakaraAdapter do
 
   end
 
+  context "retrieving instance variables" do
+
+    it 'should pass to the master adapter' do
+      adapter.class.public_instance_methods.map(&:to_s).should_not include('instance_variable_get')
+      adapter.instance_variable_get(:@config).object_id.should eql(adapter.mcon.instance_variable_get(:@config).object_id)
+    end
+
+  end
+
 end
