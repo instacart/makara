@@ -10,7 +10,7 @@ module Makara
       attr_reader :name, :connection, :weight
       attr_accessor :adapter
 
-      delegate :execute, :exec_query, :to => :connection
+      delegate :execute, :exec_query, :select_all, :to => :connection
 
       def initialize(adapter, connection)
         @adapter            = adapter
