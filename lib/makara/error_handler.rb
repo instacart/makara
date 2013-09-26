@@ -23,7 +23,7 @@ module Makara
 
 
     def harshly(e)
-      raise e 
+      raise e
     end
 
   end

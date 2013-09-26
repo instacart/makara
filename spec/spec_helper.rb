@@ -18,7 +18,7 @@ RSpec.configure do |config|
   require "#{File.dirname(__FILE__)}/support/pool_extensions"
   require "#{File.dirname(__FILE__)}/support/configurator"
   require "#{File.dirname(__FILE__)}/support/mock_objects"
-  
+
   config.include Configurator
 
   config.before :each do

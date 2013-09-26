@@ -1,7 +1,7 @@
 module Makara
   module Cache
     class NoopStore
-      
+
       def read(key)
         nil
       end

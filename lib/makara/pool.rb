@@ -27,7 +27,7 @@ module Makara
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(connection, config)
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
-      
+
       wrapper = Makara::ConnectionWrapper.new(connection, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
 
@@ -71,7 +71,7 @@ module Makara
       provided_connection = self.next
 
       if provided_connection
-        
+
         @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
@@ -97,9 +97,9 @@ module Makara
 
       if @proxy.sticky && Makara::Context.get_current == @context
         con = @connections[@current_idx]
-        return con unless con._makara_blacklisted? 
+        return con unless con._makara_blacklisted?
       end
-      
+
       idx = @current_idx
       begin
 
@@ -108,9 +108,9 @@ module Makara
         # if we've looped all the way around, return our safe value
         return safe_value(idx, true) if idx == @current_idx
 
-      # while our current safe value is dangerous    
+      # while our current safe value is dangerous
       end while safe_value(idx).nil?
-      
+
       # store our current spot and return our safe value
       safe_value(idx, true)
     end
@@ -121,7 +121,7 @@ module Makara
     def next_index(idx)
       idx = idx + 1
       idx = 0 if idx >= @connections.length
-      idx 
+      idx
     end
 
 

@@ -23,7 +23,7 @@ describe Makara::Pool do
   end
 
   it 'should determine if its completely blacklisted' do
-    
+
     pool.add 'a', pool_config
     pool.add 'b', pool_config
 

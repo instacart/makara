@@ -26,7 +26,7 @@ module Makara
 
         return nil unless adapter
         return nil unless adapter.respond_to?(:_makara_name)
-        
+
         "[#{adapter._makara_name}]"
       end
     end

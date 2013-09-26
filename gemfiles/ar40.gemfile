@@ -8,9 +8,4 @@ gem 'rake'
 gem 'activerecord', '4.0.0'
 gem 'rspec'
 gem 'rack'
-
-if RUBY_VERSION.to_s =~ /^1.8/
-  gem 'timecop', '0.5.9'
-else
-  gem 'timecop'
-end
+gem 'timecop'

@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Makara::Middleware do
 
-  let(:app){ 
+  let(:app){
     lambda{|env|
       proxy.query(env[:query] || 'select * from users')
       [200, {}, ["#{Makara::Context.get_current}-#{Makara::Context.get_previous}"]]

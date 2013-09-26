@@ -2,7 +2,7 @@ require 'rack'
 
 # Persists the Makara::Context across requests ensuring the same master pool is used on the subsequent request.
 # Simply sets the cookie with the current context and the status code of this request. The next request then sets
-# the Makara::Context's previous context based on the the previous request. If a redirect is encountered the middleware 
+# the Makara::Context's previous context based on the the previous request. If a redirect is encountered the middleware
 # will defer generation of a new context until a non-redirect request occurs.
 
 module Makara
@@ -19,7 +19,7 @@ module Makara
     def call(env)
 
       return @app.call(env) if ignore_request?(env)
-      
+
       Makara::Context.set_previous previous_context(env)
       Makara::Context.set_current new_context(env)
 

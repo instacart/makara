@@ -3,7 +3,7 @@ require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
 
 # The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
-# being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the 
+# being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
 # `hijack_method` class method.
 
 module Makara
@@ -99,7 +99,7 @@ module Makara
       # the previous context stuck us to master
       elsif previously_stuck_to_master?
 
-        # we're only on master because of the previous context so 
+        # we're only on master because of the previous context so
         # behave like we're sticking to master but store the current context
         stick_to_master(method_name, args, false)
         yield @master_pool

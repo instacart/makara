@@ -9,7 +9,7 @@ module ActiveRecord
 
 
         def handle(connection)
-            
+
           super
 
         rescue ActiveRecord::RecordNotUnique => e
@@ -37,7 +37,7 @@ module ActiveRecord
           end
         end
 
-        
+
       end
 
 
@@ -61,13 +61,13 @@ module ActiveRecord
 
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
-          
+
           @master_pool.each_connection do |con|
             hijacked do
               yield con
             end
           end
-          
+
           @slave_pool.each_connection do |con|
             hijacked do
               yield con
@@ -86,7 +86,7 @@ module ActiveRecord
 
       def should_stick?(method_name, args)
         sql = args.first
-        
+
         return true if sql.nil?
         return false if sql.to_s =~ /^show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i
         return false if sql.to_s =~ /^(set|describe|explain|pragma)\s/i
