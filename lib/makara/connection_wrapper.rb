@@ -30,6 +30,10 @@ module Makara
       @blacklisted_until = Time.now.to_i + @config[:blacklist_duration]
     end
 
+    def _makara_whitelist!
+      @blacklisted_until = nil
+    end
+
     protected
 
     def _makara_decorate_connection

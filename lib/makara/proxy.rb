@@ -87,33 +87,45 @@ module Makara
     # master or slave
     def appropriate_pool(method_name, args)
 
-      # the args provided absolutely need master
-      if needs_master?(method_name, args)
-        stick_to_master(method_name, args)
-        yield @master_pool
+      pool = begin
+        # the args provided absolutely need master
+        if needs_master?(method_name, args)
+          stick_to_master(method_name, args)
+          @master_pool
 
-      # in this context, we've already stuck to master
-      elsif Makara::Context.get_current == @master_context
-        yield @master_pool
+        # in this context, we've already stuck to master
+        elsif Makara::Context.get_current == @master_context
+          @master_pool
 
-      # the previous context stuck us to master
-      elsif previously_stuck_to_master?
+        # the previous context stuck us to master
+        elsif previously_stuck_to_master?
 
-        # we're only on master because of the previous context so
-        # behave like we're sticking to master but store the current context
-        stick_to_master(method_name, args, false)
-        yield @master_pool
+          # we're only on master because of the previous context so
+          # behave like we're sticking to master but store the current context
+          stick_to_master(method_name, args, false)
+          @master_pool
 
-      # all slaves are down (or empty)
-      elsif @slave_pool.completely_blacklisted?
-        stick_to_master(method_name, args)
-        yield @master_pool
+        # all slaves are down (or empty)
+        elsif @slave_pool.completely_blacklisted?
+          stick_to_master(method_name, args)
+          @master_pool
 
-      # yay! use a slave
-      else
-        yield @slave_pool
+        # yay! use a slave
+        else
+          @slave_pool
+        end
       end
 
+      yield pool
+
+    rescue ::Makara::Errors::AllConnectionsBlacklisted => e
+      if pool == @master_pool
+        @master_pool.send_to_all(:_makara_whitelist!)
+        @slave_pool.send_to_all(:_makara_whitelist!)
+        raise e
+      else
+        retry
+      end
     end
 
 
@@ -155,12 +167,12 @@ module Makara
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
-        @master_pool.add connection_for(master_config), master_config
+        @master_pool.add connection_for(master_config), master_config.merge(@config_parser.makara_config)
       end
 
       @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
-        @slave_pool.add connection_for(slave_config), slave_config
+        @slave_pool.add connection_for(slave_config), slave_config.merge(@config_parser.makara_config)
       end
     end
 

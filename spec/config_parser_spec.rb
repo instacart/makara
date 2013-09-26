@@ -6,6 +6,7 @@ describe Makara::ConfigParser do
     {
       :top_level => 'value',
       :makara => {
+        :blacklist_duration => 5,
         :connections => [
           {
             :role => 'master',

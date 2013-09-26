@@ -5,6 +5,7 @@ module Configurator
     slaves.times{ connections << {:role => 'slave'} }
     {
       :makara => {
+        :blacklist_duration => 30,
         :connections => connections
       }
     }

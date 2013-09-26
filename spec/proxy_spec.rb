@@ -120,6 +120,38 @@ describe Makara::Proxy do
       expect(proxy.master_for?('select * from users')).to eq(true)
     end
 
+    it 'should use master if all slaves become blacklisted as part of the invocation' do
+      allow(proxy.slave_pool).to receive(:next).and_return(nil)
+
+      test = double
+      expect(test).to receive(:blacklisting).once
+      expect(test).to receive(:using_master).once
+
+      proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
+        if pool == proxy.slave_pool
+          test.blacklisting
+          pool.send_to_all(:_makara_blacklist!)
+          pool.provide
+        else
+          test.using_master
+        end
+      end
+    end
+
+    it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
+      proxy.slave_pool.connections.each(&:_makara_blacklist!)
+      proxy.master_pool.connections.each(&:_makara_blacklist!)
+
+      expect {
+        proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
+          pool.provide{|c| c }
+        end
+      }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+
+      proxy.slave_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
+      proxy.master_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
+    end
+
   end
 
 
