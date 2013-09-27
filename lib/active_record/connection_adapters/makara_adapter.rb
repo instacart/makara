@@ -1,5 +1,5 @@
 module ActiveRecord
-  
+
   class Base
 
     def self.makara_connection(config)
@@ -17,7 +17,7 @@ module ActiveRecord
 
       adapter_method = "#{adapter_name}_connection"
 
-      unless self.respond_to?(adapter_method)
+      unless self.methods.include?(adapter_method)
         begin
           require "active_record/connection_adapters/#{adapter_name}_adapter"
         rescue LoadError
@@ -67,7 +67,7 @@ module ActiveRecord
         # sticky master by default
         @sticky_master      = true
         @sticky_master      = !!options[:sticky_master]   if options.has_key?(:sticky_master)
-    
+
         # sticky slaves by default
         @sticky_slave       = true
         @sticky_slave       = !!options[:sticky_slaves]   if options.has_key?(:sticky_slaves)
@@ -104,7 +104,7 @@ module ActiveRecord
         makara_block(sql) do |wrapper|
 
           ar = wrapper.method(:execute).arity
-          
+
           # rails version compatability
           if ar >= 3 || ar <= -3
             wrapper.execute(sql, name, binds)
@@ -125,7 +125,7 @@ module ActiveRecord
       # temporarily force master within the block provided
       def with_master
         previously_forced = forced_to_master?
-        force_master!        
+        force_master!
         yield
       ensure
         release_master! unless previously_forced
@@ -262,7 +262,7 @@ module ActiveRecord
 
       def stuck_on
         unless @stuck_on_context == Makara.context
-          @stuck_on = nil 
+          @stuck_on = nil
         end
         @stuck_on
       end
@@ -284,7 +284,7 @@ module ActiveRecord
 
         return false  if currently_stuck?
         return true   if @sticky_slave      && @current_wrapper.slave?
-        
+
         false
       end
 
@@ -320,14 +320,14 @@ module ActiveRecord
 
         # mark ourselves as being in a hijack block so we don't invoke this adapter's execute() unecessarily
         hijacking! do
-          
+
           # hand off control to the wrapper
           yield @current_wrapper
         end
 
       # catch all exceptions for now, since we don't know what adapter we'll be using or how they'll be formatted
       rescue Exception => e
-        
+
         # handle the exception properly
         @exception_handler.handle(e)
 

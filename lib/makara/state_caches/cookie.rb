@@ -20,7 +20,7 @@ module Makara
         return unless @response
 
         if @response.header['Set-Cookie'].present?
-          with_session_key(key) do |session_key| 
+          with_session_key(key) do |session_key|
             @response.delete_cookie(session_key)
           end
         end
@@ -30,8 +30,9 @@ module Makara
 
       # in the case of the cookie store, the session is implied by the existence of the cookie.
       # so we don't need to worry about using the session id at all.
+      # FIXME: namespace for Makara module not working
       def with_session_key(base_key)
-        yield ['makara', Makara.namespace, base_key].compact.join('-')
+        yield ['makara', Makara.try(:namespace), base_key].compact.join('-')
       end
 
     end

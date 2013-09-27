@@ -35,8 +35,10 @@ module Makara
       @context || 'global'
     end
 
-    def namespace
-      primary_config[:namespace]
+    def register_adapter(adapter)
+      @adapters ||= []
+      @adapters << adapter unless @adapters.map(&:id).include?(adapter.id)
+      @adapters = @adapters.sort_by(&:id)
     end
 
     # force connections with this id to master
