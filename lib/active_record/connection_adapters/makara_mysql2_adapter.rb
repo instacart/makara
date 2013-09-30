@@ -24,6 +24,12 @@ module ActiveRecord
   module ConnectionAdapters
     class MakaraMysql2Adapter < ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
 
+      class << self
+        def visitor_for(*args)
+          ActiveRecord::ConnectionAdapters::Mysql2Adapter.visitor_for(*args)
+        end
+      end
+
       protected
 
       def connection_for(config)

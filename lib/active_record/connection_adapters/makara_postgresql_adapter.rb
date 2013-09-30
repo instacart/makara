@@ -23,6 +23,12 @@ module ActiveRecord
   module ConnectionAdapters
     class MakaraPostgreSQLAdapter < ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
 
+      class << self
+        def visitor_for(*args)
+          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.visitor_for(*args)
+        end
+      end
+
       protected
 
       def connection_for(config)
