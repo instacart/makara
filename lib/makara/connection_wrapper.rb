@@ -34,6 +34,26 @@ module Makara
       @blacklisted_until = nil
     end
 
+    # we want to forward all private methods, since we could have kicked out from a private scenario
+    def method_missing(method_name, *args, &block)
+      super
+    rescue NoMethodError => e
+      target = __getobj__
+      if target.respond_to?(method_name, true)
+        target.__send__(method_name, *args, &block)
+      else
+        raise e
+      end
+    end
+
+
+    class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
+      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(method_name, include_private = false)
+        super || __getobj__.respond_to?(method_name, true)
+      end
+    RUBY_EVAL
+
+
     protected
 
     def _makara_decorate_connection
