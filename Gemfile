@@ -6,6 +6,10 @@ gemspec
 gem 'rake'
 gem 'rspec'
 gem 'timecop'
-gem 'byebug'
+gem 'byebug', platform: :ruby
+gem 'ruby-debug', platform: :jruby
 gem 'rack'
-gem 'mysql2'
+
+gem 'mysql2', platform: :ruby
+gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+

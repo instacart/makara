@@ -35,8 +35,11 @@ describe 'MakaraMysql2Adapter' do
 
       res = connection.execute('SELECT @t1')
 
-
-      expect(res.to_a[0][0]).to eq('blah')
+      if defined?(JRUBY_VERSION)
+        expect(res[0]['@t1']).to eq('blah')
+      else
+        expect(res.to_a[0][0]).to eq('blah')
+      end
     end
 
     it 'should send SET operations to each connection' do
