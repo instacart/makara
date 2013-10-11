@@ -69,7 +69,7 @@ module Makara
 
 
     def base_config
-      @config.except(:makara)
+      @base_config ||= DEFAULTS.merge(@config).except(:makara)
     end
 
 
