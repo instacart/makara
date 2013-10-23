@@ -1,4 +1,4 @@
-Copyright (c) 2012 Mike Nelson
+Copyright (c) 2013 Mike Nelson
 
 MIT License
 

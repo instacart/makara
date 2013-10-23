@@ -2,111 +2,72 @@ require 'spec_helper'
 
 describe Makara::Middleware do
 
-  def env_for(path, method = 'get')
-    {
-      'REQUEST_METHOD' => method.to_s.upcase,
-      'PATH_INFO' => path,
-      'rack.session' => {},
-      'rack.input' => ::StringIO.new('test=true')
-    }.merge(@env || {})
+  let(:app){
+    lambda{|env|
+      proxy.query(env[:query] || 'select * from users')
+      [200, {}, ["#{Makara::Context.get_current}-#{Makara::Context.get_previous}"]]
+    }
+  }
+
+  let(:env){ {} }
+  let(:proxy){ FakeProxy.new(config(1,2)) }
+  let(:middleware){ described_class.new(app) }
+
+  let(:key){ Makara::Middleware::COOKIE_NAME }
+
+  it 'should set the context before the request' do
+    Makara::Context.set_previous 'old'
+    Makara::Context.set_current 'old'
+
+    response = middleware.call(env)
+    current, prev = context_from(response)
+
+    expect(current).not_to eq('old')
+    expect(prev).not_to eq('old')
+
+    expect(current).to eq(Makara::Context.get_current)
+    expect(prev).to eq(Makara::Context.get_previous)
   end
 
-  let(:request){ env_for('/get/request') }
-  
-  let(:responder_app){            lambda{|env| [200, {}, ['Requestor']] }   }
-  let(:redirector_app){           lambda{|env| [302, {}, ['Redirector']] }  }
+  it 'should use the cookie-provided context if present' do
+    env['HTTP_COOKIE'] = "#{key}=abcdefg--200; path=/; max-age=5"
 
+    response = middleware.call(env)
+    current, prev = context_from(response)
 
-  def middleware(key)
-    @middleware ||= {}
-    @middleware[key.to_s] ||= Makara::Middleware.new(send("#{key}_app"))
-    @middleware[key.to_s]
+    expect(prev).to eq('abcdefg')
+    expect(current).to eq(Makara::Context.get_current)
+    expect(current).not_to eq('abcdefg')
   end
 
-  def set_cookie_value(headers)
-    s = headers['Set-Cookie'].to_s
-    s =~ /makara-(.+)?master-ids=(.+)/
-    $2 ? $2.to_s.split(';').first : nil
+  it 'should set the cookie if master is used' do
+    env[:query] = 'update users set name = "phil"'
+
+    status, headers, body = middleware.call(env)
+
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5")
   end
 
-  before do
-    connect!(config)
+  it 'should preserve the same context if the previous request was a redirect' do
+    env['HTTP_COOKIE'] = "#{key}=abcdefg--301; path=/; max-age=5"
+
+    response    = middleware.call(env)
+    curr, prev  = context_from(response)
+
+    expect(curr).to eq('abcdefg')
+    expect(prev).to eq('abcdefg')
+
+    env['HTTP_COOKIE'] = response[1]['Set-Cookie']
+
+    response      = middleware.call(env)
+    curr2, prev2  = context_from(response)
+
+    expect(prev2).to eq('abcdefg')
+    expect(curr2).to eq(Makara::Context.get_current)
   end
 
-  let(:config){ single_slave_config }
-
-  it "should delete the cookie when a request is made and master is not being used" do
-    status, headers, body = middleware('responder').call(request)
-    set_cookie_value(headers).should be_nil
-  end
-
-  it "should set the cookie to master when a request is made and the master has been stuck to" do
-    Makara.stick_id! adapter.id
-    status, headers, body = middleware('responder').call(request)
-    set_cookie_value(headers).should eql('default')
-  end
-  
-  it "should delete the cookie when a request is made after a sticky request and master is not stuck again" do
-    @env = {'HTTP_COOKIE' => 'makara-master-ids=default'}
-    status, headers, body = middleware('responder').call(request)
-    set_cookie_value(headers).should be_nil
-  end
-
-  it "should tell makara to force the id to master" do
-    Makara.should_receive(:force_to_master!).with('default').once
-
-    @env = {'HTTP_COOKIE' => 'makara-master-ids=default'}
-    status, headers, body = middleware('responder').call(request)
-    set_cookie_value(headers).should be_nil
-  end
-
-  it "should not unset the cookie when a redirect is encountered and the cookie is present" do
-    @env = {'HTTP_COOKIE' => 'makara-master-ids=default'}
-    status, headers, body = middleware('redirector').call(request)
-    set_cookie_value(headers).should eql('default')
-  end
-
-  it 'should stick to individual masters as needed' do
-    adapter
-    adapter2 = ::ActiveRecord::ConnectionAdapters::MakaraAdapter.new([adapter.mcon], :id => 'secondary')
-
-    adapter.mcon.makara_adapter = adapter
-
-    app = lambda do |env| 
-      adapter.execute('update users set value = 1')
-      [200, {}, 'Updater']
-    end
-    
-    middle = Makara::Middleware.new(app)
-
-    status, headers, body = middle.call(request)
-    set_cookie_value(headers).should eql('default')
-
-    status, headers, body = middle.call(request.merge('HTTP_COOKIE' => 'makara-master-ids=default'))
-    set_cookie_value(headers).should be_nil
-
-  end
-
-  context 'with a namespaced config' do
-    let(:config){ namespace_config }
-
-    it 'should use the app namespace as the cache key' do
-      Makara.namespace.should eql('my_app')
-
-      app = lambda do |env| 
-        adapter.execute('update users set value = 1')
-        [200, {}, 'Updater']
-      end
-      
-      middle = Makara::Middleware.new(app)
-
-      status, headers, body = middle.call(request)
-
-      headers['Set-Cookie'].should =~ /makara-my_app-master-ids/
-      headers['Set-Cookie'].should_not =~ /makara-master-ids/
-      
-      set_cookie_value(headers).should eql('default')
-    end
+  def context_from(response)
+    response[2][0].split('-')
   end
 
 end

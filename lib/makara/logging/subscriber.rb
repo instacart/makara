@@ -12,29 +12,22 @@ module Makara
 
       protected
 
-      # grabs the wrapper used in this event via it's object_id
-      # uses the wrapper's makara adapter to modify the name of the event
+      # grabs the adapter used in this event via it's object_id
+      # uses the adapter's connection proxy to modify the name of the event
       # the name of the used connection will be prepended to the sql log
       ###
-      ### [adapter_id/wrapper_name] User Load (1.3ms) SELECT * FROM `users`;
+      ### [Master|Slave] User Load (1.3ms) SELECT * FROM `users`;
       ###
       def current_wrapper_name(event)
         connection_object_id = event.payload[:connection_id]
         return nil unless connection_object_id
 
-        underlying_adapter = ObjectSpace._id2ref(connection_object_id)
+        adapter = ObjectSpace._id2ref(connection_object_id)
 
-        return nil unless underlying_adapter
-        return nil unless underlying_adapter.respond_to?(:makara_adapter)
+        return nil unless adapter
+        return nil unless adapter.respond_to?(:_makara_name)
 
-        adapter = underlying_adapter.makara_adapter
-        return nil unless adapter.respond_to?(:current_wrapper)
-
-        id = adapter.id
-        wrapper_name = adapter.current_wrapper.try(:name)
-        return "[#{id}]" unless wrapper_name
-
-        "[#{id}/#{wrapper_name}]"
+        "[#{adapter._makara_name}]"
       end
     end
 

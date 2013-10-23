@@ -4,11 +4,15 @@ source 'https://rubygems.org'
 gemspec :path => '../'
 
 
-gem 'activerecord', '3.2.6'
 gem 'rake'
-gem 'rack'
-gem 'mysql2'
+gem 'activerecord', '3.2.6'
 gem 'rspec'
-gem 'chronic', '0.9.1' # ruby 1.8 compatible
-gem 'delorean'
-gem 'redis'
+gem 'rack'
+gem 'mysql2', :platform => :ruby
+gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
+
+if RUBY_VERSION.to_s =~ /^1.8/
+  gem 'timecop', '0.5.9'
+else
+  gem 'timecop'
+end

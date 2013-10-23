@@ -4,10 +4,10 @@ source 'https://rubygems.org'
 gemspec :path => '../'
 
 
-gem 'activerecord', '4.0.0'
 gem 'rake'
-gem 'rack'
-gem 'mysql2'
+gem 'activerecord', '4.0.0'
 gem 'rspec'
-gem 'delorean'
-gem 'redis'
+gem 'rack'
+gem 'timecop'
+gem 'mysql2', :platform => :ruby
+gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
