@@ -2,6 +2,8 @@
 
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
+### Warning: *Makara was recently rewritten. < 0.2.0 configurations will need to be changed to the new format. Makara 0.2.0 is still a beta release and could use more real-world testing -- especially with postgresql setups.*
+
 ## Installation
 
 ```ruby
