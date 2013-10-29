@@ -12,15 +12,18 @@ module ActiveRecord
 
           yield
 
-        rescue ActiveRecord::RecordNotUnique => e
-          harshly(e)
-        rescue ActiveRecord::InvalidForeignKey => e
-          harshly(e)
         rescue Exception => e
-          if connection_message?(e)
-            gracefully(connection, e)
-          else
+
+          # do it via class name to avoid version-specific constant dependencies
+          case e.class.name
+          when 'ActiveRecord::RecordNotUnique', 'ActiveRecord::InvalidForeignKey'
             harshly(e)
+          else
+            if connection_message?(e)
+              gracefully(connection, e)
+            else
+              harshly(e)
+            end
           end
         end
 
