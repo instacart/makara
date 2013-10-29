@@ -10,17 +10,17 @@ module ActiveRecord
 
         def handle(connection)
 
-          super
+          yield
 
         rescue ActiveRecord::RecordNotUnique => e
           harshly(e)
         rescue ActiveRecord::InvalidForeignKey => e
           harshly(e)
-        rescue ActiveRecord::StatementInvalid => e
+        rescue Exception => e
           if connection_message?(e)
-            harshly(e)
-          else
             gracefully(connection, e)
+          else
+            harshly(e)
           end
         end
 

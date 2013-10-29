@@ -4,6 +4,8 @@ require 'active_record/connection_adapters/makara_abstract_adapter'
 describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler do
 
   let(:handler){ described_class.new }
+  let(:proxy) { FakeAdapter.new(config(1,1)) }
+  let(:connection){ proxy.master_pool.any }
 
   [
     %|Mysql::Error: : INSERT INTO `watchers` (`user_id`, `watchable_id`, `watchable_type`) VALUES|,
@@ -11,6 +13,14 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
   ].each do |msg|
     it "should properly evaluate errors like: #{msg}" do
       expect(handler).not_to be_connection_message(msg)
+    end
+
+    it "should raise the error" do
+      expect{
+        handler.handle(connection) do
+          raise msg
+        end
+      }.to raise_error(msg)
     end
   end
 
@@ -20,9 +30,18 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|Mysql2::Error: Lost connection to MySQL server during query: SELECT `geographies`.* FROM `geographies`|,
     %|PGError: server closed the connection unexpectedly This probably me|
   ].each do |msg|
-    it "should properly evalute connection messages like: #{msg}" do
+    it "should properly evaluate connection messages like: #{msg}" do
       expect(handler).to be_connection_message(msg)
     end
+
+    it "should blacklist the connection" do
+      expect {
+        handler.handle(connection) do
+          raise msg
+        end
+      }.to raise_error(Makara::Errors::BlacklistConnection)
+    end
   end
+
 
 end
