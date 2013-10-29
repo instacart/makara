@@ -72,16 +72,19 @@ module Makara
 
       if provided_connection
 
+        @latest_blacklist_error = nil
+
         @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
 
       else
-        raise Makara::Errors::AllConnectionsBlacklisted
+        raise Makara::Errors::AllConnectionsBlacklisted.new(@latest_blacklist_error)
       end
 
 
     rescue Makara::Errors::BlacklistConnection => e
+      @latest_blacklist_error = e
       provided_connection._makara_blacklist!
       retry
     end
