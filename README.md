@@ -7,7 +7,7 @@ Makara is generic master/slave proxy. It handles the heavy lifting of managing, 
 ## Installation
 
 ```ruby
-gem 'makara', git: 'git@github.com:taskrabbit/makara.git', tag: '0.2.0.beta2'
+gem 'makara', git: 'git@github.com:taskrabbit/makara.git', tag: 'v0.2.0.beta6'
 ```
 
 ## Basic Usage
