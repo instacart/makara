@@ -112,10 +112,10 @@ describe Makara::Pool do
 
   it 'skips blacklisted connections when choosing the next one' do
 
-    wrapper_a = pool.add 'a', pool_config
-    wrapper_b = pool.add 'b', pool_config
-    wrapper_c = pool.add 'c', pool_config
+    pool.add 'a', pool_config
+    pool.add 'c', pool_config
 
+    wrapper_b = pool.add 'b', pool_config
     wrapper_b._makara_blacklist!
 
     10.times{ pool.provide{|connection| expect(connection.to_s).not_to eq('b') } }
