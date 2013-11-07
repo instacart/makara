@@ -1,21 +1,7 @@
 module ProxyExtensions
 
-  def master_pool
-    @master_pool
-  end
-
-  def slave_pool
-    @slave_pool
-  end
-
-  def master_context
-    @master_context
-  end
-
-  def id
-    @id
-  end
-
+  attr_reader :master_pool, :slave_pool, :master_context, :id
+  
   def master_for?(sql)
     pool_for(sql) == master_pool
   end

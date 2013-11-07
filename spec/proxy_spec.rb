@@ -13,33 +13,33 @@ describe Makara::Proxy do
 
 
   it 'sets up a master and slave pool no matter the number of connections' do
-    proxy = klass.new(config(0,0))
+    proxy = klass.new(config(0, 0))
     expect(proxy.master_pool).to be_a(Makara::Pool)
     expect(proxy.slave_pool).to be_a(Makara::Pool)
 
-    proxy = klass.new(config(2,0))
+    proxy = klass.new(config(2, 0))
     expect(proxy.master_pool).to be_a(Makara::Pool)
     expect(proxy.slave_pool).to be_a(Makara::Pool)
 
-    proxy = klass.new(config(0,2))
+    proxy = klass.new(config(0, 2))
     expect(proxy.master_pool).to be_a(Makara::Pool)
     expect(proxy.slave_pool).to be_a(Makara::Pool)
 
-    proxy = klass.new(config(2,2))
+    proxy = klass.new(config(2, 2))
     expect(proxy.master_pool).to be_a(Makara::Pool)
     expect(proxy.slave_pool).to be_a(Makara::Pool)
   end
 
 
   it 'instantiates N connections within each pool' do
-    proxy = klass.new(config(1,2))
+    proxy = klass.new(config(1, 2))
 
     expect(proxy.master_pool.connection_count).to eq(1)
     expect(proxy.slave_pool.connection_count).to eq(2)
   end
 
   it 'should delegate any unknown method to a connection in the master pool' do
-    proxy = klass.new(config(1,2))
+    proxy = klass.new(config(1, 2))
 
     con = proxy.master_pool.connections.first
     allow(con).to receive(:irespondtothis){ 'hello!' }
@@ -49,7 +49,7 @@ describe Makara::Proxy do
   end
 
 
-  context "#appropriate_pool" do
+  context '#appropriate_pool' do
 
     let(:proxy){ klass.new(config(1,1)) }
 

@@ -15,7 +15,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
       expect(handler).not_to be_connection_message(msg)
     end
 
-    it "should raise the error" do
+    it 'should raise the error' do
       expect{
         handler.handle(connection) do
           raise msg
@@ -34,7 +34,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
       expect(handler).to be_connection_message(msg)
     end
 
-    it "should blacklist the connection" do
+    it 'should blacklist the connection' do
       expect {
         handler.handle(connection) do
           raise msg

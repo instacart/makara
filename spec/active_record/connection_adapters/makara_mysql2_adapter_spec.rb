@@ -13,7 +13,7 @@ describe 'MakaraMysql2Adapter' do
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
   end
 
-  context "with the connection established" do
+  context 'with the connection established' do
 
     before do
       ActiveRecord::Base.establish_connection(config)
