@@ -1,5 +1,9 @@
 # Makara
 
+[![Build Status](https://travis-ci.org/taskrabbit/makara.png?branch=master)](https://travis-ci.org/taskrabbit/makara)
+[![Code Climate](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/badges/7905f7a000492a1078f7/gpa.png)](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/feed)
+
+
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
 ### Warning: *Makara was recently rewritten. < 0.2.0 configurations will need to be changed to the new format. Makara 0.2.0 is still a beta release and could use more real-world testing -- especially with postgresql setups.*
