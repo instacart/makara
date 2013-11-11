@@ -13,7 +13,7 @@ describe Makara::Middleware do
   let(:proxy){ FakeProxy.new(config(1,2)) }
   let(:middleware){ described_class.new(app) }
 
-  let(:key){ Makara::Middleware::COOKIE_NAME }
+  let(:key){ Makara::Middleware::IDENTIFIER }
 
   it 'should set the context before the request' do
     Makara::Context.set_previous 'old'
@@ -31,6 +31,17 @@ describe Makara::Middleware do
 
   it 'should use the cookie-provided context if present' do
     env['HTTP_COOKIE'] = "#{key}=abcdefg--200; path=/; max-age=5"
+
+    response = middleware.call(env)
+    current, prev = context_from(response)
+
+    expect(prev).to eq('abcdefg')
+    expect(current).to eq(Makara::Context.get_current)
+    expect(current).not_to eq('abcdefg')
+  end
+
+  it 'should use the param-provided context if present' do
+    env['QUERY_STRING'] = "dog=true&#{key}=abcdefg&cat=false"
 
     response = middleware.call(env)
     current, prev = context_from(response)

@@ -8,7 +8,7 @@ require 'rack'
 module Makara
   class Middleware
 
-    COOKIE_NAME = '_mkra_ctxt'
+    IDENTIFIER = '_mkra_ctxt'
 
 
     def initialize(app)
@@ -50,13 +50,13 @@ module Makara
     # if the previous request was a redirect, we keep the same context
     def new_context(env)
 
-      cookie_context, cookie_status = cookie_values(env)
+      makara_context, makara_status = makara_values(env)
 
       context = nil
 
       # if the previous request was a redirect, let's keep that context
-      if cookie_status.to_s =~ /^3/ # 300+ redirect
-        context = cookie_context
+      if makara_status.to_s =~ /^3/ # 300+ redirect
+        context = makara_context
       end
 
       context ||= Makara::Context.get_current if env['rack.test']
@@ -65,21 +65,27 @@ module Makara
     end
 
 
-    # pulls the previous context out of the cookie
+    # pulls the previous context out of the request
     def previous_context(env)
-      context = cookie_values(env).first
+      context = makara_values(env).first
       context ||= Makara::Context.get_previous if env['rack.test']
       context ||= Makara::Context.generate
       context
     end
 
 
-    # retrieve the stored content for the cookie.
-    # The cookie contains the hexdigest and status code of the previous
+    # retrieve the stored content from the cookie or query
+    # The value contains the hexdigest and status code of the previous
     # response in the format: $digest--$status
-    def cookie_values(env)
-      env['HTTP_COOKIE'].to_s =~ /#{COOKIE_NAME}=([\-a-z0-9A-Z]+)/
+    def makara_values(env)
+      regex = /#{IDENTIFIER}=([\-a-z0-9A-Z]+)/
+
+      env['HTTP_COOKIE'].to_s =~ regex
       return $1.split('--') if $1
+
+      env['QUERY_STRING'].to_s =~ regex
+      return $1.split('--') if $1
+
       [nil, nil]
     end
 
@@ -97,7 +103,7 @@ module Makara
         :max_age => '5'
       }
 
-      Rack::Utils.set_cookie_header!(header, COOKIE_NAME, cookie_value)
+      Rack::Utils.set_cookie_header!(header, IDENTIFIER, cookie_value)
     end
   end
 end
