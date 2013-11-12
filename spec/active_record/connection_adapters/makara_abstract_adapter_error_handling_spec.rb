@@ -28,7 +28,8 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|Mysql2::Error: closed MySQL connection: SELECT `users`.* FROM `users`|,
     %|Mysql2::Error: MySQL server has gone away: SELECT `users`.* FROM `users`|,
     %|Mysql2::Error: Lost connection to MySQL server during query: SELECT `geographies`.* FROM `geographies`|,
-    %|PGError: server closed the connection unexpectedly This probably me|
+    %|PGError: server closed the connection unexpectedly This probably me|,
+    %|Could not connect to server: Connection refused Is the server running on host|
   ].each do |msg|
     it "should properly evaluate connection messages like: #{msg}" do
       expect(handler).to be_connection_message(msg)
