@@ -25,9 +25,9 @@ module ActiveRecord
               harshly(e)
             end
           end
+
         end
 
-        protected
 
         def connection_message?(message)
           message = message.to_s.downcase
@@ -106,6 +106,18 @@ module ActiveRecord
         sql = args.first
         return false if sql.to_s =~ SQL_SLAVE_MATCHER
         true
+      end
+
+      def connection_for(config)
+        active_record_connection_for(config)
+      rescue Exception => e
+        raise unless @config_parser.makara_config[:rescue_connection_failures]
+        raise unless @error_handler.connection_message?(e.message)
+        nil
+      end
+
+      def active_record_connection_for(config)
+        raise NotImplementedError
       end
 
 

@@ -13,6 +13,25 @@ describe 'MakaraMysql2Adapter' do
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
   end
 
+  it 'should not blow up if a connection fails' do
+    config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
+
+    require 'active_record/connection_adapters/mysql2_adapter'
+
+    original_method = ActiveRecord::Base.method(:mysql2_connection)
+
+    allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
+      if config[:username] == 'other'
+        raise "could not connect"
+      else
+        original_method.call(config)
+      end
+    end
+
+    ActiveRecord::Base.establish_connection(config)
+    ActiveRecord::Base.connection
+  end
+
   context 'with the connection established' do
 
     before do

@@ -31,7 +31,7 @@ module ActiveRecord
 
       protected
 
-      def connection_for(config)
+      def active_record_connection_for(config)
         ::ActiveRecord::Base.postgresql_connection(config)
       end
 

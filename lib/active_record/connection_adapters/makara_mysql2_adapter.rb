@@ -32,7 +32,7 @@ module ActiveRecord
 
       protected
 
-      def connection_for(config)
+      def active_record_connection_for(config)
         ::ActiveRecord::Base.mysql2_connection(config)
       end
 
