@@ -111,13 +111,13 @@ Let's break this down a little bit. At the top level of your config you have the
 
 Following the adapter choice is all the standard configurations (host, port, retry, database, username, password, etc). With all the standard configurations provided, you can now provide the makara subconfig.
 
-The makara subconfig sets up the proxy with a few of it's own options, then provides the connection list. The makara options are:
+The makara subconfig sets up the proxy with a few of its own options, then provides the connection list. The makara options are:
 * blacklist_duration - the number of seconds a node is blacklisted when a connection failure occurs
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
 * rescue_connection_failures - should Makara deal with nodes that aren't accessible when the initial connection is established
 
-Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overriden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
+Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overridden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
 
 ```yml
 connections:
