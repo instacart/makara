@@ -63,6 +63,15 @@ Makara::Cache.store = MyRedisCacheStore.new
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current master context. If the next request is executed before the cookie expires, master will be used. If something occurs which naturally requires master on the second request, the context is changed and stored again.
 
+### Forcing Master
+
+If you need to force master in your app then you can simply invoke stick_to_master! on your connection:
+
+```ruby
+write_to_cache = true # or false
+proxy.stick_to_master(write_to_cache)
+```
+
 ## ActiveRecord Database Adapter
 
 So you've found yourself with an ActiveRecord-based project which is starting to get some traffic and you realize 95% of you DB load is from reads. Well you've come to the right spot. Makara is a great solution to break up that load not only between master and slave but potentially multiple masters and/or multiple slaves.

@@ -60,6 +60,10 @@ module Makara
       @hijacked
     end
 
+    def stick_to_master!(write_to_cache = true)
+      @master_context = Makara::Context.get_current
+      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+    end
 
     protected
 
@@ -153,8 +157,7 @@ module Makara
       return unless @sticky
       return unless should_stick?(method_name, args)
       return if @master_context == Makara::Context.get_current
-      @master_context = Makara::Context.get_current
-      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+      stick_to_master!(write_to_cache)
     end
 
 

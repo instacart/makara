@@ -48,6 +48,16 @@ describe Makara::Proxy do
     expect(proxy.irespondtothis).to eq('hello!')
   end
 
+  it 'should use master if manually forced' do
+    proxy = klass.new(config(1, 2))
+
+    expect(proxy.master_for?('select * from users')).to eq(false)
+
+    proxy.stick_to_master!
+
+    expect(proxy.master_for?('select * from users')).to eq(true)
+  end
+
 
   context '#appropriate_pool' do
 
