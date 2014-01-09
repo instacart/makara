@@ -20,7 +20,11 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'show index' => true,
     'set @@things' => true,
     'commit' => true,
-    'select * from felines' => false
+    'select * from felines' => false,
+    'select * from users for update' => true,
+    'select * from users lock in share mode' => true,
+    'select * from users where name = "for update"' => false,
+    'select * from users where name = "lock in share mode"' => false
   }.each do |sql, should_go_to_master|
 
     it "determines if \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
