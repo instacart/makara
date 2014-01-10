@@ -1,8 +1,13 @@
 language: ruby
 
 services: mysql
+
 before_script:
   - mysql -e 'create database makara_test;'
+
+before_install:
+  - gem update --system 2.1.11
+  - gem --version
 
 rvm:
   - 1.8.7
