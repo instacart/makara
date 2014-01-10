@@ -49,6 +49,7 @@ module ActiveRecord
       send_to_all :connect, :disconnect!, :reconnect!, :verify!, :clear_cache!, :reset!
 
 
+      SQL_MASTER_MATCHERS     = [/^select.+for update$/i, /select.+lock in share mode$/i]
       SQL_SLAVE_MATCHER       = /^select\s/i
       SQL_ALL_MATCHER         = /^set\s/i
 
@@ -97,14 +98,17 @@ module ActiveRecord
       end
 
       def needed_by_all?(method_name, args)
-        sql = args.first
-        return true if sql.to_s =~ SQL_ALL_MATCHER
+        sql = args.first.to_s
+        return true if sql =~ SQL_ALL_MATCHER
         false
       end
 
       def needs_master?(method_name, args)
-        sql = args.first
-        return false if sql.to_s =~ SQL_SLAVE_MATCHER
+        sql = args.first.to_s
+        SQL_MASTER_MATCHERS.each do |master_regex|
+          return true if master_regex =~ sql
+        end
+        return false if sql =~ SQL_SLAVE_MATCHER
         true
       end
 

@@ -11,7 +11,7 @@ Makara is generic master/slave proxy. It handles the heavy lifting of managing, 
 ## Installation
 
 ```ruby
-gem 'makara', github: 'taskrabbit/makara', tag: 'v0.2.0.beta9'
+gem 'makara', github: 'taskrabbit/makara', tag: 'v0.2.x'
 ```
 
 ## Basic Usage
