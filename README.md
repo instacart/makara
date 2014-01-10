@@ -69,7 +69,7 @@ If you need to force master in your app then you can simply invoke stick_to_mast
 
 ```ruby
 write_to_cache = true # or false
-proxy.stick_to_master(write_to_cache)
+proxy.stick_to_master!(write_to_cache)
 ```
 
 ## ActiveRecord Database Adapter
@@ -145,7 +145,30 @@ connections:
 
 In the previous config the "Big Slave" would receive ~80% of traffic.
 
+## Common Problems / Solutions
+
+On occasion your app may deal with a situation where makara is not present during a write but a read should use master. In the generic proxy details above you are encouraged to use `stick_to_master!` to accomplish this. Here's an example:
+
+```ruby
+# some third party creates a resource in your db, slave replication may not have completed yet
+# ...
+# then your app is told to read the resource.
+def handle_request_after_third_party_record_creation
+  CreatedResourceClass.connection.stick_to_master!
+  CreatedResourceClass.find(params[:id]) # will go to master
+end
+```
+
+Similarly, if you have a third party service which will conduct a generic request against your Rack app, you can force master via a query param:
+
+```ruby
+def send_url_to_third_party
+  context = Makara::Context.get_current
+  ThirdParty.read_from_here!("http://mysite.com/path/to/resource?_mkra_ctxt=#{context}")
+end
+```
 
 ## Todo
 
-Allow a cookie cache store to be provided by the middleware. If the cache store is set to :cookie then instantiate a cookie store based on the current request. After the response is handled ensure the store is reset to :cookie.
+* Cookie based cache store?
+* More real world examples
