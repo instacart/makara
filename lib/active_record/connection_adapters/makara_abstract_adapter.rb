@@ -33,7 +33,7 @@ module ActiveRecord
           message = message.to_s.downcase
 
           case message
-          when /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/, /gone away/, /connection refused/, /could not connect/
+          when /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/, /gone away/, /connection[^:]+refused/, /could not connect/, /connection[^:]+closed/
             true
           else
             false
