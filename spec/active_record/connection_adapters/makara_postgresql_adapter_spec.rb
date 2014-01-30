@@ -32,14 +32,10 @@ describe 'MakaraPostgreSQLAdapter' do
     ActiveRecord::Base.connection
   end
 
-  context 'with the connection established' do
-
-    before :all do
-      ActiveRecord::Base.establish_connection(config)
-      load(File.dirname(__FILE__) + '/../../support/schema.rb')
-    end
+  context 'with the connection established and schema loaded' do
 
     before do
+      load(File.dirname(__FILE__) + '/../../support/schema.rb')
       ActiveRecord::Base.establish_connection(config)
     end
 
