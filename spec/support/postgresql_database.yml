@@ -1,0 +1,14 @@
+test:
+  adapter: 'makara_postgresql'
+  database: 'makara_test'
+  username: 'mnelson'
+  password: ''
+
+  makara:
+    blacklist_duration: 2
+    master_ttl: 5
+    rescue_connection_failures: true
+    connections:
+      - role: master
+      - role: slave
+      - role: slave

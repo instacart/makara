@@ -3,7 +3,7 @@ module Makara
     class AllConnectionsBlacklisted < StandardError
 
       def initialize(error)
-        super "[Makara] All connections are blacklisted - #{error.message}"
+        super "[Makara] All connections are blacklisted - #{error.try(:message) || 'No error details'}"
       end
 
     end

@@ -11,5 +11,8 @@ gem 'ruby-debug', :platform => :jruby
 gem 'rack'
 
 gem 'mysql2', :platform => :ruby
+gem 'pg', :platform => :ruby
+
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
+gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
 
