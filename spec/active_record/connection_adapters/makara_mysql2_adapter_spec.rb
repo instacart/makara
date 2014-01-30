@@ -54,7 +54,7 @@ describe 'MakaraMysql2Adapter' do
     ActiveRecord::Base.connection.slave_pool.provide do |con|
       res = con.execute('SELECT count(*) FROM users')
       if defined?(JRUBY_VERSION)
-        expect(res[0]['count']).to eq(0)
+        expect(res[0]).to eq('count(*)' => 0)
       else
         expect(res.to_a[0][0]).to eq(0)
       end
