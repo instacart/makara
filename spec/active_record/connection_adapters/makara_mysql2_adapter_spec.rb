@@ -2,9 +2,10 @@ require 'spec_helper'
 
 describe 'MakaraMysql2Adapter' do
 
+  let(:db_username){ ENV['TRAVIS'] ? 'travis' : 'root' }
+
   let(:config){
     base = YAML.load_file(File.expand_path('spec/support/mysql2_database.yml'))['test']
-    base['username'] = 'travis' if ENV['TRAVIS']
     base
   }
 
@@ -40,6 +41,14 @@ describe 'MakaraMysql2Adapter' do
 
     ActiveRecord::Base.establish_connection(config)
     ActiveRecord::Base.connection
+
+    allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
+      config[:username] = db_username
+      original_method.call(config)
+    end
+
+    ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
+    ActiveRecord::Base.connection.slave_pool.connections.each(&:adapter_name)
   end
 
   context 'with the connection established and schema loaded' do

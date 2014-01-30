@@ -2,9 +2,11 @@ require 'spec_helper'
 
 describe 'MakaraPostgreSQLAdapter' do
 
+  let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
+
   let(:config){
     base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
-    base['username'] = 'postgres' if ENV['TRAVIS']
+    base['username'] = db_username
     base
   }
 
@@ -41,6 +43,14 @@ describe 'MakaraPostgreSQLAdapter' do
 
     ActiveRecord::Base.establish_connection(config)
     ActiveRecord::Base.connection
+
+    allow(ActiveRecord::Base).to receive(:postgresql_connection) do |config|
+      config[:username] = db_username
+      original_method.call(config)
+    end
+
+    ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
+    ActiveRecord::Base.connection.slave_pool.connections.each(&:adapter_name)
   end
 
   context 'with the connection established and schema loaded' do
