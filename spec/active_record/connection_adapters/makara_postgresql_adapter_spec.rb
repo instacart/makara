@@ -44,13 +44,19 @@ describe 'MakaraPostgreSQLAdapter' do
     ActiveRecord::Base.establish_connection(config)
     ActiveRecord::Base.connection
 
+    load(File.dirname(__FILE__) + '/../../support/schema.rb')
+    Makara::Context.set_current Makara::Context.generate
+
     allow(ActiveRecord::Base).to receive(:postgresql_connection) do |config|
       config[:username] = db_username
       original_method.call(config)
     end
 
     ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
-    ActiveRecord::Base.connection.slave_pool.connections.each(&:adapter_name)
+    ActiveRecord::Base.connection.slave_pool.provide do |con|
+      res = con.execute('SELECT count(*) FROM users')
+      expect(res.to_a[0]['count']).to eq('0')
+    end
   end
 
   context 'with the connection established and schema loaded' do
