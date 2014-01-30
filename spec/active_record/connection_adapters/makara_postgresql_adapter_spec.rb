@@ -1,26 +1,26 @@
 require 'spec_helper'
 
-describe 'MakaraMysql2Adapter' do
+describe 'MakaraPostgreSQLAdapter' do
 
   let(:config){
-    base = YAML.load_file(File.expand_path('spec/support/mysql2_database.yml'))['test']
-    base['username'] = 'travis' if ENV['TRAVIS']
+    base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
+    base['username'] = 'postgres' if ENV['TRAVIS']
     base
   }
 
   it 'should allow a connection to be established' do
     ActiveRecord::Base.establish_connection(config)
-    expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
+    expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter)
   end
 
   it 'should not blow up if a connection fails' do
     config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
 
-    require 'active_record/connection_adapters/mysql2_adapter'
+    require 'active_record/connection_adapters/postgresql_adapter'
 
-    original_method = ActiveRecord::Base.method(:mysql2_connection)
+    original_method = ActiveRecord::Base.method(:postgresql_connection)
 
-    allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
+    allow(ActiveRecord::Base).to receive(:postgresql_connection) do |config|
       if config[:username] == 'other'
         raise "could not connect"
       else
@@ -32,7 +32,7 @@ describe 'MakaraMysql2Adapter' do
     ActiveRecord::Base.connection
   end
 
-  context 'with the connection established and schema loaded' do
+  context 'with the connection established' do
 
     before :all do
       ActiveRecord::Base.establish_connection(config)
@@ -51,32 +51,27 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should allow real queries to work' do
-      connection.execute("INSERT INTO users (name) VALUES ('John')")
+      connection.execute('INSERT INTO users (name) VALUES (\'John\')')
 
       connection.master_pool.connections.each do |master|
         expect(master).to receive(:execute).never
       end
 
       Makara::Context.set_current Makara::Context.generate
-
       res = connection.execute('SELECT name FROM users ORDER BY id DESC LIMIT 1')
 
-      if defined?(JRUBY_VERSION)
-        expect(res[0]['name']).to eq('John')
-      else
-        expect(res.to_a[0][0]).to eq('John')
-      end
+      expect(res.to_a[0]['name']).to eq('John')
     end
 
     it 'should send SET operations to each connection' do
       connection.master_pool.connections.each do |con|
-        expect(con).to receive(:execute).with('SET @t1 = 1').once
+        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
       end
 
       connection.slave_pool.connections.each do |con|
-        expect(con).to receive(:execute).with('SET @t1 = 1').once
+        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
       end
-      connection.execute("SET @t1 = 1")
+      connection.execute("SET TimeZone = 'UTC'")
     end
 
     it 'should send reads to the slave' do

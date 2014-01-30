@@ -99,8 +99,8 @@ module Makara
     def next
 
       if @proxy.sticky && Makara::Context.get_current == @context
-        con = @connections[@current_idx]
-        return con unless con._makara_blacklisted?
+        con = safe_value(@current_idx)
+        return con if con
       end
 
       idx = @current_idx
@@ -133,6 +133,7 @@ module Makara
     # optionally, store the position and context we're returning
     def safe_value(idx, stick = false)
       con = @connections[idx]
+      return nil unless con
       return nil if con._makara_blacklisted?
 
       if stick
