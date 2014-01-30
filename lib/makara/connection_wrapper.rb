@@ -16,24 +16,19 @@ module Makara
 
       @config = config.symbolize_keys
       @proxy  = proxy
-
-      __setcon__
     end
 
     # if we have been able to secure a connection then evaluate the given block
-    def _makara_if_connected
-      val = !!__getobj__
-      if block_given?
-        if val
-          yield
-        end
-      else
-        val
-      end
+    def _makara_is_connected
+      @connection
     end
 
     def _makara_weight
       @config[:weight] || 1
+    end
+
+    def _makara_name
+      @config[:name]
     end
 
     def _makara_blacklisted?
@@ -56,19 +51,18 @@ module Makara
       # release references
       @connection_instantiation_block = nil
 
-      __setobj__ con
+      @connection = con
 
     rescue Exception => e
       if @config[:rescue_connection_failures]
-        _makara_blacklist!
-        nil
+        raise ::Makara::Errors::InitialConnectionFailure.new(self, e)
       else
         raise
       end
     end
 
     def __getobj__
-      super || __setcon__
+      @connection || __setcon__
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
@@ -76,7 +70,7 @@ module Makara
     def method_missing(method_name, *args, &block)
       super
     rescue NoMethodError => e
-      _makara_if_connected do
+      if _makara_is_connected
         target = __getobj__
         if target.respond_to?(method_name, true)
           target.__send__(method_name, *args, &block)

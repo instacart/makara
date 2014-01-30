@@ -13,10 +13,11 @@ module ActiveRecord
           yield
 
         rescue Exception => e
-
           # do it via class name to avoid version-specific constant dependencies
           case e.class.name
           when 'ActiveRecord::RecordNotUnique', 'ActiveRecord::InvalidForeignKey'
+            harshly(e)
+          when 'Makara::Errors::BlacklistConnection', 'Makara::Errors::InitialConnectionFailure'
             harshly(e)
           else
             if connection_message?(e)
@@ -114,10 +115,6 @@ module ActiveRecord
 
       def connection_for(config)
         active_record_connection_for(config)
-      rescue Exception => e
-        raise unless @config_parser.makara_config[:rescue_connection_failures]
-        raise unless @error_handler.connection_message?(e.message)
-        nil
       end
 
       def active_record_connection_for(config)

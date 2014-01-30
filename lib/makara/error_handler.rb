@@ -10,7 +10,13 @@ module Makara
       yield
 
     rescue Exception => e
-      gracefully(connection, e)
+
+      if e.class.name =~ /^Makara::/
+        harshly(e)
+      else
+        gracefully(connection, e)
+      end
+
     end
 
 

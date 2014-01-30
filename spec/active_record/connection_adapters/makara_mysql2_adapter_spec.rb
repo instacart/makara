@@ -8,6 +8,16 @@ describe 'MakaraMysql2Adapter' do
     base
   }
 
+  before do
+    if ActiveRecord::Base.connected?
+      ActiveRecord::Base.connection.tap do |c|
+        c.master_pool.connections.each(&:_makara_whitelist!)
+        c.slave_pool.connections.each(&:_makara_whitelist!)
+      end
+    end
+    Makara::Context.set_current Makara::Context.generate
+  end
+
   it 'should allow a connection to be established' do
     ActiveRecord::Base.establish_connection(config)
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
@@ -34,12 +44,14 @@ describe 'MakaraMysql2Adapter' do
 
   context 'with the connection established and schema loaded' do
 
+    let(:connection) { ActiveRecord::Base.connection }
+
     before do
-      load(File.dirname(__FILE__) + '/../../support/schema.rb')
       ActiveRecord::Base.establish_connection(config)
+      load(File.dirname(__FILE__) + '/../../support/schema.rb')
+      Makara::Context.set_current Makara::Context.generate
     end
 
-    let(:connection) { ActiveRecord::Base.connection }
 
     it 'should have one master and two slaves' do
       expect(connection.master_pool.connection_count).to eq(1)
@@ -76,6 +88,9 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send reads to the slave' do
+      # ensure the next connection will be the first one
+      connection.slave_pool.instance_variable_set('@current_idx', connection.slave_pool.connections.length)
+
       con = connection.slave_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
 

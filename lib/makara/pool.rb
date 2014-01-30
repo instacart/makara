@@ -79,6 +79,8 @@ module Makara
       @latest_blacklist_error = e
       provided_connection._makara_blacklist!
       retry
+    rescue Makara::Errors::InitialConnectionFailure => e
+      provided_connection._makara_blacklist!
     end
 
 
