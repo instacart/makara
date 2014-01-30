@@ -49,6 +49,26 @@ describe Makara::Pool do
 
   end
 
+  it 'only sends methods to underlying objects which are not blacklisted' do
+
+    a = 'a'
+    b = 'b'
+    c = 'c'
+
+    pool.add(pool_config){ a }
+    pool.add(pool_config){ b }
+    wrapper_c = pool.add(pool_config){ c }
+
+    expect(a).to receive(:to_s).once
+    expect(b).to receive(:to_s).once
+    expect(c).to receive(:to_s).never
+
+    wrapper_c._makara_blacklist!
+
+    pool.send_to_all :to_s
+
+  end
+
   it 'provides the next connection and blacklists' do
 
     wrapper_a = pool.add(pool_config){ 'a' }

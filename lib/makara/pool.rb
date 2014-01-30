@@ -40,37 +40,27 @@ module Makara
     end
 
 
-    def each_connection
-      @connections.each do |connection|
-        yield connection
-      end
-    end
-
-
     def send_to_all(method, *args)
       ret = nil
-      each_connection do |con|
+      provide_each do |con|
         ret = con.send(method, *args)
       end
       ret
     end
 
-
-    # Provide a way to get any random connection out of the pool, not worrying about blacklisting
-    def any
-      con = @connections[rand(@connections.length)]
-      if block_given?
-        yield con
-      else
-        con
-      end
+    def provide_each
+      idx = @current_idx
+      begin
+        provide(false) do |con|
+          yield con
+        end
+      end while @current_idx != idx
     end
-
 
     # Provide a connection that is not blacklisted and handle any errors
     # that may occur within the block.
-    def provide
-      provided_connection = self.next
+    def provide(allow_stickiness = true)
+      provided_connection = self.next(allow_stickiness)
 
       if provided_connection
 
@@ -98,9 +88,9 @@ module Makara
     # Get the next non-blacklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
-    def next
+    def next(allow_stickiness = true)
 
-      if @proxy.sticky && Makara::Context.get_current == @context
+      if allow_stickiness && @proxy.sticky && Makara::Context.get_current == @context
         con = safe_value(@current_idx)
         return con if con
       end

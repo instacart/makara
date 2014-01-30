@@ -141,7 +141,7 @@ describe Makara::Proxy do
         if pool == proxy.slave_pool
           test.blacklisting
           pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some connection issue'))
-          pool.send_to_all(:_makara_blacklist!)
+          pool.connections.each(&:_makara_blacklist!)
           pool.provide
         else
           test.using_master

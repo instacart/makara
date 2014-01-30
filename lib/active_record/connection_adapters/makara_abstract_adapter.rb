@@ -33,7 +33,7 @@ module ActiveRecord
           message = message.to_s.downcase
 
           case message
-          when /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/, /gone away/, /connection[^:]+refused/, /could not connect/, /connection[^:]+closed/
+          when /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/i, /gone away/i, /connection[^:]+refused/i, /could not connect/i, /connection[^:]+closed/i
             true
           else
             false
@@ -66,13 +66,13 @@ module ActiveRecord
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
 
-          @master_pool.each_connection do |con|
+          @master_pool.provide_each do |con|
             hijacked do
               yield con
             end
           end
 
-          @slave_pool.each_connection do |con|
+          @slave_pool.provide_each do |con|
             hijacked do
               yield con
             end

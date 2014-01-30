@@ -52,7 +52,7 @@ module Makara
 
 
     def __getobj__
-      @master_pool.try(:any) || @slave_pool.try(:any) || nil
+      @current_connection
     end
 
 
@@ -64,6 +64,24 @@ module Makara
       @master_context = Makara::Context.get_current
       Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
     end
+
+    def method_missing(method_name, *args, &block)
+      @master_pool.provide do |con|
+        @current_connection = con
+        super
+      end
+    ensure
+      @current_connection = nil
+    end
+
+    class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
+      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(method_name, include_private = false)
+        return true if super
+        @master_pool.provide do |con|
+          con.respond_to?(method_name, true)
+        end
+      end
+    RUBY_EVAL
 
     protected
 
@@ -124,8 +142,8 @@ module Makara
 
     rescue ::Makara::Errors::AllConnectionsBlacklisted => e
       if pool == @master_pool
-        @master_pool.send_to_all(:_makara_whitelist!)
-        @slave_pool.send_to_all(:_makara_whitelist!)
+        @master_pool.connections.each(&:_makara_whitelist!)
+        @slave_pool.connections.each(&:_makara_whitelist!)
         raise e
       else
         retry
