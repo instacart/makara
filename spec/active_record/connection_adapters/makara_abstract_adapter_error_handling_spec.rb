@@ -31,7 +31,8 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|PGError: server closed the connection unexpectedly This probably me|,
     %|Could not connect to server: Connection refused Is the server running on host|,
     %|PG::AdminShutdown: FATAL:  terminating connection due to administrator command FATAL:  terminating connection due to administrator command|,
-    %|PG::ConnectionBad: PQconsumeInput() SSL connection has been closed unexpectedly: SELECT  1 AS one FROM "users"  WHERE "users"."registration_ip" = '10.0.2.2' LIMIT 1|
+    %|PG::ConnectionBad: PQconsumeInput() SSL connection has been closed unexpectedly: SELECT  1 AS one FROM "users"  WHERE "users"."registration_ip" = '10.0.2.2' LIMIT 1|,
+    %|PG::UnableToSend: no connection to the server|
   ].each do |msg|
     it "should properly evaluate connection messages like: #{msg}" do
       expect(handler).to be_connection_message(msg)
