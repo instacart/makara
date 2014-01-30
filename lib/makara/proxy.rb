@@ -170,14 +170,16 @@ module Makara
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
-        con_proc = Proc.new{ connection_for(master_config) }
-        @master_pool.add con_proc, master_config.merge(@config_parser.makara_config)
+        @master_pool.add master_config.merge(@config_parser.makara_config) do
+          connection_for(master_config)
+        end
       end
 
       @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
-        con_proc = Proc.new{ connection_for(slave_config) }
-        @slave_pool.add con_proc, slave_config.merge(@config_parser.makara_config)
+        @slave_pool.add slave_config.merge(@config_parser.makara_config) do
+          connection_for(slave_config)
+        end
       end
     end
 

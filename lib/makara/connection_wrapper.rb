@@ -9,10 +9,10 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class ConnectionWrapper < ::SimpleDelegator
 
-    def initialize(connection_instantiation_block, proxy, config)
+    def initialize(proxy, config, &block)
       super(nil)
 
-      @connection_instantiation_block = connection_instantiation_block
+      @connection_instantiation_block = block
 
       @config = config.symbolize_keys
       @proxy  = proxy
