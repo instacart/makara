@@ -9,8 +9,8 @@ describe Makara::Pool do
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
 
-    wrappera = pool.add 'a', pool_config
-    wrapperb = pool.add 'b', pool_config.merge(:weight => 2)
+    wrappera = pool.add Proc.new{ 'a'}, pool_config
+    wrapperb = pool.add Proc.new{ 'b'}, pool_config.merge(:weight => 2)
 
     expect(pool.connections.length).to eq(3)
 
@@ -24,8 +24,8 @@ describe Makara::Pool do
 
   it 'should determine if its completely blacklisted' do
 
-    pool.add 'a', pool_config
-    pool.add 'b', pool_config
+    pool.add Proc.new{ 'a'}, pool_config
+    pool.add Proc.new{ 'b'}, pool_config
 
     expect(pool).not_to be_completely_blacklisted
 
@@ -39,8 +39,8 @@ describe Makara::Pool do
     a = 'a'
     b = 'b'
 
-    pool.add a, pool_config
-    pool.add b, pool_config
+    pool.add Proc.new{ a}, pool_config
+    pool.add Proc.new{ b}, pool_config
 
     expect(a).to receive(:to_s).once
     expect(b).to receive(:to_s).once
@@ -51,8 +51,8 @@ describe Makara::Pool do
 
   it 'provides the next connection and blacklists' do
 
-    wrapper_a = pool.add 'a', pool_config
-    wrapper_b = pool.add 'b', pool_config
+    wrapper_a = pool.add Proc.new{ 'a'}, pool_config
+    wrapper_b = pool.add Proc.new{ 'b'}, pool_config
 
     pool.provide do |connection|
       if connection.to_s == 'a'
@@ -73,8 +73,8 @@ describe Makara::Pool do
   it 'provides the same connection if the context has not changed and the proxy is sticky' do
     allow(proxy).to receive(:sticky){ true }
 
-    pool.add 'a', pool_config
-    pool.add 'b', pool_config
+    pool.add Proc.new{ 'a'}, pool_config
+    pool.add Proc.new{ 'b'}, pool_config
 
     provided = []
 
@@ -86,8 +86,8 @@ describe Makara::Pool do
   it 'does not provide the same connection if the proxy is not sticky' do
     allow(proxy).to receive(:sticky){ false }
 
-    pool.add 'a', pool_config
-    pool.add 'b', pool_config
+    pool.add Proc.new{ 'a'}, pool_config
+    pool.add Proc.new{ 'b'}, pool_config
 
     provided = []
 
@@ -98,8 +98,8 @@ describe Makara::Pool do
 
   it 'raises an error when all connections are blacklisted' do
 
-    wrapper_a = pool.add 'a', pool_config
-    wrapper_b = pool.add 'b', pool_config
+    wrapper_a = pool.add Proc.new{ 'a'}, pool_config
+    wrapper_b = pool.add Proc.new{ 'b'}, pool_config
 
     allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b, nil)
 
@@ -112,10 +112,10 @@ describe Makara::Pool do
 
   it 'skips blacklisted connections when choosing the next one' do
 
-    pool.add 'a', pool_config
-    pool.add 'c', pool_config
+    pool.add Proc.new{ 'a'}, pool_config
+    pool.add Proc.new{ 'c'}, pool_config
 
-    wrapper_b = pool.add 'b', pool_config
+    wrapper_b = pool.add Proc.new{ 'b'}, pool_config
     wrapper_b._makara_blacklist!
 
     10.times{ pool.provide{|connection| expect(connection.to_s).not_to eq('b') } }

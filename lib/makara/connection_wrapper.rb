@@ -9,13 +9,27 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class ConnectionWrapper < ::SimpleDelegator
 
-    def initialize(connection, proxy, config)
-      super(connection)
+    def initialize(connection_instantiation_block, proxy, config)
+      super(nil)
+
+      @connection_instantiation_block = connection_instantiation_block
 
       @config = config.symbolize_keys
       @proxy  = proxy
 
-      _makara_decorate_connection
+      __setcon__
+    end
+
+    # if we have been able to secure a connection then evaluate the given block
+    def _makara_if_connected
+      val = !!__getobj__
+      if block_given?
+        if val
+          yield
+        end
+      else
+        val
+      end
     end
 
     def _makara_weight
@@ -34,15 +48,41 @@ module Makara
       @blacklisted_until = nil
     end
 
+    def __setcon__
+
+      con = @connection_instantiation_block.call
+      _makara_decorate_connection(con)
+
+      # release references
+      @connection_instantiation_block = nil
+
+      __setobj__ con
+
+    rescue Exception => e
+      if @config[:rescue_connection_failures]
+        _makara_blacklist!
+        nil
+      else
+        raise
+      end
+    end
+
+    def __getobj__
+      super || __setcon__
+    end
+
     # we want to forward all private methods, since we could have kicked out from a private scenario
+    # however, if we have not been able to establish a connection yet, we don't want to blow up
     def method_missing(method_name, *args, &block)
       super
     rescue NoMethodError => e
-      target = __getobj__
-      if target.respond_to?(method_name, true)
-        target.__send__(method_name, *args, &block)
-      else
-        raise e
+      _makara_if_connected do
+        target = __getobj__
+        if target.respond_to?(method_name, true)
+          target.__send__(method_name, *args, &block)
+        else
+          raise e
+        end
       end
     end
 
@@ -56,7 +96,7 @@ module Makara
 
     protected
 
-    def _makara_decorate_connection
+    def _makara_decorate_connection(con)
       extension = %Q{
         def _makara
           @_makara
@@ -95,9 +135,9 @@ module Makara
         }
       end
 
-      __getobj__.instance_eval(extension)
-      __getobj__._makara = @proxy
-      __getobj__._makara
+      con.instance_eval(extension)
+      con._makara = @proxy
+      con._makara
     end
 
   end

@@ -25,10 +25,10 @@ module Makara
 
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
-    def add(connection, config)
+    def add(connection_instantiation_block, config)
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
 
-      wrapper = Makara::ConnectionWrapper.new(connection, @proxy, config)
+      wrapper = Makara::ConnectionWrapper.new(connection_instantiation_block, @proxy, config)
       wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
@@ -49,7 +49,9 @@ module Makara
 
     def send_to_all(method, *args)
       ret = nil
-      @connections.each{|connection| ret = connection.send(method, *args) }
+      each_connection do |con|
+        ret = con.send(method, *args)
+      end
       ret
     end
 
