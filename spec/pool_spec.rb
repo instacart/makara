@@ -121,7 +121,11 @@ describe Makara::Pool do
     wrapper_a = pool.add(pool_config){ 'a' }
     wrapper_b = pool.add(pool_config){ 'b' }
 
+    # make the connection
+    pool.send_to_all :to_s
+
     allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b, nil)
+
 
     expect{
       pool.provide do |connection|

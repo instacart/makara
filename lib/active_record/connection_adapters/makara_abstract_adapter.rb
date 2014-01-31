@@ -63,19 +63,28 @@ module ActiveRecord
 
       protected
 
+      def send_to_all(method_name, *args)
+        handling_an_all_execution do
+          super
+        end
+      end
+
 
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
 
-          @master_pool.provide_each do |con|
-            hijacked do
-              yield con
+          handling_an_all_execution do
+            # slave pool must run first.
+            @slave_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
-          end
 
-          @slave_pool.provide_each do |con|
-            hijacked do
-              yield con
+            @master_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
           end
 
@@ -86,6 +95,16 @@ module ActiveRecord
           end
 
         end
+      end
+
+      def handling_an_all_execution
+        yield
+      rescue ::Makara::Errors::NoConnectionsAvailable => e
+        raise if e.role == 'master'
+        @slave_pool.disabled = true
+        yield
+      ensure
+        @slave_pool.disabled = false
       end
 
 

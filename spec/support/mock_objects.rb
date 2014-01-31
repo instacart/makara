@@ -1,6 +1,11 @@
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
 class FakeConnection < Struct.new(:config)
+
+  def ping
+    'ping!'
+  end
+
   def irespondtothis
     'hey!'
   end
@@ -27,6 +32,9 @@ class FakeDatabaseAdapter < Struct.new(:config)
 end
 
 class FakeProxy < Makara::Proxy
+
+  send_to_all :ping
+
   def connection_for(config)
     FakeConnection.new(config)
   end

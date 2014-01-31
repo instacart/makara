@@ -7,12 +7,17 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class Pool
 
+    # there are cases when we understand the pool is busted and we essentially want to skip
+    # all execution
+    attr_writer :disabled
+
     def initialize(role, proxy)
       @role           = role
       @proxy          = proxy
       @context        = Makara::Context.get_current
       @connections    = []
       @current_idx    = 0
+      @disabled       = false
     end
 
 
@@ -70,8 +75,10 @@ module Makara
           yield provided_connection
         end
 
-      else
+      elsif connection_made?
         raise Makara::Errors::AllConnectionsBlacklisted.new(@latest_blacklist_error)
+      else
+        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
 
@@ -85,6 +92,10 @@ module Makara
 
 
     protected
+
+    def connection_made?
+      @connections.any?(&:_makara_connected?)
+    end
 
 
     # Get the next non-blacklisted connection. If the proxy is setup

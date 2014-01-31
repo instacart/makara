@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'active_record/connection_adapters/postgresql_adapter'
 
 describe 'MakaraPostgreSQLAdapter' do
 
@@ -28,8 +29,6 @@ describe 'MakaraPostgreSQLAdapter' do
 
   it 'should not blow up if a connection fails' do
     config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
-
-    require 'active_record/connection_adapters/postgresql_adapter'
 
     original_method = ActiveRecord::Base.method(:postgresql_connection)
 

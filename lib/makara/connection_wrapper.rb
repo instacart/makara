@@ -19,8 +19,8 @@ module Makara
     end
 
     # if we have been able to secure a connection then evaluate the given block
-    def _makara_is_connected
-      @connection
+    def _makara_connected?
+      !!@connection
     end
 
     def _makara_weight
@@ -70,13 +70,11 @@ module Makara
     def method_missing(method_name, *args, &block)
       super
     rescue NoMethodError => e
-      if _makara_is_connected
-        target = __getobj__
-        if target.respond_to?(method_name, true)
-          target.__send__(method_name, *args, &block)
-        else
-          raise e
-        end
+      target = __getobj__
+      if target.respond_to?(method_name, true)
+        target.__send__(method_name, *args, &block)
+      else
+        raise e
       end
     end
 

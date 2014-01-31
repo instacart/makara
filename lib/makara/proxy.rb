@@ -87,8 +87,9 @@ module Makara
 
 
     def send_to_all(method_name, *args)
-      @master_pool.send_to_all method_name, *args
+      # slave pool must run first to allow for slave-->master failover without running operations on master twice.
       @slave_pool.send_to_all method_name, *args
+      @master_pool.send_to_all method_name, *args
     end
 
 
@@ -140,7 +141,7 @@ module Makara
 
       yield pool
 
-    rescue ::Makara::Errors::AllConnectionsBlacklisted => e
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @master_pool
         @master_pool.connections.each(&:_makara_whitelist!)
         @slave_pool.connections.each(&:_makara_whitelist!)

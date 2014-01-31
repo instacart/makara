@@ -15,6 +15,7 @@ module Makara
     autoload :AllConnectionsBlacklisted,  'makara/errors/all_connections_blacklisted'
     autoload :BlacklistConnection,        'makara/errors/blacklist_connection'
     autoload :InitialConnectionFailure,   'makara/errors/initial_connection_failure'
+    autoload :NoConnectionsAvailable,     'makara/errors/no_connections_available'
   end
 
   module Logging
