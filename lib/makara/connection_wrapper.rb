@@ -18,31 +18,39 @@ module Makara
       @proxy  = proxy
     end
 
-    # if we have been able to secure a connection then evaluate the given block
+    # have we secured a connection yet?
     def _makara_connected?
       !!@connection
     end
 
+    # the weight of the current node
     def _makara_weight
       @config[:weight] || 1
     end
 
+    # the name of this node
     def _makara_name
       @config[:name]
     end
 
+    # has this node been blacklisted?
     def _makara_blacklisted?
       @blacklisted_until.to_i > Time.now.to_i
     end
 
+    # blacklist this node for @config[:blacklist_duration] seconds
     def _makara_blacklist!
       @blacklisted_until = Time.now.to_i + @config[:blacklist_duration]
     end
 
+    # release the blacklist
     def _makara_whitelist!
       @blacklisted_until = nil
     end
 
+    # we delay the instantiation of the underlying connection just in case
+    # it invokes a connect()-like method and errors. Once connected, we keep
+    # a reference to the instantiated connection and release the provided block
     def __setcon__
 
       con = @connection_instantiation_block.call
@@ -54,6 +62,9 @@ module Makara
       @connection = con
 
     rescue Exception => e
+
+      # if we're configured to rescue connection failures, we raise a custom error
+      # otherwise we blow up
       if @config[:rescue_connection_failures]
         raise ::Makara::Errors::InitialConnectionFailure.new(self, e)
       else
@@ -61,12 +72,12 @@ module Makara
       end
     end
 
+    # if we've already instantiated a connection, use it. otherwise we need to get connected.
     def __getobj__
       @connection || __setcon__
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
-    # however, if we have not been able to establish a connection yet, we don't want to blow up
     def method_missing(method_name, *args, &block)
       super
     rescue NoMethodError => e
@@ -88,8 +99,12 @@ module Makara
 
     protected
 
+    # once the underlying connection is present we must evaluate extra functionality into it.
+    # all extra functionality is in the format of _makara*
     def _makara_decorate_connection(con)
+
       extension = %Q{
+        # the proxy object controlling this connection
         def _makara
           @_makara
         end
@@ -98,6 +113,8 @@ module Makara
           @_makara = m
         end
 
+        # if the proxy has already decided the correct connection to use, yield nil.
+        # if the proxy has yet to decide, yield the proxy
         def _makara_hijack
           if _makara.hijacked?
             yield nil
@@ -106,13 +123,14 @@ module Makara
           end
         end
 
+        # for logging, errors, and debugging
         def _makara_name
           #{@config[:name].inspect}
         end
       }
 
       # Each method the Makara::Proxy needs to hijack should be redefined in the underlying connection.
-      # The new definition should allow for the proxy to intercept the invocation
+      # The new definition should allow for the proxy to intercept the invocation if required.
       @proxy.class.hijack_methods.each do |meth|
         extension << %Q{
           def #{meth}(*args)
@@ -127,8 +145,11 @@ module Makara
         }
       end
 
+      # extend the instance
       con.instance_eval(extension)
+      # set the makara context
       con._makara = @proxy
+
       con._makara
     end
 

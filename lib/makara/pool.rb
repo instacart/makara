@@ -34,10 +34,15 @@ module Makara
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
 
       wrapper = Makara::ConnectionWrapper.new(@proxy, config, &block)
+
+      # the weight results in N references to the connection, not N connections
       wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
+        # randomize the connections so we don't get peaks and valleys of load
         @connections.shuffle!
+
+        # then start at a random spot in the list
         @current_idx = rand(@connections.length)
       end
 
@@ -45,6 +50,7 @@ module Makara
     end
 
 
+    # send this method to all available nodes
     def send_to_all(method, *args)
       ret = nil
       provide_each do |con|
@@ -53,6 +59,7 @@ module Makara
       ret
     end
 
+    # provide all available nodes to the given block
     def provide_each
       idx = @current_idx
       begin
@@ -62,11 +69,12 @@ module Makara
       end while @current_idx != idx
     end
 
-    # Provide a connection that is not blacklisted and handle any errors
+    # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide(allow_stickiness = true)
       provided_connection = self.next(allow_stickiness)
 
+      # nil implies that it's blacklisted
       if provided_connection
 
         @latest_blacklist_error = nil
@@ -75,24 +83,34 @@ module Makara
           yield provided_connection
         end
 
+      # if we've made any connections within this pool, we should report the blackout.
       elsif connection_made?
         raise Makara::Errors::AllConnectionsBlacklisted.new(@latest_blacklist_error)
+
+      # if we don't have any connections, we should report the issue.
       else
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
-
+    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
     rescue Makara::Errors::BlacklistConnection => e
       @latest_blacklist_error = e
       provided_connection._makara_blacklist!
       retry
+
+    # when a connection cannot be connected we blacklist the node.
+    # we don't retry because the failure came from instantiation of the underlying connection, not the block
     rescue Makara::Errors::InitialConnectionFailure => e
       provided_connection._makara_blacklist!
     end
 
 
+
     protected
 
+
+
+    # have we connected to any of the underlying connections.
     def connection_made?
       @connections.any?(&:_makara_connected?)
     end
