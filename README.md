@@ -6,7 +6,7 @@
 
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
-### Warning: *Makara was recently rewritten. < 0.2.0 configurations will need to be changed to the new format. Makara 0.2.0 is still a beta release and could use more real-world testing -- especially with postgresql setups.*
+### Warning: *Makara was recently rewritten. < 0.2.0 configurations will need to be changed to the new format. Makara 0.2.0 is still in its infancy and could use more production testing.*
 
 ## Installation
 
@@ -124,7 +124,7 @@ The makara subconfig sets up the proxy with a few of its own options, then provi
 * blacklist_duration - the number of seconds a node is blacklisted when a connection failure occurs
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
-* rescue_connection_failures - should Makara deal with nodes that aren't accessible when the initial connection is established
+* rescue_connection_failures - should Makara deal with nodes that aren't accessible when the initial connection is instantiated? Nodes will be blacklisted and instantiation will attempt on demand after the blacklisting.
 
 Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overridden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
 
