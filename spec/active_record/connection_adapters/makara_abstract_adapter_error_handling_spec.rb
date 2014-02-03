@@ -5,7 +5,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
 
   let(:handler){ described_class.new }
   let(:proxy) { FakeAdapter.new(config(1,1)) }
-  let(:connection){ proxy.master_pool.any }
+  let(:connection){ proxy.master_pool.connections.first }
 
   [
     %|Mysql::Error: : INSERT INTO `watchers` (`user_id`, `watchable_id`, `watchable_type`) VALUES|,

@@ -7,12 +7,17 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class Pool
 
+    # there are cases when we understand the pool is busted and we essentially want to skip
+    # all execution
+    attr_writer :disabled
+
     def initialize(role, proxy)
       @role           = role
       @proxy          = proxy
       @context        = Makara::Context.get_current
       @connections    = []
       @current_idx    = 0
+      @disabled       = false
     end
 
 
@@ -25,14 +30,19 @@ module Makara
 
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
-    def add(connection, config)
+    def add(config, &block)
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
 
-      wrapper = Makara::ConnectionWrapper.new(connection, @proxy, config)
+      wrapper = Makara::ConnectionWrapper.new(@proxy, config, &block)
+
+      # the weight results in N references to the connection, not N connections
       wrapper._makara_weight.times{ @connections << wrapper }
 
       if should_shuffle?
+        # randomize the connections so we don't get peaks and valleys of load
         @connections.shuffle!
+
+        # then start at a random spot in the list
         @current_idx = rand(@connections.length)
       end
 
@@ -40,36 +50,31 @@ module Makara
     end
 
 
-    def each_connection
-      @connections.each do |connection|
-        yield connection
-      end
-    end
-
-
+    # send this method to all available nodes
     def send_to_all(method, *args)
       ret = nil
-      @connections.each{|connection| ret = connection.send(method, *args) }
+      provide_each do |con|
+        ret = con.send(method, *args)
+      end
       ret
     end
 
-
-    # Provide a way to get any random connection out of the pool, not worrying about blacklisting
-    def any
-      con = @connections[rand(@connections.length)]
-      if block_given?
-        yield con
-      else
-        con
-      end
+    # provide all available nodes to the given block
+    def provide_each
+      idx = @current_idx
+      begin
+        provide(false) do |con|
+          yield con
+        end
+      end while @current_idx != idx
     end
 
-
-    # Provide a connection that is not blacklisted and handle any errors
+    # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
-    def provide
-      provided_connection = self.next
+    def provide(allow_stickiness = true)
+      provided_connection = self.next(allow_stickiness)
 
+      # nil implies that it's blacklisted
       if provided_connection
 
         @latest_blacklist_error = nil
@@ -78,27 +83,45 @@ module Makara
           yield provided_connection
         end
 
-      else
+      # if we've made any connections within this pool, we should report the blackout.
+      elsif connection_made?
         raise Makara::Errors::AllConnectionsBlacklisted.new(@latest_blacklist_error)
+
+      # if we don't have any connections, we should report the issue.
+      else
+        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
-
+    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
     rescue Makara::Errors::BlacklistConnection => e
       @latest_blacklist_error = e
       provided_connection._makara_blacklist!
       retry
+
+    # when a connection cannot be connected we blacklist the node.
+    # we don't retry because the failure came from instantiation of the underlying connection, not the block
+    rescue Makara::Errors::InitialConnectionFailure => e
+      provided_connection._makara_blacklist!
     end
+
 
 
     protected
 
 
+
+    # have we connected to any of the underlying connections.
+    def connection_made?
+      @connections.any?(&:_makara_connected?)
+    end
+
+
     # Get the next non-blacklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
-    def next
+    def next(allow_stickiness = true)
 
-      if @proxy.sticky && Makara::Context.get_current == @context
+      if allow_stickiness && @proxy.sticky && Makara::Context.get_current == @context
         con = safe_value(@current_idx)
         return con if con
       end

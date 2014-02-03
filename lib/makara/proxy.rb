@@ -52,7 +52,7 @@ module Makara
 
 
     def __getobj__
-      @master_pool.try(:any) || @slave_pool.try(:any) || nil
+      @current_connection
     end
 
 
@@ -65,12 +65,31 @@ module Makara
       Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
     end
 
+    def method_missing(method_name, *args, &block)
+      @master_pool.provide do |con|
+        @current_connection = con
+        super
+      end
+    ensure
+      @current_connection = nil
+    end
+
+    class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
+      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(method_name, include_private = false)
+        return true if super
+        @master_pool.provide do |con|
+          con.respond_to?(method_name, true)
+        end
+      end
+    RUBY_EVAL
+
     protected
 
 
     def send_to_all(method_name, *args)
-      @master_pool.send_to_all method_name, *args
+      # slave pool must run first to allow for slave-->master failover without running operations on master twice.
       @slave_pool.send_to_all method_name, *args
+      @master_pool.send_to_all method_name, *args
     end
 
 
@@ -122,10 +141,10 @@ module Makara
 
       yield pool
 
-    rescue ::Makara::Errors::AllConnectionsBlacklisted => e
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @master_pool
-        @master_pool.send_to_all(:_makara_whitelist!)
-        @slave_pool.send_to_all(:_makara_whitelist!)
+        @master_pool.connections.each(&:_makara_whitelist!)
+        @slave_pool.connections.each(&:_makara_whitelist!)
         raise e
       else
         retry
@@ -170,14 +189,16 @@ module Makara
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
-        con = connection_for(master_config)
-        @master_pool.add con, master_config.merge(@config_parser.makara_config) if con
+        @master_pool.add master_config.merge(@config_parser.makara_config) do
+          connection_for(master_config)
+        end
       end
 
       @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
-        con = connection_for(slave_config)
-        @slave_pool.add con, slave_config.merge(@config_parser.makara_config) if con
+        @slave_pool.add slave_config.merge(@config_parser.makara_config) do
+          connection_for(slave_config)
+        end
       end
     end
 

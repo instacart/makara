@@ -141,7 +141,7 @@ describe Makara::Proxy do
         if pool == proxy.slave_pool
           test.blacklisting
           pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some connection issue'))
-          pool.send_to_all(:_makara_blacklist!)
+          pool.connections.each(&:_makara_blacklist!)
           pool.provide
         else
           test.using_master
@@ -150,6 +150,8 @@ describe Makara::Proxy do
     end
 
     it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
+      proxy.ping
+
       proxy.slave_pool.connections.each(&:_makara_blacklist!)
       proxy.slave_pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some slave connection issue'))
       proxy.master_pool.connections.each(&:_makara_blacklist!)
