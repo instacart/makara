@@ -63,6 +63,16 @@ Makara::Cache.store = MyRedisCacheStore.new
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current master context. If the next request is executed before the cookie expires, master will be used. If something occurs which naturally requires master on the second request, the context is changed and stored again.
 
+#### Changing Context
+
+If you need to change the makara context, releasing any stuck connections, all you have to do is:
+
+```ruby
+ctx = Makara::Context.generate # or any unique sha
+Makara::Context.set_current ctx
+```
+
+
 ### Forcing Master
 
 If you need to force master in your app then you can simply invoke stick_to_master! on your connection:
