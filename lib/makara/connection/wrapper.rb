@@ -17,10 +17,11 @@ module Makara
 
         raise "No name was provided for configuration:\n#{@config.to_yaml}" if @config[:name].blank?
 
-        @name               = @config.delete(:name)
-        @master             = @config.delete(:role) == 'master'
-        @blacklist_duration = @config.delete(:blacklist_duration).try(:seconds) || 1.minute
-        @weight             = @config.delete(:weight) || 1
+        @name                       = @config.delete(:name)
+        @master                     = @config.delete(:role) == 'master'
+        @blacklist_duration         = @config.delete(:blacklist_duration).try(:seconds) || 1.minute
+        @connection_error_matchers  = @config.delete(:connection_error_matchers) || []
+        @weight                     = @config.delete(:weight) || 1
       end
 
       def master?
@@ -54,6 +55,11 @@ module Makara
         @blacklisted_until = for_length.from_now
 
         Makara.warn("Blacklisted: #{self} #{message}")
+      end
+
+      # custom error messages
+      def _makara_custom_error_matchers
+        @connection_error_matchers
       end
 
       def to_s

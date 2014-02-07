@@ -19,10 +19,12 @@ module Makara
         when ActiveRecord::RecordNotUnique, ActiveRecord::InvalidForeignKey
           return handle_exception_harshly(e)
         when ActiveRecord::StatementInvalid
-          return handle_exception_harshly(e) unless connection_message?(e)
+          if connection_message?(e) || custom_error_message?(e)
+            handle_exception_gracefully(e)
+          else
+            handle_exception_harshly(e)
+          end
         end
-
-        handle_exception_gracefully(e)
       end
 
       protected
@@ -50,6 +52,21 @@ module Makara
           false
         end
       end
+
+      def custom_error_message?(message)
+        custom_error_matchers = current_wrapper._makara_custom_error_matchers
+        return false if !custom_error_matchers || custom_error_matchers.empty?
+        
+        message = message.to_s
+
+        custom_error_matchers.each do |matcher|
+          matcher = /#{matcher}/ if matcher.is_a? String
+          return true if message.match matcher
+        end
+
+        false
+      end
+
     end
   end
 end

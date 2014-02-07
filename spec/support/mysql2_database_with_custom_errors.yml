@@ -1,0 +1,17 @@
+test:
+  sticky_slave: true
+  sticky_master: true
+  adapter: makara
+  db_adapter: abstract
+  host: localhost
+  port: 3439
+  blacklist_duration: 5
+  connection_error_matchers:
+    - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'
+  databases:
+    - name: master
+      role: master
+    - name: slave1
+      role: slave
+    - name: slave2
+      role: slave
