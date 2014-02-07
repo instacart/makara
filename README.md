@@ -135,6 +135,7 @@ The makara subconfig sets up the proxy with a few of its own options, then provi
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
 * rescue_connection_failures - should Makara deal with nodes that aren't accessible when the initial connection is instantiated? Nodes will be blacklisted and instantiation will attempt on demand after the blacklisting.
+* connection_error_matchers - array of custom error matchers you want to be handled gracefully by Makara (as in, errors matching these regexes will result in blacklisting the connection as opposed to raising directly).
 
 Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overridden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
 
@@ -154,6 +155,26 @@ connections:
 ```
 
 In the previous config the "Big Slave" would receive ~80% of traffic.
+
+## Custom error matchers:
+
+To enable Makara to catch and handle custom errors gracefully (blacklist the connection instead of raising directly), you must add your custom matchers to the `connection_error_matchers` setting to your config file, for example:
+
+```yml
+production:
+  adapter: 'makara_mysql2'
+
+  makara:
+    blacklist_duration: 5
+    connections:
+      - role: master
+        host: master.sql.host
+    connection_error_matchers:
+      - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'
+      - 'Mysql2::Error: Duplicate entry'
+```
+
+You can add strings or regexes.  In the case of strings, they will get converted to regexes when finding matches in `ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler#custom_error_message?`.
 
 ## Common Problems / Solutions
 
