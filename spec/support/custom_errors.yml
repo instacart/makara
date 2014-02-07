@@ -1,2 +1,0 @@
-messages:
-  - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'

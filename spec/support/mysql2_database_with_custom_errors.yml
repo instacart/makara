@@ -1,0 +1,17 @@
+test:
+  adapter: 'makara_mysql2'
+  database: 'makara_test'
+  username: 'root'
+  password: ''
+
+  makara:
+    blacklist_duration: 2
+    master_ttl: 5
+    rescue_connection_failures: true
+    connections:
+      - role: master
+      - role: slave
+      - role: slave
+    connection_error_matchers:
+      - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'
+

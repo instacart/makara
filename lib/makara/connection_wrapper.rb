@@ -96,6 +96,11 @@ module Makara
       end
     RUBY_EVAL
 
+    # custom error messages
+    def _makara_custom_error_matchers
+      @config[:connection_error_matchers] || []
+    end
+
 
     protected
 
