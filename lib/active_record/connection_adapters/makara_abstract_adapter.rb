@@ -20,7 +20,7 @@ module ActiveRecord
           when 'Makara::Errors::BlacklistConnection', 'Makara::Errors::InitialConnectionFailure'
             harshly(e)
           else
-            if connection_message?(e)
+            if connection_message?(e) || custom_error_message?(e)
               gracefully(connection, e)
             else
               harshly(e)
@@ -39,6 +39,11 @@ module ActiveRecord
           else
             false
           end
+        end
+
+        def custom_error_message?(message)
+          return false unless ::Makara::CustomErrors.should_check?
+          Makara::CustomErrors.custom_error? message
         end
 
 

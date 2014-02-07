@@ -47,5 +47,30 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     end
   end
 
+  describe 'custom errors' do
+
+    let(:msg) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+
+    before do
+      file_path = File.join(File.expand_path('../../../', __FILE__), 'support', 'custom_errors.yml')
+      Makara::CustomErrors.load file_path
+    end
+
+    after { Makara::CustomErrors.clear }
+
+    it "identifies custom errors" do
+      expect(handler).to be_custom_error_message(msg)
+    end
+
+    it "blacklists the connection" do
+      expect {
+        handler.handle(connection) do
+          raise msg
+        end
+      }.to raise_error(Makara::Errors::BlacklistConnection)
+    end
+
+  end
+
 
 end

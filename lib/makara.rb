@@ -10,6 +10,7 @@ module Makara
   autoload :Middleware,         'makara/middleware'
   autoload :Pool,               'makara/pool'
   autoload :Proxy,              'makara/proxy'
+  autoload :CustomErrors,       'makara/custom_errors'
 
   module Errors
     autoload :AllConnectionsBlacklisted,  'makara/errors/all_connections_blacklisted'
