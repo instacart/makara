@@ -48,6 +48,11 @@ module Makara
       @blacklisted_until = nil
     end
 
+    # custom error messages
+    def _makara_custom_error_matchers
+      @config[:connection_error_matchers] || []
+    end
+
     # we delay the instantiation of the underlying connection just in case
     # it invokes a connect()-like method and errors. Once connected, we keep
     # a reference to the instantiated connection and release the provided block
@@ -95,11 +100,6 @@ module Makara
         super || __getobj__.respond_to?(method_name, true)
       end
     RUBY_EVAL
-
-    # custom error messages
-    def _makara_custom_error_matchers
-      @config[:connection_error_matchers] || []
-    end
 
 
     protected
