@@ -76,7 +76,7 @@ module Makara
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(method_name, include_private = false)
-        return true if super
+        return true if super(method_name, false)
         @master_pool.provide do |con|
           con.respond_to?(method_name, true)
         end
