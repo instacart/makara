@@ -32,7 +32,16 @@ module Makara
         when :memory
           @store = Makara::Cache::MemoryStore.new
         else
-          @store ||= Rails.cache if defined?(Rails)
+          if defined?(Rails)
+
+            # in AR3 RAILS_CACHE may not be loaded if the full env is not present
+            # Rails.cache will throw an error because of it.
+            if ActiveRecord::VERSION::MAJOR < 4
+              @store ||= Rails.cache if defined?(RAILS_CACHE)
+            else
+              @store ||= Rails.cache if defined?(Rails)
+            end
+          end
         end
 
         @store
