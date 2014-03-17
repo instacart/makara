@@ -24,11 +24,14 @@ module Makara
 
 
     def gracefully(connection, e)
-      raise Makara::Errors::BlacklistConnection.new(connection, e)
+      err = Makara::Errors::BlacklistConnection.new(connection, e)
+      ::Makara::Logging::Logger.log("[Makara] Gracefully handling: #{err}")
+      raise err
     end
 
 
     def harshly(e)
+      ::Makara::Logging::Logger.log("[Makara] Harshly handling: #{e}")
       raise e
     end
 

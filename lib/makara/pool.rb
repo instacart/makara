@@ -10,14 +10,17 @@ module Makara
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
     attr_writer :disabled
+    attr_reader :blacklist_errors
+    attr_reader :role
 
     def initialize(role, proxy)
-      @role           = role
-      @proxy          = proxy
-      @context        = Makara::Context.get_current
-      @connections    = []
-      @current_idx    = 0
-      @disabled       = false
+      @role             = role
+      @proxy            = proxy
+      @context          = Makara::Context.get_current
+      @connections      = []
+      @blacklist_errors = []
+      @current_idx      = 0
+      @disabled         = false
     end
 
 
@@ -77,24 +80,29 @@ module Makara
       # nil implies that it's blacklisted
       if provided_connection
 
-        @latest_blacklist_error = nil
-
-        @proxy.error_handler.handle(provided_connection) do
+        value = @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
 
+        @blacklist_errors = []
+
+        value
+
       # if we've made any connections within this pool, we should report the blackout.
       elsif connection_made?
-        raise Makara::Errors::AllConnectionsBlacklisted.new(@latest_blacklist_error)
+        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+        @blacklist_errors = []
+        raise err
 
       # if we don't have any connections, we should report the issue.
       else
+        @blacklist_errors = []
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
     # when a connection causes a blacklist error within the provided block, we blacklist it then retry
     rescue Makara::Errors::BlacklistConnection => e
-      @latest_blacklist_error = e
+      @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
       retry
 

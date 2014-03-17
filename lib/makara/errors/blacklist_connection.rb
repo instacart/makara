@@ -3,8 +3,7 @@ module Makara
     class BlacklistConnection < ::StandardError
 
       def initialize(connection, error)
-        name = connection._makara_name
-        super "[Makara] Blacklisted connection: #{name} -> #{error.message}"
+        super "[Makara/#{connection._makara_name}] #{error.message}"
       end
 
     end

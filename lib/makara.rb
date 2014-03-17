@@ -19,6 +19,7 @@ module Makara
   end
 
   module Logging
+    autoload :Logger,     'makara/logging/logger'
     autoload :Subscriber, 'makara/logging/subscriber'
   end
 

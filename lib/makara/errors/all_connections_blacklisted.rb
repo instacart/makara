@@ -2,8 +2,10 @@ module Makara
   module Errors
     class AllConnectionsBlacklisted < StandardError
 
-      def initialize(error)
-        super "[Makara] All connections are blacklisted - #{error.try(:message) || 'No error details'}"
+      def initialize(pool, errors)
+        errors = [*errors]
+        messages = errors.empty? ? 'No error details' : errors.map(&:message).join(' -> ')
+        super "[Makara/#{pool.role}] All connections are blacklisted -> " + messages
       end
 
     end

@@ -140,7 +140,7 @@ describe Makara::Proxy do
       proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
         if pool == proxy.slave_pool
           test.blacklisting
-          pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some connection issue'))
+          pool.instance_variable_get('@blacklist_errors') << StandardError.new('some connection issue')
           pool.connections.each(&:_makara_blacklist!)
           pool.provide
         else
@@ -152,17 +152,20 @@ describe Makara::Proxy do
     it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
       proxy.ping
 
+      # weird setup to allow for the correct
       proxy.slave_pool.connections.each(&:_makara_blacklist!)
-      proxy.slave_pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some slave connection issue'))
+      proxy.slave_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some slave connection issue')
       proxy.master_pool.connections.each(&:_makara_blacklist!)
-      proxy.master_pool.instance_variable_set('@latest_blacklist_error', StandardError.new('some master connection issue'))
+      proxy.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some master connection issue')
+
+      allow(proxy).to receive(:_appropriate_pool).and_return(proxy.slave_pool, proxy.master_pool)
 
       begin
         proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
           pool.provide{|c| c }
         end
       rescue Makara::Errors::AllConnectionsBlacklisted => e
-        expect(e.message).to eq('[Makara] All connections are blacklisted - some master connection issue')
+        expect(e.message).to eq('[Makara/master] All connections are blacklisted -> some master connection issue -> [Makara/slave] All connections are blacklisted -> some slave connection issue')
       end
 
       proxy.slave_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }

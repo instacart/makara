@@ -118,8 +118,8 @@ describe Makara::Pool do
 
   it 'raises an error when all connections are blacklisted' do
 
-    wrapper_a = pool.add(pool_config){ 'a' }
-    wrapper_b = pool.add(pool_config){ 'b' }
+    wrapper_a = pool.add(pool_config.dup){ 'a' }
+    wrapper_b = pool.add(pool_config.dup){ 'b' }
 
     # make the connection
     pool.send_to_all :to_s
@@ -127,11 +127,14 @@ describe Makara::Pool do
     allow(pool).to receive(:next).and_return(wrapper_a, wrapper_b, nil)
 
 
-    expect{
+    begin
       pool.provide do |connection|
-        raise Makara::Errors::BlacklistConnection.new(StandardError.new('failure'))
+        raise Makara::Errors::BlacklistConnection.new(connection, StandardError.new('failure'))
       end
-    }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+    rescue Makara::Errors::AllConnectionsBlacklisted => e
+      expect(e).to be_present
+      expect(e.message).to eq("[Makara/test] All connections are blacklisted -> [Makara/test/2] failure -> [Makara/test/1] failure")
+    end
   end
 
   it 'skips blacklisted connections when choosing the next one' do

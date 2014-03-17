@@ -110,34 +110,8 @@ module Makara
     # master or slave
     def appropriate_pool(method_name, args)
 
-      pool = begin
-        # the args provided absolutely need master
-        if needs_master?(method_name, args)
-          stick_to_master(method_name, args)
-          @master_pool
-
-        # in this context, we've already stuck to master
-        elsif Makara::Context.get_current == @master_context
-          @master_pool
-
-        # the previous context stuck us to master
-        elsif previously_stuck_to_master?
-
-          # we're only on master because of the previous context so
-          # behave like we're sticking to master but store the current context
-          stick_to_master(method_name, args, false)
-          @master_pool
-
-        # all slaves are down (or empty)
-        elsif @slave_pool.completely_blacklisted?
-          stick_to_master(method_name, args)
-          @master_pool
-
-        # yay! use a slave
-        else
-          @slave_pool
-        end
-      end
+      # for testing purposes
+      pool = _appropriate_pool(method_name, args)
 
       yield pool
 
@@ -147,10 +121,39 @@ module Makara
         @slave_pool.connections.each(&:_makara_whitelist!)
         raise e
       else
+        @master_pool.blacklist_errors << e
         retry
       end
     end
 
+    def _appropriate_pool(method_name, args)
+      # the args provided absolutely need master
+      if needs_master?(method_name, args)
+        stick_to_master(method_name, args)
+        @master_pool
+
+      # in this context, we've already stuck to master
+      elsif Makara::Context.get_current == @master_context
+        @master_pool
+
+      # the previous context stuck us to master
+      elsif previously_stuck_to_master?
+
+        # we're only on master because of the previous context so
+        # behave like we're sticking to master but store the current context
+        stick_to_master(method_name, args, false)
+        @master_pool
+
+      # all slaves are down (or empty)
+      elsif @slave_pool.completely_blacklisted?
+        stick_to_master(method_name, args)
+        @master_pool
+
+      # yay! use a slave
+      else
+        @slave_pool
+      end
+    end
 
     # do these args require a master connection
     def needs_master?(method_name, args)
