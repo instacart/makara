@@ -82,6 +82,14 @@ write_to_cache = true # or false
 proxy.stick_to_master!(write_to_cache)
 ```
 
+### Logging
+
+You can set a logger instance to ::Makara::Logging::Logger.logger and Makara will log how it handles errors at the Proxy level.
+
+```ruby
+Makara::Logging::Logger.logger = ::Logger.new(STDOUT)
+```
+
 ## ActiveRecord Database Adapter
 
 So you've found yourself with an ActiveRecord-based project which is starting to get some traffic and you realize 95% of you DB load is from reads. Well you've come to the right spot. Makara is a great solution to break up that load not only between master and slave but potentially multiple masters and/or multiple slaves.
