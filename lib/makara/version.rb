@@ -3,7 +3,7 @@ module Makara
 
     MAJOR = 0
     MINOR = 2
-    PATCH = 0
+    PATCH = 2
     PRE = nil
 
     def self.to_s
