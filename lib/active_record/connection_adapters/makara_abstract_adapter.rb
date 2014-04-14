@@ -67,7 +67,18 @@ module ActiveRecord
       SQL_MASTER_MATCHERS     = [/^select.+for update$/i, /select.+lock in share mode$/i]
       SQL_SLAVE_MATCHER       = /^select\s/i
       SQL_ALL_MATCHER         = /^set\s/i
+      
+      def sql_master_matchers
+        SQL_MASTER_MATCHERS
+      end
+      
+      def sql_slave_matcher
+        SQL_SLAVE_MATCHER
+      end
 
+      def sql_all_matcher
+        SQL_ALL_MATCHER
+      end
 
       def initialize(config)
         @error_handler = ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler.new
@@ -133,16 +144,16 @@ module ActiveRecord
 
       def needed_by_all?(method_name, args)
         sql = args.first.to_s
-        return true if sql =~ SQL_ALL_MATCHER
+        return true if sql =~ sql_all_matcher
         false
       end
 
       def needs_master?(method_name, args)
         sql = args.first.to_s
-        SQL_MASTER_MATCHERS.each do |master_regex|
+        sql_master_matchers.each do |master_regex|
           return true if master_regex =~ sql
         end
-        return false if sql =~ SQL_SLAVE_MATCHER
+        return false if sql =~ sql_slave_matcher
         true
       end
 
