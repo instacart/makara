@@ -121,7 +121,6 @@ production:
     blacklist_duration: 5
     master_ttl: 5
     sticky: true
-    rescue_connection_failures: false
 
     # list your connections with the override values (they're merged into the top-level config)
     # be sure to provide the role if master, role is assumed to be a slave if not provided
@@ -142,7 +141,6 @@ The makara subconfig sets up the proxy with a few of its own options, then provi
 * blacklist_duration - the number of seconds a node is blacklisted when a connection failure occurs
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
-* rescue_connection_failures - should Makara deal with nodes that aren't accessible when the initial connection is instantiated? Nodes will be blacklisted and instantiation will attempt on demand after the blacklisting.
 * connection_error_matchers - array of custom error matchers you want to be handled gracefully by Makara (as in, errors matching these regexes will result in blacklisting the connection as opposed to raising directly).
 
 Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overridden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
