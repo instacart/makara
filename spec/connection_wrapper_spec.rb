@@ -30,5 +30,4 @@ describe Makara::ConnectionWrapper do
     expect(subject._makara_blacklisted?).to eq(false)
   end
 
-  it 'shou'
 end
