@@ -14,6 +14,8 @@ module Makara
 
       @config = config.symbolize_keys
       @proxy  = proxy
+
+      _makara_decorate_connection(connection)
     end
 
     # the weight of the current node
