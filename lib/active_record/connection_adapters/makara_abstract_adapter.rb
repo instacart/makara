@@ -17,7 +17,7 @@ module ActiveRecord
           case e.class.name
           when 'ActiveRecord::RecordNotUnique', 'ActiveRecord::InvalidForeignKey'
             harshly(e)
-          when 'Makara::Errors::BlacklistConnection', 'Makara::Errors::InitialConnectionFailure'
+          when 'Makara::Errors::BlacklistConnection'
             harshly(e)
           else
             if connection_message?(e) || custom_error_message?(connection, e)
@@ -44,7 +44,7 @@ module ActiveRecord
         def custom_error_message?(connection, message)
           custom_error_matchers = connection._makara_custom_error_matchers
           return false if !custom_error_matchers || custom_error_matchers.empty?
-          
+
           message = message.to_s
 
           custom_error_matchers.each do |matcher|
@@ -77,28 +77,20 @@ module ActiveRecord
 
       protected
 
-      def send_to_all(method_name, *args)
-        handling_an_all_execution do
-          super
-        end
-      end
-
-
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
 
-          handling_an_all_execution do
-            # slave pool must run first.
-            @slave_pool.provide_each do |con|
-              hijacked do
-                yield con
-              end
-            end
 
-            @master_pool.provide_each do |con|
-              hijacked do
-                yield con
-              end
+          # slave pool must run first.
+          @slave_pool.provide_each do |con|
+            hijacked do
+              yield con
+            end
+          end
+
+          @master_pool.provide_each do |con|
+            hijacked do
+              yield con
             end
           end
 
@@ -109,16 +101,6 @@ module ActiveRecord
           end
 
         end
-      end
-
-      def handling_an_all_execution
-        yield
-      rescue ::Makara::Errors::NoConnectionsAvailable => e
-        raise if e.role == 'master'
-        @slave_pool.disabled = true
-        yield
-      ensure
-        @slave_pool.disabled = false
       end
 
 

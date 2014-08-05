@@ -1,6 +1,7 @@
 require 'active_record'
 require 'makara'
 require 'timecop'
+require 'yaml'
 
 begin
   require 'byebug'

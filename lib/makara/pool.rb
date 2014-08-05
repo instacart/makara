@@ -33,10 +33,11 @@ module Makara
 
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
-    def add(config, &block)
+    def add(config)
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
 
-      wrapper = Makara::ConnectionWrapper.new(@proxy, config, &block)
+      connection = yield
+      wrapper = Makara::ConnectionWrapper.new(@proxy, connection, config)
 
       # the weight results in N references to the connection, not N connections
       wrapper._makara_weight.times{ @connections << wrapper }
@@ -65,10 +66,13 @@ module Makara
     # provide all available nodes to the given block
     def provide_each
       idx = @current_idx
+      last_idx = nil
       begin
         provide(false) do |con|
           yield con
         end
+        return if @current_idx == last_idx
+        last_idx = @current_idx
       end while @current_idx != idx
     end
 
@@ -89,15 +93,10 @@ module Makara
         value
 
       # if we've made any connections within this pool, we should report the blackout.
-      elsif connection_made?
+      else
         err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
         @blacklist_errors = []
         raise err
-
-      # if we don't have any connections, we should report the issue.
-      else
-        @blacklist_errors = []
-        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
     # when a connection causes a blacklist error within the provided block, we blacklist it then retry
@@ -105,23 +104,12 @@ module Makara
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
       retry
-
-    # when a connection cannot be connected we blacklist the node.
-    # we don't retry because the failure came from instantiation of the underlying connection, not the block
-    rescue Makara::Errors::InitialConnectionFailure => e
-      provided_connection._makara_blacklist!
     end
 
 
 
     protected
 
-
-
-    # have we connected to any of the underlying connections.
-    def connection_made?
-      @connections.any?(&:_makara_connected?)
-    end
 
 
     # Get the next non-blacklisted connection. If the proxy is setup

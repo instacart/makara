@@ -27,41 +27,6 @@ describe 'MakaraPostgreSQLAdapter' do
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter)
   end
 
-  it 'should not blow up if a connection fails' do
-    config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
-
-    original_method = ActiveRecord::Base.method(:postgresql_connection)
-
-    allow(ActiveRecord::Base).to receive(:postgresql_connection) do |config|
-      if config[:username] == 'other'
-        raise "could not connect"
-      else
-        original_method.call(config)
-      end
-    end
-
-    ActiveRecord::Base.establish_connection(config)
-    ActiveRecord::Base.connection
-
-    load(File.dirname(__FILE__) + '/../../support/schema.rb')
-    Makara::Context.set_current Makara::Context.generate
-
-    allow(ActiveRecord::Base).to receive(:postgresql_connection) do |config|
-      config[:username] = db_username
-      original_method.call(config)
-    end
-
-    ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
-    ActiveRecord::Base.connection.slave_pool.provide do |con|
-      res = con.execute('SELECT count(*) FROM users')
-      if defined?(JRUBY_VERSION)
-        expect(res.to_a[0]).to eq('count' => 0)
-      else
-        expect(res.to_a[0]).to eq('count' => '0')
-      end
-    end
-  end
-
   context 'with the connection established and schema loaded' do
 
     let(:connection) { ActiveRecord::Base.connection }

@@ -9,18 +9,13 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class ConnectionWrapper < ::SimpleDelegator
 
-    def initialize(proxy, config, &block)
-      super(nil)
-
-      @connection_instantiation_block = block
+    def initialize(proxy, connection, config)
+      super(connection)
 
       @config = config.symbolize_keys
       @proxy  = proxy
-    end
 
-    # have we secured a connection yet?
-    def _makara_connected?
-      !!@connection
+      _makara_decorate_connection(connection)
     end
 
     # the weight of the current node
@@ -51,35 +46,6 @@ module Makara
     # custom error messages
     def _makara_custom_error_matchers
       @config[:connection_error_matchers] || []
-    end
-
-    # we delay the instantiation of the underlying connection just in case
-    # it invokes a connect()-like method and errors. Once connected, we keep
-    # a reference to the instantiated connection and release the provided block
-    def __setcon__
-
-      con = @connection_instantiation_block.call
-      _makara_decorate_connection(con)
-
-      # release references
-      @connection_instantiation_block = nil
-
-      @connection = con
-
-    rescue Exception => e
-
-      # if we're configured to rescue connection failures, we raise a custom error
-      # otherwise we blow up
-      if @config[:rescue_connection_failures]
-        raise ::Makara::Errors::InitialConnectionFailure.new(self, e)
-      else
-        raise
-      end
-    end
-
-    # if we've already instantiated a connection, use it. otherwise we need to get connected.
-    def __getobj__
-      @connection || __setcon__
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
