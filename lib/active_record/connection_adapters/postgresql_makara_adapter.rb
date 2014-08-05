@@ -5,7 +5,7 @@ if ActiveRecord::VERSION::MAJOR >= 4
 
   module ActiveRecord
     module ConnectionHandling
-      def makara_postgresql_connection(config)
+      def postgresql_makara_connection(config)
         ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter.new(config)
       end
     end
@@ -15,7 +15,7 @@ else
 
   module ActiveRecord
     class Base
-      def self.makara_postgresql_connection(config)
+      def self.postgresql_makara_connection(config)
         ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter.new(config)
       end
     end

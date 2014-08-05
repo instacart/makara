@@ -1,5 +1,5 @@
 test:
-  adapter: 'makara_postgresql'
+  adapter: 'postgresql_makara'
   database: 'makara_test'
   username: 'root'
   password: ''

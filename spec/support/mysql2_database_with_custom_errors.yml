@@ -1,5 +1,5 @@
 test:
-  adapter: 'makara_mysql2'
+  adapter: 'mysql2_makara'
   database: 'makara_test'
   username: 'root'
   password: ''

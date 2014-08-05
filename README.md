@@ -110,7 +110,7 @@ Your database.yml should contain the following structure:
 
 ```yml
 production:
-  adapter: 'makara_mysql2'
+  adapter: 'mysql2_makara'
   database: 'MyAppProduction'
   # any other standard AR configurations
 
@@ -133,7 +133,7 @@ production:
         host: slave2.sql.host
 ```
 
-Let's break this down a little bit. At the top level of your config you have the standard `adapter` choice. Currently the available adapters are listed in [lib/active_record/connection_adapters/](lib/active_record/connection_adapters/). They are in the form of `makara_#{db_type}` where db_type is mysql, postgresql, etc.
+Let's break this down a little bit. At the top level of your config you have the standard `adapter` choice. Currently the available adapters are listed in [lib/active_record/connection_adapters/](lib/active_record/connection_adapters/). They are in the form of `#{db_type}_mysql2` where db_type is mysql, postgresql, etc.
 
 Following the adapter choice is all the standard configurations (host, port, retry, database, username, password, etc). With all the standard configurations provided, you can now provide the makara subconfig.
 
@@ -168,7 +168,7 @@ To enable Makara to catch and handle custom errors gracefully (blacklist the con
 
 ```yml
 production:
-  adapter: 'makara_mysql2'
+  adapter: 'mysql2_makara'
 
   makara:
     blacklist_duration: 5
