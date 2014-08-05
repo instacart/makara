@@ -2,9 +2,9 @@ module Makara
   module VERSION
 
     MAJOR = 0
-    MINOR = 2
-    PATCH = 2
-    PRE = nil
+    MINOR = 3
+    PATCH = 0
+    PRE = 'rc1'
 
     def self.to_s
       [MAJOR, MINOR, PATCH, PRE].compact.join('.')
