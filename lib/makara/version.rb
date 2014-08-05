@@ -4,7 +4,7 @@ module Makara
     MAJOR = 0
     MINOR = 3
     PATCH = 0
-    PRE = 'rc1'
+    PRE = 'rc2'
 
     def self.to_s
       [MAJOR, MINOR, PATCH, PRE].compact.join('.')
