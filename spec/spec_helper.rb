@@ -29,8 +29,18 @@ RSpec.configure do |config|
 
   config.before :each do
     Makara::Cache.store = :memory
-    Makara::Context.set_previous Makara::Context.generate
-    Makara::Context.set_current Makara::Context.generate
+    change_context
     allow_any_instance_of(Makara::Pool).to receive(:should_shuffle?){ false }
   end
+
+  def change_context
+    Makara::Context.set_previous nil
+    Makara::Context.set_current nil
+  end
+
+  def roll_context
+    Makara::Context.set_previous Makara::Context.get_current
+    Makara::Context.set_current Makara::Context.generate
+  end
+
 end

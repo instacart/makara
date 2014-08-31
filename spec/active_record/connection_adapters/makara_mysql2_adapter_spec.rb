@@ -17,7 +17,7 @@ describe 'MakaraMysql2Adapter' do
         c.slave_pool.connections.each(&:_makara_whitelist!)
       end
     end
-    Makara::Context.set_current Makara::Context.generate
+    change_context
   end
 
   context 'with the connection established and schema loaded' do
@@ -27,7 +27,7 @@ describe 'MakaraMysql2Adapter' do
     before do
       ActiveRecord::Base.establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
-      Makara::Context.set_current Makara::Context.generate
+      change_context
     end
 
 
@@ -43,7 +43,7 @@ describe 'MakaraMysql2Adapter' do
         expect(master).to receive(:execute).never
       end
 
-      Makara::Context.set_current Makara::Context.generate
+      change_context
 
       res = connection.execute('SELECT name FROM users ORDER BY id DESC LIMIT 1')
 

@@ -18,7 +18,7 @@ describe 'MakaraPostgreSQLAdapter' do
         c.slave_pool.connections.each(&:_makara_whitelist!)
       end
     end
-    Makara::Context.set_current Makara::Context.generate
+    change_context
   end
 
 
@@ -34,7 +34,7 @@ describe 'MakaraPostgreSQLAdapter' do
     before do
       ActiveRecord::Base.establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
-      Makara::Context.set_current Makara::Context.generate
+      change_context
     end
 
 
@@ -50,7 +50,7 @@ describe 'MakaraPostgreSQLAdapter' do
         expect(master).to receive(:execute).never
       end
 
-      Makara::Context.set_current Makara::Context.generate
+      change_context
       res = connection.execute('SELECT name FROM users ORDER BY id DESC LIMIT 1')
 
       expect(res.to_a[0]['name']).to eq('John')
