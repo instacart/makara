@@ -175,7 +175,7 @@ In the previous config the "Big Slave" would receive ~80% of traffic.
 
 ## Custom error matchers:
 
-To enable Makara to catch and handle custom errors gracefully (blacklist the connection instead of raising directly), you must add your custom matchers to the `connection_error_matchers` setting to your config file, for example:
+To enable Makara to catch and handle custom errors gracefully (blacklist the connection instead of raising directly), you must add your custom matchers to the `connection_error_matchers` setting of your config file, for example:
 
 ```yml
 production:
@@ -183,15 +183,13 @@ production:
 
   makara:
     blacklist_duration: 5
-    connections:
-      - role: master
-        host: master.sql.host
     connection_error_matchers:
       - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'
+      - '/Sql Server Has Gone Away/'
       - 'Mysql2::Error: Duplicate entry'
 ```
 
-You can add strings or regexes.  In the case of strings, they will get converted to regexes when finding matches in `ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler#custom_error_message?`.
+You can provide strings or regexes.  In the case of strings, if they start with `/` and end with `/` they will be converted to regexes when evaluated. Strings that don't start and end with `/` will get evaluated with standard comparison.
 
 ## Common Problems / Solutions
 

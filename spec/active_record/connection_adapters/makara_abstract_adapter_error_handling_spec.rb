@@ -55,7 +55,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     let(:proxy) { FakeAdapter.new(config) }
     let(:connection){ proxy.master_pool.connections.first }
     let(:msg1) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command1: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
-    let(:msg2) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command2: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+    let(:msg2) { "activeRecord::statementInvalid: mysql2::error: unknown command2: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
     let(:msg3) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command3: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
     let(:msg4) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command3:" }
 

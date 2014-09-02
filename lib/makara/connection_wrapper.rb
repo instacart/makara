@@ -45,7 +45,7 @@ module Makara
 
     # custom error messages
     def _makara_custom_error_matchers
-      @config[:connection_error_matchers] || []
+      @custom_error_matchers ||= (@config[:connection_error_matchers] || [])
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
