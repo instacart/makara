@@ -12,5 +12,6 @@ test:
       - role: slave
       - role: slave
     connection_error_matchers:
-      - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command:/'
-
+      - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command1:/'
+      - "/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command2:/"
+      - "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command3:"

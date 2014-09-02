@@ -48,8 +48,20 @@ module ActiveRecord
           message = message.to_s
 
           custom_error_matchers.each do |matcher|
-            matcher = /#{matcher}/ if matcher.is_a? String
-            return true if message.match matcher
+
+            if matcher.is_a?(String)
+              # accept strings that look like "/.../" as a regex
+              if matcher[0] == '/' && matcher[-1] == '/'
+                matcher = matcher.gsub(/^\//, '').gsub(/\/$/, '')
+                matcher = /#{matcher}/
+              end
+            end
+
+            if matcher.is_a?(String)
+              return true if message == matcher
+            else
+              return true if message.match(matcher)
+            end
           end
 
           false

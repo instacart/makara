@@ -82,6 +82,17 @@ write_to_cache = true # or false
 proxy.stick_to_master!(write_to_cache)
 ```
 
+
+### Skipping the Stickiness
+
+If you're using the `sticky: true` configuration and you find yourself in a situation where you need to write information through the proxy but you don't want the context to be stuck to master, you should use a `without_sticking` block:
+
+```ruby
+proxy.without_sticking do
+  # do my stuff that would normally cause the proxy to stick to master
+end
+```
+
 ### Logging
 
 You can set a logger instance to ::Makara::Logging::Logger.logger and Makara will log how it handles errors at the Proxy level.

@@ -54,16 +54,22 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     let(:handler){ described_class.new }
     let(:proxy) { FakeAdapter.new(config) }
     let(:connection){ proxy.master_pool.connections.first }
-    let(:msg) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+    let(:msg1) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command1: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+    let(:msg2) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command2: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+    let(:msg3) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command3: SELECT `users`.* FROM `users` WHERE `users`.`id` = 53469 LIMIT 1" }
+    let(:msg4) { "ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command3:" }
 
     it "identifies custom errors" do
-      expect(handler).to be_custom_error_message(connection, msg)
+      expect(handler).to be_custom_error_message(connection, msg1)
+      expect(handler).to be_custom_error_message(connection, msg2)
+      expect(handler).to_not be_custom_error_message(connection, msg3)
+      expect(handler).to be_custom_error_message(connection, msg4)
     end
 
     it "blacklists the connection" do
       expect {
         handler.handle(connection) do
-          raise msg
+          raise msg1
         end
       }.to raise_error(Makara::Errors::BlacklistConnection)
     end
