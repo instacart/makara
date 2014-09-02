@@ -67,11 +67,11 @@ module ActiveRecord
       SQL_MASTER_MATCHERS     = [/^select.+for update$/i, /select.+lock in share mode$/i]
       SQL_SLAVE_MATCHER       = /^select\s/i
       SQL_ALL_MATCHER         = /^set\s/i
-      
+
       def sql_master_matchers
         SQL_MASTER_MATCHERS
       end
-      
+
       def sql_slave_matcher
         SQL_SLAVE_MATCHER
       end
@@ -116,12 +116,12 @@ module ActiveRecord
 
 
       def should_stick?(method_name, args)
-        sql = args.first
+        sql = args.first.to_s
 
-        return true if sql.nil?
-        return false if sql.to_s =~ /^show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i
-        return false if sql.to_s =~ /^(set|describe|explain|pragma)\s/i
-        true
+        return false if sql =~ /^show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i
+        return false if sql =~ /^(set|describe|explain|pragma)\s/i
+
+        super
       end
 
       def needed_by_all?(method_name, args)

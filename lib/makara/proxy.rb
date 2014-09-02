@@ -47,6 +47,7 @@ module Makara
       @sticky         = @config_parser.makara_config[:sticky]
       @hijacked       = false
       @error_handler  ||= ::Makara::ErrorHandler.new
+      @skip_sticking  = false
       instantiate_connections
     end
 
@@ -55,6 +56,12 @@ module Makara
       @current_connection
     end
 
+    def without_sticking
+      @skip_sticking = true
+      yield
+    ensure
+      @skip_sticking = false
+    end
 
     def hijacked?
       @hijacked
@@ -176,15 +183,20 @@ module Makara
 
 
     def stick_to_master(method_name, args, write_to_cache = true)
-      return unless @sticky
-      return unless should_stick?(method_name, args)
+      # if we're already stuck to master, don't bother doing it again
       return if @master_context == Makara::Context.get_current
+
+      # check to see if we're configured, bypassed, or some custom implementation has input
+      return unless should_stick?(method_name, args)
+
+      # do the sticking
       stick_to_master!(write_to_cache)
     end
 
 
+    # if we are configured to be sticky and we aren't bypassing stickiness
     def should_stick?(method_name, args)
-      true
+      @sticky && !@skip_sticking
     end
 
 
