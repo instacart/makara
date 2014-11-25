@@ -130,6 +130,7 @@ production:
     blacklist_duration: 5
     master_ttl: 5
     sticky: true
+    master_fall_through: true
 
     # list your connections with the override values (they're merged into the top-level config)
     # be sure to provide the role if master, role is assumed to be a slave if not provided
