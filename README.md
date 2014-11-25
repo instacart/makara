@@ -1,9 +1,5 @@
 # Makara
 
-[![Build Status](https://travis-ci.org/taskrabbit/makara.png?branch=master)](https://travis-ci.org/taskrabbit/makara)
-[![Code Climate](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/badges/7905f7a000492a1078f7/gpa.png)](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/feed)
-
-
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
 #### Warning:
@@ -13,7 +9,7 @@ There is a potential performance issue when used alonside certain versions of [n
 ## Installation
 
 ```ruby
-gem 'makara', github: 'taskrabbit/makara', tag: 'v0.3.x'
+gem 'makara', github: 'BookBub/makara', tag: 'v0.3.x'
 ```
 
 ## Basic Usage
