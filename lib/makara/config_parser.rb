@@ -23,7 +23,8 @@ module Makara
     DEFAULTS = {
       :master_ttl => 5,
       :blacklist_duration => 30,
-      :sticky => true
+      :sticky => true,
+      :master_fall_through => true
     }
 
     attr_reader :makara_config
