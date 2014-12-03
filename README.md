@@ -8,7 +8,7 @@ Makara is generic master/slave proxy. It handles the heavy lifting of managing, 
 
 #### Warning:
 
-There is a potential performance issue when used alonside certain versions of [newrelic/rpm](https://github.com/newrelic/rpm). Read more and contribute data [here](https://github.com/taskrabbit/makara/issues/59).
+There is a potential performance issue when used alongside certain versions of [newrelic/rpm](https://github.com/newrelic/rpm). Read more and contribute data [here](https://github.com/taskrabbit/makara/issues/59).
 
 ## Installation
 
