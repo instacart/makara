@@ -146,7 +146,7 @@ production:
         host: slave2.sql.host
 ```
 
-Let's break this down a little bit. At the top level of your config you have the standard `adapter` choice. Currently the available adapters are listed in [lib/active_record/connection_adapters/](lib/active_record/connection_adapters/). They are in the form of `#{db_type}_mysql2` where db_type is mysql, postgresql, etc.
+Let's break this down a little bit. At the top level of your config you have the standard `adapter` choice. Currently the available adapters are listed in [lib/active_record/connection_adapters/](lib/active_record/connection_adapters/). They are in the form of `#{db_type}_makara` where db_type is mysql, postgresql, etc.
 
 Following the adapter choice is all the standard configurations (host, port, retry, database, username, password, etc). With all the standard configurations provided, you can now provide the makara subconfig.
 
