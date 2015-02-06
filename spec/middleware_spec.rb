@@ -56,7 +56,7 @@ describe Makara::Middleware do
 
     status, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5")
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; HttpOnly")
   end
 
   it 'should preserve the same context if the previous request was a redirect' do
