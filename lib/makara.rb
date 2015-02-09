@@ -7,7 +7,6 @@ module Makara
   autoload :ConnectionWrapper,  'makara/connection_wrapper'
   autoload :Context,            'makara/context'
   autoload :ErrorHandler,       'makara/error_handler'
-  autoload :Middleware,         'makara/middleware'
   autoload :Pool,               'makara/pool'
   autoload :Proxy,              'makara/proxy'
 

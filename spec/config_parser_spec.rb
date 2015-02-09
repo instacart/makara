@@ -34,11 +34,11 @@ describe Makara::ConfigParser do
   it 'should provide master and slave configs' do
     parser = described_class.new(config)
     expect(parser.master_configs).to eq([
-      {:name => 'themaster', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true}
+      {:name => 'themaster', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true, :master_fall_through=>true}
     ])
     expect(parser.slave_configs).to eq([
-      {:name => 'slave1', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true},
-      {:name => 'slave2', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true}
+      {:name => 'slave1', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true, :master_fall_through=>true},
+      {:name => 'slave2', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true, :master_fall_through=>true}
     ])
   end
 

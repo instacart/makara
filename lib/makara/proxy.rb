@@ -40,14 +40,15 @@ module Makara
     attr_reader :sticky
 
     def initialize(config)
-      @config         = config.symbolize_keys
-      @config_parser  = Makara::ConfigParser.new(@config)
-      @id             = @config_parser.id
-      @ttl            = @config_parser.makara_config[:master_ttl]
-      @sticky         = @config_parser.makara_config[:sticky]
-      @hijacked       = false
-      @error_handler  ||= ::Makara::ErrorHandler.new
-      @skip_sticking  = false
+      @config              = config.symbolize_keys
+      @config_parser       = Makara::ConfigParser.new(@config)
+      @id                  = @config_parser.id
+      @ttl                 = @config_parser.makara_config[:master_ttl]
+      @sticky              = @config_parser.makara_config[:sticky]
+      @master_fall_through = @config_parser.makara_config[:master_fall_through]
+      @hijacked            = false
+      @error_handler       ||= ::Makara::ErrorHandler.new
+      @skip_sticking       = false
       instantiate_connections
     end
 
@@ -152,7 +153,7 @@ module Makara
         @master_pool
 
       # all slaves are down (or empty)
-      elsif @slave_pool.completely_blacklisted?
+      elsif @master_fall_through && @slave_pool.completely_blacklisted?
         stick_to_master(method_name, args)
         @master_pool
 
