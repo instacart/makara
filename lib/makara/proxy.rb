@@ -72,20 +72,28 @@ module Makara
       Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
     end
 
-    def method_missing(method_name, *args, &block)
+    def method_missing(m, *args, &block)
       @master_pool.provide do |con|
         @current_connection = con
-        super
       end
-    ensure
-      @current_connection = nil
+
+      target = __getobj__
+
+      begin
+        target.respond_to?(m, true) ? target.__send__(m, *args, &block) : super(m, *args, &block)
+      ensure
+        @current_connection = nil
+        $@.delete_if {|t| %r"\A#{Regexp.quote(__FILE__)}:#{__LINE__-2}:"o =~ t} if $@
+      end
     end
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
-      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(method_name, include_private = false)
-        return true if super(method_name, false)
+      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
+        return true if super(m, false)
+        return @current_connection.respond_to?(m, true) if @current_connection
+
         @master_pool.provide do |con|
-          con.respond_to?(method_name, true)
+          con.respond_to?(m, true)
         end
       end
     RUBY_EVAL
