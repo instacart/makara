@@ -51,11 +51,6 @@ module Makara
       instantiate_connections
     end
 
-
-    def __getobj__
-      @current_connection
-    end
-
     def without_sticking
       @skip_sticking = true
       yield
@@ -73,28 +68,18 @@ module Makara
     end
 
     def method_missing(m, *args, &block)
-      @master_pool.provide do |con|
-        @current_connection = con
-      end
-
-      target = __getobj__
+      target = @master_pool.any
 
       begin
         target.respond_to?(m, true) ? target.__send__(m, *args, &block) : super(m, *args, &block)
       ensure
-        @current_connection = nil
         $@.delete_if {|t| %r"\A#{Regexp.quote(__FILE__)}:#{__LINE__-2}:"o =~ t} if $@
       end
     end
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
-        return true if super(m, false)
-        return @current_connection.respond_to?(m, true) if @current_connection
-
-        @master_pool.provide do |con|
-          con.respond_to?(m, true)
-        end
+        @master_pool.any.__getobj__.respond_to?(m, true)
       end
     RUBY_EVAL
 

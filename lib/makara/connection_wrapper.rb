@@ -61,7 +61,7 @@ module Makara
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
-        super(m, false) || __getobj__.respond_to?(m, true)
+        __getobj__.respond_to?(m, true)
       end
     RUBY_EVAL
 
