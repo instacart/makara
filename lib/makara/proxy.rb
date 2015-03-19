@@ -56,6 +56,12 @@ module Makara
       @skip_sticking  = false
       instantiate_connections
       super(config)
+      stick_to_master!(false)
+    end
+
+
+    def __getobj__
+      @current_connection
     end
 
     def without_sticking
