@@ -7,7 +7,7 @@ module Makara
       def sql(event)
         name = event.payload[:name]
         if IGNORE_PAYLOAD_NAMES.include?(name)
-          self.class.runtime += event.duration
+          super
         else
           name = [current_wrapper_name(event), name].compact.join(' ')
           event.payload[:name] = name
