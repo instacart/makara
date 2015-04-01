@@ -6,13 +6,11 @@ module Makara
 
       def sql(event)
         name = event.payload[:name]
-        if IGNORE_PAYLOAD_NAMES.include?(name)
-          super
-        else
+        unless IGNORE_PAYLOAD_NAMES.include?(name)
           name = [current_wrapper_name(event), name].compact.join(' ')
           event.payload[:name] = name
-          super(event)
         end
+        super(event)
       end
 
       protected
