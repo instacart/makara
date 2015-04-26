@@ -8,7 +8,7 @@ gem 'rake'
 gem 'activerecord', '3.2.6'
 gem 'rspec'
 gem 'rack'
-gem 'i18n', '~> 0.5.0'
+gem 'i18n', '~> 0.6.0'
 gem 'mysql2', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
