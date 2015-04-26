@@ -29,7 +29,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select * from users where name = "lock in share mode"' => false
   }.each do |sql, should_go_to_master|
 
-    it "determines if \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
+    it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
       proxy = klass.new(config(1,1))
       expect(proxy.master_for?(sql)).to eq(should_go_to_master)
     end
@@ -37,15 +37,39 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
   end
 
 
+  {
+    "SET @@things" => true,
+    "INSERT INTO wisdom ('The truth will set you free.')" => false,
+    "INSERT INTO wisdom ('The truth will\nset you free.')" => false,
+    "UPDATE dogs SET max_treats = 10 WHERE max_treats IS NULL" => false,
+    %Q{
+      UPDATE
+        dogs
+      SET
+        max_treats = 10
+      WHERE
+        max_treats IS NULL
+    } => false
+  }.each do |sql, should_send_to_all_connections|
 
-  it 'should send SET operations to all underlying connections' do
-    proxy = klass.new(config(1,1))
-    proxy.master_pool.connections.each{|con| expect(con).to receive(:execute).with('SET @@things').once }
-    proxy.slave_pool.connections.each{|con| expect(con).to receive(:execute).with('SET @@things').once }
+    it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
+      proxy = klass.new(config(1,1))
+      proxy.master_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
+      proxy.slave_pool.connections.each do |con|
+        if should_send_to_all_connections
+          expect(con).to receive(:execute).with(sql).once
+        else
+          expect(con).to receive(:execute).with(sql).never
+        end
+      end
 
-    proxy.execute("SET @@things")
+      proxy.execute(sql)
 
-    expect(proxy.master_context).to be_nil
+      if should_send_to_all_connections
+        expect(proxy.master_context).to be_nil
+      end
+    end
+
   end
 
   {
