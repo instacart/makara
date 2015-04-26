@@ -19,6 +19,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'describe table' => true,
     'show index' => true,
     'set @@things' => true,
+    'SET @@things' => true,
     'commit' => true,
     'select * from felines' => false,
     '    select * from felines' => false,
