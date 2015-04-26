@@ -8,16 +8,16 @@ gem 'rake'
 gem 'activerecord', '3.0.17'
 gem 'rspec'
 gem 'rack'
-
+gem 'i18n', '0.6.11'
 gem 'mysql2', '0.2.11', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
-
-gem 'pg', :platform => :ruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
 
 
 if RUBY_VERSION.to_s =~ /^1.8/
   gem 'timecop', '0.5.9'
+  gem 'pg', '0.17.1', :platform => :ruby
 else
   gem 'timecop'
+  gem 'pg', :platform => :ruby
 end
