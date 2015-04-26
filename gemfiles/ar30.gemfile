@@ -14,10 +14,17 @@ gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
 
 
-if RUBY_VERSION.to_s =~ /^1.8/
+rmajor, rminor, rpatch = RUBY_VERSION.split(/[^\d]/)[0..2].map(&:to_i)
+
+if rmajor == 1 && rminor == 8
   gem 'timecop', '0.5.9'
-  gem 'pg', '0.17.1', :platform => :ruby
 else
   gem 'timecop'
+end
+
+# 1.8 - 1.9.2
+if rmajor == 1 && (rminor == 8 || (rminor == 9 && rpatch < 3))
+  gem 'pg', '0.17.1', :platform => :ruby
+else
   gem 'pg', :platform => :ruby
 end
