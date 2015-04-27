@@ -93,7 +93,15 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'begin transaction' => true,
     'begin deferred transaction' => true,
     'commit transaction' => true,
-    'rollback transaction' => true
+    'rollback transaction' => true,
+    %Q{
+      UPDATE
+        dogs
+      SET
+        max_treats = 10
+      WHERE
+        max_treats IS NULL
+    } => true
   }.each do |sql,should_stick|
 
     it "should #{should_stick ? 'stick' : 'not stick'} to master if handling sql like \"#{sql}\"" do
