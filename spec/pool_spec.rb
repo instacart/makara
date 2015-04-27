@@ -84,8 +84,8 @@ describe Makara::Pool do
     expect(wrapper_b._makara_blacklisted?).to eq(false)
 
     Timecop.travel Time.now + 10 do
-      expect(wrapper_a._makara_blacklisted?).to eq(true)
-      expect(wrapper_b._makara_blacklisted?).to eq(true)
+      expect(wrapper_a._makara_blacklisted?).to eq(false)
+      expect(wrapper_b._makara_blacklisted?).to eq(false)
     end
 
   end
