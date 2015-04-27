@@ -2,11 +2,14 @@ module Makara
   module Logging
 
     module Subscriber
+      IGNORE_PAYLOAD_NAMES = ["SCHEMA", "EXPLAIN"]
 
       def sql(event)
         name = event.payload[:name]
-        name = [current_wrapper_name(event), name].compact.join(' ')
-        event.payload[:name] = name
+        unless IGNORE_PAYLOAD_NAMES.include?(name)
+          name = [current_wrapper_name(event), name].compact.join(' ')
+          event.payload[:name] = name
+        end
         super(event)
       end
 
