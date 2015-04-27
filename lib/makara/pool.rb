@@ -12,6 +12,7 @@ module Makara
     attr_writer :disabled
     attr_reader :blacklist_errors
     attr_reader :role
+    attr_reader :connections
 
     def initialize(role, proxy)
       @role             = role
@@ -51,6 +52,10 @@ module Makara
       end
 
       wrapper
+    end
+
+    def any
+      @connections.first
     end
 
 

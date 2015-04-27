@@ -8,7 +8,7 @@ gem 'rspec'
 gem 'timecop'
 gem 'byebug', :platform => :ruby
 gem 'ruby-debug', :platform => :jruby
-gem 'rack'
+gem 'rack', '1.6.0'
 
 gem 'mysql2', :platform => :ruby
 gem 'pg', :platform => :ruby
