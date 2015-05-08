@@ -20,6 +20,8 @@ module ActiveRecord
           /gone away/i,
           /connection[^:]+refused/i,
           /could not connect/i,
+          /can\'t connect/i,
+          /cannot connect/i,
           /connection[^:]+closed/i
         ].map(&:freeze).freeze
 
