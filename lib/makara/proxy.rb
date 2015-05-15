@@ -49,6 +49,7 @@ module Makara
       @error_handler  ||= ::Makara::ErrorHandler.new
       @skip_sticking  = false
       instantiate_connections
+      super(config)
     end
 
     def without_sticking
