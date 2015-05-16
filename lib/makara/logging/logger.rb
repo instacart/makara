@@ -4,7 +4,7 @@ module Makara
 
       class << self
 
-        def log(msg, format = :info)
+        def log(msg, format = :error)
           logger.send(format, msg) if logger
         end
 
