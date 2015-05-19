@@ -7,30 +7,36 @@ module Makara
   class Context
     class << self
 
-
       def generate(seed = nil)
         seed ||= "#{Time.now.to_i}#{Thread.current.object_id}#{rand(99999)}"
         Digest::MD5.hexdigest(seed)
       end
 
-
       def get_previous
-        @previous_context ||= generate
+        get_current_thread_local_for(:makara_context_previous)
       end
-
 
       def set_previous(context)
-        @previous_context = context
+        set_current_thread_local(:makara_context_previous,context)
       end
-
 
       def get_current
-        @current_context ||= generate
+        get_current_thread_local_for(:makara_context_current)
       end
 
-
       def set_current(context)
-        @current_context = context
+        set_current_thread_local(:makara_context_current,context)
+      end
+
+      protected
+
+      def get_current_thread_local_for(type)
+        current = Thread.current.thread_variable_get(type)
+        current ||= set_current_thread_local(type,generate)
+      end
+
+      def set_current_thread_local(type,context)
+        Thread.current.thread_variable_set(type,context)
       end
 
     end
