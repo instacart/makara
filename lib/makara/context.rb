@@ -38,7 +38,7 @@ module Makara
 
       def set_current_thread_local(type,context)
         t = Thread.current
-        t.respond_to?(:thread_variable_set) ? t.thread_variable_set(type,context) : t[type]=contex
+        t.respond_to?(:thread_variable_set) ? t.thread_variable_set(type,context) : t[type]=context
       end
 
     end
