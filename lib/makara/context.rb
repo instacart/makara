@@ -31,12 +31,14 @@ module Makara
       protected
 
       def get_current_thread_local_for(type)
-        current = Thread.current.thread_variable_get(type)
+        t = Thread.current
+        current = t.respond_to?(:thread_variable_get) ? t.thread_variable_get(type) : t[type]
         current ||= set_current_thread_local(type,generate)
       end
 
       def set_current_thread_local(type,context)
-        Thread.current.thread_variable_set(type,context)
+        t = Thread.current
+        t.respond_to?(:thread_variable_set) ? t.thread_variable_set(type,context) : t[type]=contex
       end
 
     end
