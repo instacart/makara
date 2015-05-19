@@ -74,6 +74,9 @@ ctx = Makara::Context.generate # or any unique sha
 Makara::Context.set_current ctx
 ```
 
+A context is local to the curent thread of execution. This will allow you to stick to master safely in a single thread
+in systems such as sidekiq, for instance.
+
 
 ### Forcing Master
 
