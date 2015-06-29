@@ -5,6 +5,8 @@ require 'active_support/core_ext/hash/keys'
 # The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
 # being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
 # `hijack_method` class method.
+# While debugging this class use prepend debug calls with Kernel. (Kernel.byebug for example)
+# to avoid getting into method_missing stuff.
 
 module Makara
   class Proxy < ::SimpleDelegator
@@ -18,9 +20,9 @@ module Makara
         self.hijack_methods |= method_names
 
         method_names.each do |method_name|
-          define_method method_name do |*args|
+          define_method method_name do |*args, &block|
             appropriate_connection(method_name, args) do |con|
-              con.send(method_name, *args)
+              con.send(method_name, *args, &block)
             end
           end
         end
@@ -69,30 +71,55 @@ module Makara
     end
 
     def method_missing(m, *args, &block)
-      target = @master_pool.any
-
-      begin
-        target.respond_to?(m, true) ? target.__send__(m, *args, &block) : super(m, *args, &block)
-      ensure
-        $@.delete_if {|t| %r"\A#{Regexp.quote(__FILE__)}:#{__LINE__-2}:"o =~ t} if $@
+      any_connection do |con|
+        con.respond_to?(m, true) ? con.__send__(m, *args, &block) : super(m, *args, &block)
       end
     end
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
-        @master_pool.any.__getobj__.respond_to?(m, true)
+        any_connection do |con|
+          con._makara_connection.respond_to?(m, true)
+        end
       end
     RUBY_EVAL
+
+    def graceful_connection_for(config)
+      fake_wrapper = Makara::ConnectionWrapper.new(self, nil, config)
+
+      @error_handler.handle(fake_wrapper) do
+        connection_for(config)
+      end
+    rescue Makara::Errors::BlacklistConnection => e
+      fake_wrapper.initial_error = e.original_error
+      fake_wrapper
+    end
 
     protected
 
 
     def send_to_all(method_name, *args)
       # slave pool must run first to allow for slave-->master failover without running operations on master twice.
-      @slave_pool.send_to_all method_name, *args
-      @master_pool.send_to_all method_name, *args
+      handling_an_all_execution(method_name) do
+        @slave_pool.send_to_all method_name, *args
+        @master_pool.send_to_all method_name, *args
+      end
     end
 
+    def any_connection
+      @master_pool.provide(true) do |con|
+        yield con
+      end
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
+      begin
+        @master_pool.disabled = true
+        @slave_pool.provide(true) do |con|
+          yield con
+        end
+      ensure
+        @master_pool.disabled = false
+      end
+    end
 
     # based on the method_name and args, provide the appropriate connection
     # mark this proxy as hijacked so the underlying connection does not attempt to check
@@ -120,7 +147,7 @@ module Makara
       if pool == @master_pool
         @master_pool.connections.each(&:_makara_whitelist!)
         @slave_pool.connections.each(&:_makara_whitelist!)
-        raise e
+        Kernel.raise e
       else
         @master_pool.blacklist_errors << e
         retry
@@ -199,21 +226,34 @@ module Makara
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
         @master_pool.add master_config.merge(@config_parser.makara_config) do
-          connection_for(master_config)
+          graceful_connection_for(master_config)
         end
       end
 
       @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
         @slave_pool.add slave_config.merge(@config_parser.makara_config) do
-          connection_for(slave_config)
+          graceful_connection_for(slave_config)
         end
       end
     end
 
+    def handling_an_all_execution(method_name)
+      yield
+    rescue ::Makara::Errors::NoConnectionsAvailable => e
+      if e.role == 'master'
+        return if method_name == :disconnect!
+        Kernel.raise ::Makara::Errors::NoConnectionsAvailable.new('master and slave')
+      end
+      @slave_pool.disabled = true
+      yield
+    ensure
+      @slave_pool.disabled = false
+    end
+
 
     def connection_for(config)
-      raise NotImplementedError
+      Kernel.raise NotImplementedError
     end
 
   end

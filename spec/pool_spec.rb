@@ -9,23 +9,26 @@ describe Makara::Pool do
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
 
-    wrappera = pool.add(pool_config){ 'a' }
-    wrapperb = pool.add(pool_config.merge(:weight => 2)){ 'b' }
+    connection_a = FakeConnection.new
+    connection_a.something = 'a'
+
+    wrapper_a = pool.add(pool_config){ connection_a }
+    wrapper_b = pool.add(pool_config.merge(:weight => 2)){ FakeConnection.new }
 
     expect(pool.connections.length).to eq(3)
 
-    expect(wrappera).to be_a(Makara::ConnectionWrapper)
-    expect(wrappera.to_s).to eq('a')
+    expect(wrapper_a).to be_a(Makara::ConnectionWrapper)
+    expect(wrapper_a.irespondtothis).to eq('hey!')
 
-    as, bs = pool.connections.partition{|c| c.to_s == 'a'}
+    as, bs = pool.connections.partition{|c| c.something == 'a'}
     expect(as.length).to eq(1)
     expect(bs.length).to eq(2)
   end
 
   it 'should determine if its completely blacklisted' do
 
-    pool.add(pool_config){ 'a' }
-    pool.add(pool_config){ 'b' }
+    pool.add(pool_config){ FakeConnection.new }
+    pool.add(pool_config){ FakeConnection.new }
 
     expect(pool).not_to be_completely_blacklisted
 
@@ -36,47 +39,50 @@ describe Makara::Pool do
 
   it 'sends methods to all underlying objects if asked to' do
 
-    a = 'a'
-    b = 'b'
+    a = FakeConnection.new
+    b = FakeConnection.new
 
     pool.add(pool_config){ a }
     pool.add(pool_config){ b }
 
-    expect(a).to receive(:to_s).once
-    expect(b).to receive(:to_s).once
+    expect(a).to receive(:query).with('test').once
+    expect(b).to receive(:query).with('test').once
 
-    pool.send_to_all :to_s
+    pool.send_to_all :query, 'test'
 
   end
 
   it 'only sends methods to underlying objects which are not blacklisted' do
 
-    a = 'a'
-    b = 'b'
-    c = 'c'
+    a = FakeConnection.new
+    b = FakeConnection.new
+    c = FakeConnection.new
 
     pool.add(pool_config){ a }
     pool.add(pool_config){ b }
     wrapper_c = pool.add(pool_config){ c }
 
-    expect(a).to receive(:to_s).once
-    expect(b).to receive(:to_s).once
-    expect(c).to receive(:to_s).never
+    expect(a).to receive(:query).with('test').once
+    expect(b).to receive(:query).with('test').once
+    expect(c).to receive(:query).with('test').never
 
     wrapper_c._makara_blacklist!
 
-    pool.send_to_all :to_s
+    pool.send_to_all :query, 'test'
 
   end
 
   it 'provides the next connection and blacklists' do
 
-    wrapper_a = pool.add(pool_config){ 'a' }
-    wrapper_b = pool.add(pool_config){ 'b' }
+    connection_a = FakeConnection.new
+    connection_b = FakeConnection.new
+
+    wrapper_a = pool.add(pool_config){ connection_a }
+    wrapper_b = pool.add(pool_config){ connection_b }
 
     pool.provide do |connection|
-      if connection.to_s == 'a'
-        raise Makara::Errors::BlacklistConnection.new(StandardError.new('failure'))
+      if connection == wrapper_a
+        raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
       end
     end
 
@@ -93,8 +99,8 @@ describe Makara::Pool do
   it 'provides the same connection if the context has not changed and the proxy is sticky' do
     allow(proxy).to receive(:sticky){ true }
 
-    pool.add(pool_config){ 'a' }
-    pool.add(pool_config){ 'b' }
+    pool.add(pool_config){ FakeConnection.new }
+    pool.add(pool_config){ FakeConnection.new }
 
     provided = []
 
@@ -106,8 +112,8 @@ describe Makara::Pool do
   it 'does not provide the same connection if the proxy is not sticky' do
     allow(proxy).to receive(:sticky){ false }
 
-    pool.add(pool_config){ 'a' }
-    pool.add(pool_config){ 'b' }
+    pool.add(pool_config){ FakeConnection.new }
+    pool.add(pool_config){ FakeConnection.new }
 
     provided = []
 
@@ -118,8 +124,8 @@ describe Makara::Pool do
 
   it 'raises an error when all connections are blacklisted' do
 
-    wrapper_a = pool.add(pool_config.dup){ 'a' }
-    wrapper_b = pool.add(pool_config.dup){ 'b' }
+    wrapper_a = pool.add(pool_config.dup){ FakeConnection.new }
+    wrapper_b = pool.add(pool_config.dup){ FakeConnection.new }
 
     # make the connection
     pool.send_to_all :to_s
@@ -139,13 +145,13 @@ describe Makara::Pool do
 
   it 'skips blacklisted connections when choosing the next one' do
 
-    pool.add(pool_config){ 'a' }
-    pool.add(pool_config){ 'c' }
+    pool.add(pool_config){ FakeConnection.new }
+    pool.add(pool_config){ FakeConnection.new }
 
-    wrapper_b = pool.add(pool_config){ 'b' }
+    wrapper_b = pool.add(pool_config){ FakeConnection.new }
     wrapper_b._makara_blacklist!
 
-    10.times{ pool.provide{|connection| expect(connection.to_s).not_to eq('b') } }
+    10.times{ pool.provide{|connection| expect(connection).not_to eq(wrapper_b) } }
 
   end
 

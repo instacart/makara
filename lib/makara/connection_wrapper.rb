@@ -1,4 +1,3 @@
-require 'delegate'
 require 'active_support/core_ext/hash/keys'
 
 # Makara::ConnectionWrapper wraps the instance of an underlying connection.
@@ -7,15 +6,23 @@ require 'active_support/core_ext/hash/keys'
 # Makara::Proxy.
 
 module Makara
-  class ConnectionWrapper < ::SimpleDelegator
+  class ConnectionWrapper
+
+    attr_accessor :initial_error, :config
+
+    # invalid queries caused by connections switching that needs to be replaced
+    SQL_REPLACE = {"SET client_min_messages TO ''".freeze => "SET client_min_messages TO 'warning'".freeze}.freeze
 
     def initialize(proxy, connection, config)
-      super(connection)
-
       @config = config.symbolize_keys
+      @connection = connection
       @proxy  = proxy
 
-      _makara_decorate_connection(connection)
+      if connection.nil?
+        _makara_blacklist!
+      else
+        _makara_decorate_connection(connection)
+      end
     end
 
     # the weight of the current node
@@ -35,6 +42,8 @@ module Makara
 
     # blacklist this node for @config[:blacklist_duration] seconds
     def _makara_blacklist!
+      @connection.disconnect! if @connection
+      @connection = nil
       @blacklisted_until = Time.now.to_i + @config[:blacklist_duration]
     end
 
@@ -48,20 +57,51 @@ module Makara
       @custom_error_matchers ||= (@config[:connection_error_matchers] || [])
     end
 
+    def _makara_connected?
+      _makara_connection.present?
+    rescue Makara::Errors::BlacklistConnection
+      false
+    end
+
+    def _makara_connection
+      current = @connection
+
+      if current
+        current
+      else # blacklisted connection or initial error
+        new_connection = @proxy.graceful_connection_for(@config)
+
+        # Already wrapped because of initial failure
+        if new_connection.is_a?(Makara::ConnectionWrapper)
+          _makara_blacklist!
+          raise Makara::Errors::BlacklistConnection.new(self, new_connection.initial_error)
+        else
+          @connection = new_connection
+          _makara_decorate_connection(new_connection)
+          new_connection
+        end
+      end
+    end
+
+    def execute(*args)
+      SQL_REPLACE.each do |find, replace|
+        if args[0] == find
+          args[0] = replace
+        end
+      end
+
+      _makara_connection.execute(*args)
+    end
+
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
-      target = __getobj__
-      begin
-        target.respond_to?(m, true) ? target.__send__(m, *args, &block) : super(m, *args, &block)
-      ensure
-        $@.delete_if {|t| %r"\A#{Regexp.quote(__FILE__)}:#{__LINE__-2}:"o =~ t} if $@
-      end
+       _makara_connection.__send__(m, *args, &block)
     end
 
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
-        __getobj__.respond_to?(m, true)
+        _makara_connection.respond_to?(m, true)
       end
     RUBY_EVAL
 

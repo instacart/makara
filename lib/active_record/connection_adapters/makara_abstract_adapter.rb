@@ -22,7 +22,8 @@ module ActiveRecord
           /could not connect/i,
           /can\'t connect/i,
           /cannot connect/i,
-          /connection[^:]+closed/i
+          /connection[^:]+closed/i,
+          /can\'t get socket descriptor/i
         ].map(&:freeze).freeze
 
 
@@ -99,7 +100,7 @@ module ActiveRecord
       end
 
 
-      hijack_method :execute, :select_rows, :exec_query
+      hijack_method :execute, :select_rows, :exec_query, :transaction
       send_to_all :connect, :disconnect!, :reconnect!, :verify!, :clear_cache!, :reset!
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i].map(&:freeze).freeze
@@ -140,16 +141,18 @@ module ActiveRecord
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
 
-          # slave pool must run first.
-          @slave_pool.provide_each do |con|
-            hijacked do
-              yield con
+          handling_an_all_execution(method_name) do
+            # slave pool must run first.
+            @slave_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
-          end
 
-          @master_pool.provide_each do |con|
-            hijacked do
-              yield con
+            @master_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
           end
 

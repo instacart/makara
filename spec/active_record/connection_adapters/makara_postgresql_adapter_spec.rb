@@ -11,6 +11,8 @@ describe 'MakaraPostgreSQLAdapter' do
     base
   }
 
+  let(:connection) { ActiveRecord::Base.connection }
+
   before do
     if ActiveRecord::Base.connected?
       ActiveRecord::Base.connection.tap do |c|
@@ -28,8 +30,6 @@ describe 'MakaraPostgreSQLAdapter' do
   end
 
   context 'with the connection established and schema loaded' do
-
-    let(:connection) { ActiveRecord::Base.connection }
 
     before do
       ActiveRecord::Base.establish_connection(config)
@@ -85,4 +85,38 @@ describe 'MakaraPostgreSQLAdapter' do
 
   end
 
+  context 'without live connections' do
+      it 'should raise errors on read or write' do
+        allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(PG::ConnectionBad.new('could not connect to server: Connection refused'))
+
+        ActiveRecord::Base.establish_connection(config)
+        expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      end
+    end
+
+    context 'with only master connection' do
+      it 'should not raise errors on read and write' do
+        custom_config = config.deep_dup
+        custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+
+        ActiveRecord::Base.establish_connection(custom_config)
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+
+        connection.execute('SELECT * FROM users')
+        connection.execute('INSERT INTO users (name) VALUES (\'John\')')
+      end
+    end
+
+    context 'with only slave connection' do
+      it 'should raise error only on write' do
+        custom_config = config.deep_dup
+        custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
+
+        ActiveRecord::Base.establish_connection(custom_config)
+
+        connection.execute('SELECT * FROM users')
+        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      end
+    end
 end
