@@ -105,6 +105,10 @@ describe 'MakaraPostgreSQLAdapter' do
 
     context 'with only slave connection' do
       it 'should raise error only on write' do
+        ActiveRecord::Base.establish_connection(config)
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        ActiveRecord::Base.clear_all_connections!
+
         custom_config = config.deep_dup
         custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
 
