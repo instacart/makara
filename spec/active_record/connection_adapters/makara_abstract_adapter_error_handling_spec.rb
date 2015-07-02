@@ -36,7 +36,8 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|PG::ConnectionBad: PQconsumeInput() SSL connection has been closed unexpectedly: SELECT  1 AS one FROM "users"  WHERE "users"."registration_ip" = '10.0.2.2' LIMIT 1|,
     %|PG::UnableToSend: no connection to the server|,
     %|PG::ConnectionBad (could not connect to server: Connection refused|,
-    %|PG::ConnectionBad: PQsocket() can't get socket descriptor:|
+    %|PG::ConnectionBad: PQsocket() can't get socket descriptor:|,
+    %|org.postgresql.util.PSQLException: Connection to localhost:123 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.|
   ].each do |msg|
     it "should properly evaluate connection messages like: #{msg}" do
       expect(handler).to be_connection_message(msg)

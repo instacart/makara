@@ -10,13 +10,8 @@ describe 'MakaraMysql2Adapter' do
     base
   }
 
-  before do
-    if ActiveRecord::Base.connected?
-      ActiveRecord::Base.connection.tap do |c|
-        c.master_pool.connections.each(&:_makara_whitelist!)
-        c.slave_pool.connections.each(&:_makara_whitelist!)
-      end
-    end
+  before :each do
+    ActiveRecord::Base.clear_all_connections!
     change_context
   end
 

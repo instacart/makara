@@ -13,13 +13,8 @@ describe 'MakaraPostgreSQLAdapter' do
 
   let(:connection) { ActiveRecord::Base.connection }
 
-  before do
-    if ActiveRecord::Base.connected?
-      ActiveRecord::Base.connection.tap do |c|
-        c.master_pool.connections.each(&:_makara_whitelist!)
-        c.slave_pool.connections.each(&:_makara_whitelist!)
-      end
-    end
+  before :each do
+    ActiveRecord::Base.clear_all_connections!
     change_context
   end
 
@@ -87,7 +82,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
   context 'without live connections' do
       it 'should raise errors on read or write' do
-        allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(PG::ConnectionBad.new('could not connect to server: Connection refused'))
+        allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(StandardError.new('could not connect to server: Connection refused'))
 
         ActiveRecord::Base.establish_connection(config)
         expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)

@@ -95,6 +95,12 @@ module Makara
       fake_wrapper
     end
 
+    def disconnect!
+      send_to_all(:disconnect!)
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+      # all connections are already down, nothing to do here
+    end
+
     protected
 
 
@@ -242,7 +248,6 @@ module Makara
       yield
     rescue ::Makara::Errors::NoConnectionsAvailable => e
       if e.role == 'master'
-        return if method_name == :disconnect!
         Kernel.raise ::Makara::Errors::NoConnectionsAvailable.new('master and slave')
       end
       @slave_pool.disabled = true
