@@ -72,7 +72,13 @@ module Makara
 
     def method_missing(m, *args, &block)
       any_connection do |con|
-        con.respond_to?(m, true) ? con.__send__(m, *args, &block) : super(m, *args, &block)
+        if con.respond_to?(m)
+          con.public_send(m, *args, &block)
+        elsif con.respond_to?(m, true)
+          con.__send__(m, *args, &block)
+        else
+          super(m, *args, &block)
+        end
       end
     end
 
