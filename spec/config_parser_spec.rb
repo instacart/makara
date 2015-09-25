@@ -25,27 +25,27 @@ describe Makara::ConfigParser do
   context '::merge_and_resolve_default_url_config' do
     let(:config_without_url) do
       {
-        master_ttl: 5,
-        blacklist_duration: 30,
-        sticky: true,
-        adapter: 'mysql2_makara',
-        encoding: 'utf8',
-        host: 'localhost',
-        database: 'db_name',
-        username: 'db_username',
-        password: 'db_password',
-        port:     3306
+        :master_ttl => 5,
+        :blacklist_duration => 30,
+        :sticky => true,
+        :adapter => 'mysql2_makara',
+        :encoding => 'utf8',
+        :host => 'localhost',
+        :database => 'db_name',
+        :username => 'db_username',
+        :password => 'db_password',
+        :port =>     3306
       }
     end
 
     let(:config_with_url) do
       {
-        master_ttl: 5,
-        blacklist_duration: 30,
-        sticky: true,
-        adapter: 'mysql2_makara',
-        encoding: 'utf8',
-        url: 'mysql2://db_username:db_password@localhost:3306/db_name'
+        :master_ttl => 5,
+        :blacklist_duration => 30,
+        :sticky => true,
+        :adapter => 'mysql2_makara',
+        :encoding => 'utf8',
+        :url => 'mysql2://db_username:db_password@localhost:3306/db_name'
       }
     end
 

@@ -9,7 +9,7 @@ gem 'activerecord', '4.0.0'
 gem 'rspec'
 gem 'rack', '1.6.0'
 gem 'timecop'
-gem 'mysql2', :platform => :ruby
+gem 'mysql2', '~> 0.3.10', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'pg', :platform => :ruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby

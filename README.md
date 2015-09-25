@@ -202,7 +202,9 @@ connections:
     url: <%= ENV['DATABASE_URL_SLAVE'] %>
 ```
 For more information on url parsing, see
-[ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig](https://github.com/rails/rails/blob/4-2-stable/activerecord/lib/active_record/connection_handling.rb)
+[ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig](https://github.com/rails/rails/blob/4-0-stable/activerecord/lib/active_record/connection_handling.rb)
+and
+[ActiveRecord::Core::ConnectionSpecification::Resolver](https://github.com/rails/rails/blob/3-0-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb)
 in Rails, as used by
 [ConfigParser](https://github.com/taskrabbit/makara/blob/master/lib/makara/config_parser.rb).
 
