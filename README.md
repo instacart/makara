@@ -178,6 +178,35 @@ connections:
 
 In the previous config the "Big Slave" would receive ~80% of traffic.
 
+#### DATABASE_URL
+
+Connections may specify a `url` parameter in place of host, username, password, etc.
+
+```yml
+connections:
+  - role: master
+    blacklist_duration: 0
+    url: 'mysql2://db_username:db_password@localhost:3306/db_name'
+```
+
+However, `ENV['DATABASE_URL']` is not respected due to the need for multiple databases.
+
+We recommend, if using environmental variables, to interpolate them via ERb.
+
+```yml
+connections:
+  - role: master
+    blacklist_duration: 0
+    url: <%= ENV['DATABASE_URL'] %>
+  - role: slave
+    url: <%= ENV['DATABASE_URL_SLAVE'] %>
+```
+For more information on url parsing, see
+[ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig](https://github.com/rails/rails/blob/4-2-stable/activerecord/lib/active_record/connection_handling.rb)
+in Rails, as used by
+[ConfigParser](https://github.com/taskrabbit/makara/blob/master/lib/makara/config_parser.rb).
+
+
 ## Custom error matchers:
 
 To enable Makara to catch and handle custom errors gracefully (blacklist the connection instead of raising directly), you must add your custom matchers to the `connection_error_matchers` setting of your config file, for example:

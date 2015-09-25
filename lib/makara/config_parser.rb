@@ -26,6 +26,22 @@ module Makara
       :sticky => true
     }
 
+    # NOTE: url format must be, e.g.
+    # url: mysql2://...
+    # NOT
+    # url: mysql2_makara://... 
+    # since the '_' in the protocol (mysql2_makara) makes the URI invalid
+    # NOTE: Does not use ENV['DATABASE_URL']
+    def self.merge_and_resolve_default_url_config(config)
+      return config unless config.key?(:url)
+      url_config = config.slice(:url)
+      url_config = ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig.new(url_config).resolve
+      url_config = url_config[:url].symbolize_keys
+      url_config.delete(:adapter)
+      config.delete(:url)
+      config.update(url_config)
+    end
+
     attr_reader :makara_config
 
     def initialize(config)

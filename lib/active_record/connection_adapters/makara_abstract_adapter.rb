@@ -186,6 +186,7 @@ module ActiveRecord
 
 
       def connection_for(config)
+        config = Makara::ConfigParser.merge_and_resolve_default_url_config(config)
         active_record_connection_for(config)
       end
 
