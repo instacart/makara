@@ -22,6 +22,63 @@ describe Makara::ConfigParser do
     }
   }
 
+  context '::merge_and_resolve_default_url_config' do
+    let(:config_without_url) do
+      {
+        :master_ttl => 5,
+        :blacklist_duration => 30,
+        :sticky => true,
+        :adapter => 'mysql2_makara',
+        :encoding => 'utf8',
+        :host => 'localhost',
+        :database => 'db_name',
+        :username => 'db_username',
+        :password => 'db_password',
+        :port =>     3306
+      }
+    end
+
+    let(:config_with_url) do
+      {
+        :master_ttl => 5,
+        :blacklist_duration => 30,
+        :sticky => true,
+        :adapter => 'mysql2_makara',
+        :encoding => 'utf8',
+        :url => 'mysql2://db_username:db_password@localhost:3306/db_name'
+      }
+    end
+
+    it 'does nothing to a config without a url parameter' do
+      config = config_without_url.dup
+      expected = config_without_url.dup
+      actual = described_class.merge_and_resolve_default_url_config(config)
+      expect(actual).to eq(expected)
+    end
+
+    it 'parses the url parameter and merges it into the config' do
+      config = config_with_url.dup
+      expected = config_without_url.dup
+      actual = described_class.merge_and_resolve_default_url_config(config)
+      expect(actual).to eq(expected)
+    end
+
+    it 'does not use DATABASE_URL env variable' do
+      database_url = ENV['DATABASE_URL']
+      ENV['DATABASE_URL'] = config_with_url[:url]
+      begin
+        config = config_with_url.dup
+        config.delete(:url)
+        expected = config.dup
+        actual = described_class.merge_and_resolve_default_url_config(config)
+        expect(actual).to eq(expected)
+      ensure
+        ENV['DATABASE_URL'] = database_url
+      end
+    end
+
+  end
+
   it 'should provide an id based on the recursively sorted config' do
     parsera = described_class.new(config)
     parserb = described_class.new(config.merge(:other => 'value'))
