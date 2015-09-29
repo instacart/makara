@@ -30,17 +30,6 @@ module Makara
     # vary slightly among Rails versions, but the behavior is the same.  Thus, borrowing the
     # class should be the most future-safe way to parse a database url.
     #
-    # ActiveRecord::Base::ConnectionSpecification::Resolver.send(:connection_url_to_hash, url_config[:url])
-    # https://github.com/rails/rails/blob/3-2-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb#L60-L77
-    # ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.send(:connection_url_to_hash, url_config[:url])
-    # https://github.com/rails/rails/blob/4-0-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb#L68-L92
-    # ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(url).to_hash
-    # https://github.com/rails/rails/blob/4-1-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb#L17-L121
-    # ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig.new(url_config).resolve
-    # ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(url).to_hash
-    # https://github.com/rails/rails/blob/4-2-stable/activerecord/lib/active_record/connection_handling.rb#L60-L81
-    # https://github.com/rails/rails/blob/97b980b4e61aea3cee429bdee4b2eae2329905cd/activerecord/lib/active_record/connection_handling.rb#L60-L81
-    #
     # Expands a connection string into a hash.
     class ConnectionUrlResolver # :nodoc:
 
@@ -137,6 +126,9 @@ module Makara
     # since the '_' in the protocol (mysql2_makara) makes the URI invalid
     # NOTE: Does not use ENV['DATABASE_URL']
     def self.merge_and_resolve_default_url_config(config)
+      if ENV['DATABASE_URL']
+        Logging::Logger.log "Please rename DATABASE_URL to use in the database.yml", :warn
+      end
       return config unless config.key?(:url)
       url = config[:url]
       url_config = ConnectionUrlResolver.new(url).to_hash
