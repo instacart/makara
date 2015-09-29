@@ -60,7 +60,7 @@ module Makara
       #   }
       def initialize(url)
         raise "Database URL cannot be empty" if url.blank?
-        @uri     = uri_parser.parse(url)
+        @uri     = URI.parse(url)
         @adapter = @uri.scheme.tr('-', '_')
         @adapter = "postgresql" if @adapter == "postgres"
 
@@ -74,7 +74,7 @@ module Makara
       # Converts the given URL to a full connection hash.
       def to_hash
         config = raw_config.reject { |_,value| value.blank? }
-        config.map { |key,value| config[key] = uri_parser.unescape(value) if value.is_a? String }
+        config.map { |key,value| config[key] = URI.unescape(value) if value.is_a? String }
         config
       end
 
@@ -82,10 +82,6 @@ module Makara
 
       def uri
         @uri
-      end
-
-      def uri_parser
-        @uri_parser ||= URI::Parser.new
       end
 
       # Converts the query parameters of the URI into a hash.
@@ -113,7 +109,7 @@ module Makara
             "password" => uri.password,
             "port"     => uri.port,
             "database" => database_from_path,
-            "host"     => uri.hostname })
+            "host"     => uri.host })
         end
       end
 
