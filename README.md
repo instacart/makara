@@ -8,7 +8,11 @@ Makara is generic master/slave proxy. It handles the heavy lifting of managing, 
 
 #### Warning:
 
-There is a potential performance issue when used alongside certain versions of [newrelic/rpm](https://github.com/newrelic/rpm). Read more and contribute data [here](https://github.com/taskrabbit/makara/issues/59).
+There is a potential performance issue when used alongside certain versions of
+[newrelic/rpm](https://github.com/newrelic/rpm), [Issue #59](https://github.com/taskrabbit/makara/issues/59).
+
+> Any newrelic_rpm `< 3.11.2` and `>= 3.7.2` will have the regression.
+> I'd recommend upgrading newrelic_rpm to avoid the problem.
 
 ## Installation
 
