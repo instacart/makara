@@ -189,24 +189,42 @@ connections:
     url: 'mysql2://db_username:db_password@localhost:3306/db_name'
 ```
 
-However, `ENV['DATABASE_URL']` is not respected due to the need for multiple databases.
-
 We recommend, if using environmental variables, to interpolate them via ERb.
 
 ```yml
 connections:
   - role: master
     blacklist_duration: 0
-    url: <%= ENV['DATABASE_URL'] %>
+    url: <%= ENV['DATABASE_URL_MASTER'] %>
   - role: slave
     url: <%= ENV['DATABASE_URL_SLAVE'] %>
 ```
-For more information on url parsing, see
-[ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig](https://github.com/rails/rails/blob/4-0-stable/activerecord/lib/active_record/connection_handling.rb)
-and
-[ActiveRecord::Core::ConnectionSpecification::Resolver](https://github.com/rails/rails/blob/3-0-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb)
-in Rails, as used by
-[ConfigParser](https://github.com/taskrabbit/makara/blob/master/lib/makara/config_parser.rb).
+
+**Important**: *Do NOT use `ENV['DATABASE_URL']`*, as it inteferes with the the database configuration
+initialization and may cause Makara not to complete the configuration.  For the moment, it is easier
+to use a different ENV variable than to hook into the database initialization in all the supported
+Rails.
+
+For more information on url parsing, as used in
+[ConfigParser](https://github.com/taskrabbit/makara/blob/master/lib/makara/config_parser.rb), see:
+
+- 3.0
+    [ActiveRecord::Base::ConnectionSpecification.new](https://github.com/rails/rails/blob/3-0-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb#L3-L7)
+- 3.0
+    [ActiveRecord::Base::ConnectionSpecification.new](https://github.com/rails/rails/blob/3-1-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb#L3-L7)
+- 3.2
+  [ActiveRecord::Base::ConnectionSpecification::Resolver.send(:connection_url_to_hash, url_config[:url])](https://github.com/rails/rails/blob/3-2-stable/activerecord/lib/active_record/connection_adapters/abstract/connection_specification.rb#L60-L77)
+- 4.0
+ [ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.send(:connection_url_to_hash, url_config[:url])](https://github.com/rails/rails/blob/4-0-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb#L68-L92)
+  - [ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig](https://github.com/rails/rails/blob/4-0-stable/activerecord/lib/active_record/connection_handling.rb)
+- 4.1
+ [ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(url).to_hash](https://github.com/rails/rails/blob/4-1-stable/activerecord/lib/active_record/connection_adapters/connection_specification.rb#L17-L121)
+  - ActiveRecord::ConnectionHandling::MergeAndResolveDefaultUrlConfig.new(url_config).resolve
+- 4.2
+ [ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(url).to_hash](https://github.com/rails/rails/blob/4-2-stable/activerecord/lib/active_record/connection_handling.rb#L60-L81)
+- master
+ [ActiveRecord::ConnectionAdapters::ConnectionSpecification::ConnectionUrlResolver.new(url).to_hash](https://github.com/rails/rails/blob/97b980b4e61aea3cee429bdee4b2eae2329905cd/activerecord/lib/active_record/connection_handling.rb#L60-L81)
+
 
 
 ## Custom error matchers:
