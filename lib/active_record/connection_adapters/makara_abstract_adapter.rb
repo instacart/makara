@@ -16,15 +16,15 @@ module ActiveRecord
 
 
         CONNECTION_MATCHERS = [
-          /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/i,
-          /gone away/i,
-          /connection[^:]+refused/i,
-          /could not connect/i,
-          /can\'t connect/i,
-          /cannot connect/i,
-          /connection[^:]+closed/i,
-          /can\'t get socket descriptor/i,
-          /connection to [a-zA-Z0-9.]+:[0-9]+ refused/i
+          /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/,
+          /gone away/,
+          /connection[^:]+refused/,
+          /could not connect/,
+          /can\'t connect/,
+          /cannot connect/,
+          /connection[^:]+closed/,
+          /can\'t get socket descriptor/,
+          /connection to [a-z0-9.]+:[0-9]+ refused/
         ].map(&:freeze).freeze
 
 
