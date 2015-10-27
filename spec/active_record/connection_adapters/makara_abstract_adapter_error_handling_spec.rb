@@ -37,7 +37,11 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|PG::UnableToSend: no connection to the server|,
     %|PG::ConnectionBad (could not connect to server: Connection refused|,
     %|PG::ConnectionBad: PQsocket() can't get socket descriptor:|,
-    %|org.postgresql.util.PSQLException: Connection to localhost:123 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.|
+    %|org.postgresql.util.PSQLException: Connection to localhost:123 refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.|,
+    %|PG::ConnectionBad: timeout expired|,
+    %|PG::ConnectionBad: could not translate host name "some.sample.com" to address: Name or service not known|,
+    %|PG::ConnectionBad: FATAL: the database system is starting up|,
+    %|PG::ConnectionBad: FATAL: the database system is shutting down|
   ].each do |msg|
     it "should properly evaluate connection messages like: #{msg}" do
       expect(handler).to be_connection_message(msg)

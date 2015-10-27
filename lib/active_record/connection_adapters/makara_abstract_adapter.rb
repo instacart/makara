@@ -24,7 +24,10 @@ module ActiveRecord
           /cannot connect/,
           /connection[^:]+closed/,
           /can\'t get socket descriptor/,
-          /connection to [a-z0-9.]+:[0-9]+ refused/
+          /connection to [a-z0-9.]+:[0-9]+ refused/,
+          /timeout expired/,
+          /could not translate host name/,
+          /the database system is (starting|shutting)/
         ].map(&:freeze).freeze
 
 
