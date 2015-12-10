@@ -94,7 +94,7 @@ module Makara
     # would have had the longest timeout from this middleware
     def cookie_ttl
       begin
-        if Rails
+        if defined?(Rails)
           Rails.configuration.database_configuration[Rails.env]['master_ttl']
         else
           ActiveRecord::Base.connection_config['master_ttl']
