@@ -89,6 +89,21 @@ module Makara
       [nil, nil]
     end
 
+    # determine how lone the cookie TTL should last
+    # this needs to be done huristically, as we cannot be sure which connection 
+    # would have had the longest timeout from this middleware
+    def cookie_ttl
+      begin
+        if Rails
+          Rails.configuration.database_configuration[Rails.env]['master_ttl']
+        else
+          ActiveRecord::Base.connection_config['master_ttl']
+        end
+      ensure
+        5
+      end
+    end
+
 
     # push the current context into the cookie
     # it should always be for the same path, only
@@ -100,7 +115,7 @@ module Makara
         :path => '/',
         :value => "#{Makara::Context.get_current}--#{status}",
         :http_only => true,
-        :max_age => '5'
+        :max_age => "#{cookie_ttl}"
       }
 
       Rack::Utils.set_cookie_header!(header, IDENTIFIER, cookie_value)
