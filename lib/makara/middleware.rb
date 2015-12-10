@@ -99,7 +99,7 @@ module Makara
         else
           ActiveRecord::Base.connection_config['master_ttl']
         end
-      ensure
+      rescue
         5
       end
     end
