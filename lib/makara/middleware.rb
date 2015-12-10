@@ -95,10 +95,12 @@ module Makara
     def cookie_ttl
       begin
         if defined?(Rails)
-          Rails.configuration.database_configuration[Rails.env]['master_ttl']
+          ttl = Rails.configuration.database_configuration[Rails.env]['master_ttl']
         else
-          ActiveRecord::Base.connection_config['master_ttl']
+          ttl = ActiveRecord::Base.connection_config['master_ttl']
         end
+        ttl = 5 if(!ttl)          
+        ttl
       rescue
         5
       end
