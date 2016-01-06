@@ -16,13 +16,18 @@ module ActiveRecord
 
 
         CONNECTION_MATCHERS = [
-          /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/i,
-          /gone away/i,
-          /connection[^:]+refused/i,
-          /could not connect/i,
-          /can\'t connect/i,
-          /cannot connect/i,
-          /connection[^:]+closed/i
+          /(closed|lost|no|terminating|terminated)\s?([^\s]+)?\sconnection/,
+          /gone away/,
+          /connection[^:]+refused/,
+          /could not connect/,
+          /can\'t connect/,
+          /cannot connect/,
+          /connection[^:]+closed/,
+          /can\'t get socket descriptor/,
+          /connection to [a-z0-9.]+:[0-9]+ refused/,
+          /timeout expired/,
+          /could not translate host name/,
+          /the database system is (starting|shutting)/
         ].map(&:freeze).freeze
 
 
@@ -99,8 +104,8 @@ module ActiveRecord
       end
 
 
-      hijack_method :execute, :select_rows, :exec_query
-      send_to_all :connect, :disconnect!, :reconnect!, :verify!, :clear_cache!, :reset!
+      hijack_method :execute, :select_rows, :exec_query, :transaction
+      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i].map(&:freeze).freeze
       SQL_SLAVE_MATCHERS            = [/\A\s*select\s/i].map(&:freeze).freeze
@@ -140,16 +145,18 @@ module ActiveRecord
       def appropriate_connection(method_name, args)
         if needed_by_all?(method_name, args)
 
-          # slave pool must run first.
-          @slave_pool.provide_each do |con|
-            hijacked do
-              yield con
+          handling_an_all_execution(method_name) do
+            # slave pool must run first.
+            @slave_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
-          end
 
-          @master_pool.provide_each do |con|
-            hijacked do
-              yield con
+            @master_pool.provide_each do |con|
+              hijacked do
+                yield con
+              end
             end
           end
 

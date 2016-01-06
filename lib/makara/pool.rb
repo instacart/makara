@@ -9,7 +9,7 @@ module Makara
 
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
-    attr_writer :disabled
+    attr_accessor :disabled
     attr_reader :blacklist_errors
     attr_reader :role
     attr_reader :connections
@@ -38,7 +38,15 @@ module Makara
       config[:name] ||= "#{@role}/#{@connections.length + 1}"
 
       connection = yield
-      wrapper = Makara::ConnectionWrapper.new(@proxy, connection, config)
+
+      # already wrapped because of initial error
+      if connection.is_a?(Makara::ConnectionWrapper)
+        connection.config = config # to add :name
+        wrapper = connection
+      else
+        wrapper = Makara::ConnectionWrapper.new(@proxy, connection, config)
+      end
+
 
       # the weight results in N references to the connection, not N connections
       wrapper._makara_weight.times{ @connections << wrapper }
@@ -53,11 +61,6 @@ module Makara
 
       wrapper
     end
-
-    def any
-      @connections.first
-    end
-
 
     # send this method to all available nodes
     def send_to_all(method, *args)
@@ -98,10 +101,12 @@ module Makara
         value
 
       # if we've made any connections within this pool, we should report the blackout.
-      else
+      elsif connection_made?
         err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
         @blacklist_errors = []
         raise err
+      else
+        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
     # when a connection causes a blacklist error within the provided block, we blacklist it then retry
@@ -115,6 +120,11 @@ module Makara
 
     protected
 
+
+    # have we connected to any of the underlying connections.
+    def connection_made?
+      @connections.any?(&:_makara_connected?)
+    end
 
 
     # Get the next non-blacklisted connection. If the proxy is setup

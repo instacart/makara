@@ -24,6 +24,7 @@ RSpec.configure do |config|
   require "#{File.dirname(__FILE__)}/support/pool_extensions"
   require "#{File.dirname(__FILE__)}/support/configurator"
   require "#{File.dirname(__FILE__)}/support/mock_objects"
+  require "#{File.dirname(__FILE__)}/support/deep_dup"
 
   config.include Configurator
 

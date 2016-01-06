@@ -2,6 +2,8 @@ require 'active_record/connection_adapters/makara_abstract_adapter'
 
 class FakeConnection < Struct.new(:config)
 
+  attr_accessor :something
+
   def ping
     'ping!'
   end
@@ -12,6 +14,14 @@ class FakeConnection < Struct.new(:config)
 
   def query(content)
     []
+  end
+
+  def active?
+    true
+  end
+
+  def disconnect!
+    true
   end
 end
 
@@ -27,6 +37,10 @@ class FakeDatabaseAdapter < Struct.new(:config)
 
   def select_rows(sql, name = nil)
     []
+  end
+
+  def active?
+    true
   end
 
 end
