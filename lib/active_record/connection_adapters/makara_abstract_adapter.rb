@@ -27,6 +27,7 @@ module ActiveRecord
           /connection to [a-z0-9.]+:[0-9]+ refused/,
           /timeout expired/,
           /could not translate host name/,
+          /timeout waiting for a response/,
           /the database system is (starting|shutting)/
         ].map(&:freeze).freeze
 

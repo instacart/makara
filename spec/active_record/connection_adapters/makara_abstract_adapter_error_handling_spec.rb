@@ -30,6 +30,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
     %|Mysql2::Error (Can't connect to MySQL server on '123.456.789.234' (111))|,
     %|Mysql2::Error (Cannot connect to MySQL server on '123.456.789.234' (111))|,
     %|Mysql2::Error Can't connect to MySQL server on '123.456.789.235' (111)|,
+    %|Mysql2::Error: Timeout waiting for a response from the last query|,
     %|Can't connect to MySQL server on '123.456.789.235' (111)|,
     %|Mysql2::Error: Lost connection to MySQL server during query: SELECT `geographies`.* FROM `geographies`|,
     %|PGError: server closed the connection unexpectedly This probably me|,
