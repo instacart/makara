@@ -11,6 +11,8 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class Proxy < ::SimpleDelegator
 
+    METHOD_MISSING_SKIP = [ :byebug ]
+
     class_attribute :hijack_methods
     self.hijack_methods = []
 
@@ -71,6 +73,10 @@ module Makara
     end
 
     def method_missing(m, *args, &block)
+      if METHOD_MISSING_SKIP.include?(m)
+        return super(m, *args, &block)
+      end
+
       any_connection do |con|
         if con.respond_to?(m)
           con.public_send(m, *args, &block)

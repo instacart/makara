@@ -4,6 +4,7 @@
 .config
 .yardoc
 .DS_Store
+.byebug_history
 Gemfile.lock
 InstalledFiles
 _yardoc
