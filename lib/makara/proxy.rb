@@ -125,13 +125,13 @@ module Makara
     end
 
     def any_connection
-      @master_pool.provide(true) do |con|
+      @master_pool.provide do |con|
         yield con
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       begin
         @master_pool.disabled = true
-        @slave_pool.provide(true) do |con|
+        @slave_pool.provide do |con|
           yield con
         end
       ensure

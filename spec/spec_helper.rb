@@ -30,7 +30,7 @@ RSpec.configure do |config|
   config.before :each do
     Makara::Cache.store = :memory
     change_context
-    allow_any_instance_of(Makara::Pool).to receive(:should_shuffle?){ false }
+    allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:should_shuffle?){ false }
   end
 
   def change_context

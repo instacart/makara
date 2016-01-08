@@ -22,4 +22,9 @@ module Makara
     autoload :Subscriber, 'makara/logging/subscriber'
   end
 
+  module Strategies
+    autoload :Abstract,   'makara/strategies/abstract'
+    autoload :RoundRobin, 'makara/strategies/round_robin'
+  end
+
 end

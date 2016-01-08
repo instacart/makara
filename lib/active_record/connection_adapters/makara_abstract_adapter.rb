@@ -143,21 +143,14 @@ module ActiveRecord
       protected
 
 
-      def appropriate_connection(method_name, args)
+      def appropriate_connection(method_name, args, &block)
         if needed_by_all?(method_name, args)
 
           handling_an_all_execution(method_name) do
-            # slave pool must run first.
-            @slave_pool.provide_each do |con|
-              hijacked do
-                yield con
-              end
-            end
-
-            @master_pool.provide_each do |con|
-              hijacked do
-                yield con
-              end
+            hijacked do
+              # slave pool must run first.
+              @slave_pool.send_to_all(nil, &block)  # just yields to each con
+              @master_pool.send_to_all(nil, &block) # just yields to each con
             end
           end
 
