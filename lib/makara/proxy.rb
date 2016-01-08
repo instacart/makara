@@ -77,8 +77,10 @@ module Makara
     def strategy_for(role)
       strategy_name = @config_parser.makara_config["#{role}_strategy".to_sym]
       case strategy_name
-      when 'round_robin', nil, ''
+      when 'round_robin', 'roundrobin', nil, ''
         strategy_name = "::Makara::Strategies::RoundRobin"
+      when 'failover'
+        strategy_name = "::Makara::Strategies::PriorityFailover"
       end
       strategy_name.constantize.new(self)
     end

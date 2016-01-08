@@ -23,8 +23,9 @@ module Makara
   end
 
   module Strategies
-    autoload :Abstract,   'makara/strategies/abstract'
-    autoload :RoundRobin, 'makara/strategies/round_robin'
+    autoload :Abstract,         'makara/strategies/abstract'
+    autoload :RoundRobin,       'makara/strategies/round_robin'
+    autoload :PriorityFailover, 'makara/strategies/priority_failover'
   end
 
 end
