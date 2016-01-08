@@ -169,6 +169,15 @@ describe 'MakaraMysql2Adapter' do
       connection.reconnect!
     end
 
+    if !defined?(JRUBY_VERSION)
+      # yml settings only for mysql2
+      it 'should blacklist on timeout' do
+        expect {
+          connection.execute('SELECT SLEEP(2)') # read timeout set to 1
+        }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+      end
+    end
+
   end
 
 end

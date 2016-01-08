@@ -4,6 +4,10 @@ test:
   username: 'root'
   password: ''
 
+  connect_timeout: 1
+  read_timeout: 1
+  write_timeout: 2
+
   makara:
     blacklist_duration: 2
     master_ttl: 5
