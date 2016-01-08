@@ -9,8 +9,7 @@ describe Makara::Pool do
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
 
-    connection_a = FakeConnection.new
-    connection_a.something = 'a'
+    connection_a = FakeConnection.new(something: 'a')
 
     wrapper_a = pool.add(pool_config){ connection_a }
     wrapper_b = pool.add(pool_config.merge(:weight => 2)){ FakeConnection.new }
@@ -77,10 +76,8 @@ describe Makara::Pool do
 
   it 'provides the next connection and blacklists' do
 
-    connection_a = FakeConnection.new
-    connection_a.something = "a"
-    connection_b = FakeConnection.new
-    connection_b.something = "b"
+    connection_a = FakeConnection.new(something: 'a')
+    connection_b = FakeConnection.new(something: 'b')
 
     wrapper_a = pool.add(pool_config){ connection_a }
     wrapper_b = pool.add(pool_config){ connection_b }

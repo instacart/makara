@@ -22,8 +22,7 @@ module Makara
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
-
-      @strategy = Makara::Strategies::RoundRobin.new(self)
+      @strategy         = proxy.strategy_for(role)
     end
 
 
