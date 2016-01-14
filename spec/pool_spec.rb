@@ -9,18 +9,20 @@ describe Makara::Pool do
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
 
-    connection_a = FakeConnection.new
-    connection_a.something = 'a'
+    connection_a = FakeConnection.new(something: 'a')
 
     wrapper_a = pool.add(pool_config){ connection_a }
     wrapper_b = pool.add(pool_config.merge(:weight => 2)){ FakeConnection.new }
 
-    expect(pool.connections.length).to eq(3)
+    connections = pool.connections
+    weighted_connections = pool.strategy.instance_variable_get("@weighted_connections")
+    expect(connections.length).to eq(2)
+    expect(weighted_connections.length).to eq(3)
 
     expect(wrapper_a).to be_a(Makara::ConnectionWrapper)
     expect(wrapper_a.irespondtothis).to eq('hey!')
 
-    as, bs = pool.connections.partition{|c| c.something == 'a'}
+    as, bs = weighted_connections.partition{|c| c.something == 'a'}
     expect(as.length).to eq(1)
     expect(bs.length).to eq(2)
   end
@@ -74,8 +76,8 @@ describe Makara::Pool do
 
   it 'provides the next connection and blacklists' do
 
-    connection_a = FakeConnection.new
-    connection_b = FakeConnection.new
+    connection_a = FakeConnection.new(something: 'a')
+    connection_b = FakeConnection.new(something: 'b')
 
     wrapper_a = pool.add(pool_config){ connection_a }
     wrapper_b = pool.add(pool_config){ connection_b }

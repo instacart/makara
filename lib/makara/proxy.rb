@@ -1,6 +1,7 @@
 require 'delegate'
 require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
+require 'active_support/core_ext/string/inflections'
 
 # The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
 # being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
@@ -11,7 +12,7 @@ require 'active_support/core_ext/hash/keys'
 module Makara
   class Proxy < ::SimpleDelegator
 
-    METHOD_MISSING_SKIP = [ :byebug ]
+    METHOD_MISSING_SKIP = [ :byebug, :puts ]
 
     class_attribute :hijack_methods
     self.hijack_methods = []
@@ -42,6 +43,7 @@ module Makara
 
     attr_reader :error_handler
     attr_reader :sticky
+    attr_reader :config_parser
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -70,6 +72,17 @@ module Makara
     def stick_to_master!(write_to_cache = true)
       @master_context = Makara::Context.get_current
       Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+    end
+
+    def strategy_for(role)
+      strategy_name = @config_parser.makara_config["#{role}_strategy".to_sym]
+      case strategy_name
+      when 'round_robin', 'roundrobin', nil, ''
+        strategy_name = "::Makara::Strategies::RoundRobin"
+      when 'failover'
+        strategy_name = "::Makara::Strategies::PriorityFailover"
+      end
+      strategy_name.constantize.new(self)
     end
 
     def method_missing(m, *args, &block)
@@ -125,13 +138,13 @@ module Makara
     end
 
     def any_connection
-      @master_pool.provide(true) do |con|
+      @master_pool.provide do |con|
         yield con
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       begin
         @master_pool.disabled = true
-        @slave_pool.provide(true) do |con|
+        @slave_pool.provide do |con|
           yield con
         end
       ensure

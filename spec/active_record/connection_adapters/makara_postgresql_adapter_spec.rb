@@ -64,7 +64,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
     it 'should send reads to the slave' do
       # ensure the next connection will be the first one
-      connection.slave_pool.instance_variable_set('@current_idx', connection.slave_pool.connections.length)
+      connection.slave_pool.strategy.instance_variable_set('@current_idx', connection.slave_pool.connections.length)
 
       con = connection.slave_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once

@@ -2,8 +2,6 @@ require 'active_record/connection_adapters/makara_abstract_adapter'
 
 class FakeConnection < Struct.new(:config)
 
-  attr_accessor :something
-
   def ping
     'ping!'
   end
@@ -22,6 +20,10 @@ class FakeConnection < Struct.new(:config)
 
   def disconnect!
     true
+  end
+
+  def something
+    (config || {})[:something]
   end
 end
 

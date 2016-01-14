@@ -22,4 +22,10 @@ module Makara
     autoload :Subscriber, 'makara/logging/subscriber'
   end
 
+  module Strategies
+    autoload :Abstract,         'makara/strategies/abstract'
+    autoload :RoundRobin,       'makara/strategies/round_robin'
+    autoload :PriorityFailover, 'makara/strategies/priority_failover'
+  end
+
 end
