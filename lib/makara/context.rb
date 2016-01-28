@@ -7,6 +7,19 @@ module Makara
   class Context
     class << self
 
+      # This is the Thread variable that will hold until when we have to read from master for this user
+      def stick_to_master_until
+        Thread.current[:makara_stick_to_master_until]
+      end
+
+      def stick_to_master_until=(time)
+        Thread.current[:makara_stick_to_master_until] = time
+      end
+
+      def clear_stick_to_master_until
+        self.stick_to_master_until = nil
+      end
+
       def generate(seed = nil)
         seed ||= "#{Time.now.to_i}#{Thread.current.object_id}#{rand(99999)}"
         Digest::MD5.hexdigest(seed)
