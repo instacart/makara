@@ -1,4 +1,5 @@
 require 'active_record'
+require 'active_support/all'
 require 'makara'
 require 'timecop'
 require 'yaml'
@@ -36,6 +37,7 @@ RSpec.configure do |config|
   def change_context
     Makara::Context.set_previous nil
     Makara::Context.set_current nil
+    Makara::Context.clear_stick_to_master_until
   end
 
   def roll_context

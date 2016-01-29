@@ -3,7 +3,84 @@ require 'spec_helper'
 describe Makara::Proxy do
 
   let(:klass){ FakeProxy }
+  let(:time) { Time.now }
 
+  let(:connection) { ActiveRecord::Base.connection }
+  let(:master_pool) { connection.instance_variable_get(:@master_pool) }
+  let(:slave_pool) { connection.instance_variable_get(:@slave_pool) }
+
+  let(:db_config){
+    base = YAML.load_file(File.expand_path('spec/support/mysql2_database.yml'))['test']
+    base
+  }
+
+  before :each do
+    ActiveRecord::Base.clear_all_connections!
+    change_context
+    ActiveRecord::Base.establish_connection(db_config)
+  end
+
+  describe "#stick_to_master!" do
+    subject { connection.stick_to_master!(write_to_cache) }
+
+    context "with write_to_cache" do
+      let(:write_to_cache) { true }
+
+      it "sets @master_context and stick_to_master_until" do
+        Timecop.freeze(time) { subject }
+        expect(connection.instance_variable_get(:@master_context)).to be_present
+        expected_time = (time + Makara.master_ttl).to_i
+        expect(Makara::Context.stick_to_master_until).to eq(expected_time)
+      end
+    end
+
+    context "without write_to_cache" do
+      let(:write_to_cache) { false }
+
+      it "just sets @master_context" do
+        Timecop.freeze(time) { subject }
+
+        expect(connection.instance_variable_get(:@master_context)).to be_present
+        expect(Makara::Context.stick_to_master_until).to be_nil
+      end
+    end
+  end
+
+  describe ".force_master and .force_slave" do
+    it "allows to nest them as expected" do
+      expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+      Makara.force_master {} # Check that the value does not leak after
+      expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+
+      Makara.force_slave do
+        expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+
+        Makara.force_master do
+          expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq master_pool
+
+          Makara.force_slave do
+            expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+          end
+
+          expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq master_pool
+        end
+
+        expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+
+        allow(slave_pool).to receive(:completely_blacklisted?).and_return(true)
+
+        expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq master_pool
+      end
+    end
+  end
+
+  it "sends queries to master as soon as stick_to_master_until is set" do
+    expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq slave_pool
+
+    Makara::Context.stick_to_master_until = 5.hours.ago.to_i
+
+    expect(connection.send(:_appropriate_pool, :execute, ["select * from users"])).to eq master_pool
+  end
 
   it 'sets up a master and slave pool no matter the number of connections' do
     proxy = klass.new(config(0, 0))
@@ -116,6 +193,7 @@ describe Makara::Proxy do
         expect(proxy.master_for?('select * from users')).to eq(true)
 
         roll_context
+        Makara::Context.clear_stick_to_master_until
 
         expect(proxy.master_for?('select * from users')).to eq(false)
       end
@@ -124,7 +202,7 @@ describe Makara::Proxy do
     it 'should release master if context changes enough' do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       roll_context
-      roll_context
+      Makara::Context.clear_stick_to_master_until
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 

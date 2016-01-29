@@ -15,4 +15,3 @@ gem 'pg', :platform => :ruby
 
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
-

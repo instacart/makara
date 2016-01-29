@@ -58,6 +58,14 @@ module Makara
       super(config)
     end
 
+    def force_slave(&block)
+      force_pool(:slave, &block)
+    end
+
+    def force_master(&block)
+      force_pool(:master, &block)
+    end
+
     def without_sticking
       @skip_sticking = true
       yield
@@ -69,9 +77,15 @@ module Makara
       @hijacked
     end
 
-    def stick_to_master!(write_to_cache = true)
+    # Patch this method to solely rely on `stick_to_master_until`, which is a Thread.current var
+    # that is set by the middleware
+    # Orignal implementation used memcache.
+    #
+    # Not writing to cache means that we will stick to master until end of request, but we won't place
+    # cookie/header in the http response.
+    def stick_to_master!(write_to_cache = true, ttl = @ttl)
       @master_context = Makara::Context.get_current
-      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+      Makara::Context.stick_to_master_until = ttl.seconds.from_now.to_i if write_to_cache
     end
 
     def strategy_for(role)
@@ -165,6 +179,14 @@ module Makara
       end
     end
 
+    def force_pool(forced_pool)
+      original_pool = @_forced_pool
+
+      @_forced_pool = forced_pool
+      yield
+    ensure
+      @_forced_pool = original_pool
+    end
 
     # master or slave
     def appropriate_pool(method_name, args)
@@ -185,7 +207,13 @@ module Makara
       end
     end
 
+    # Patched so we first check for any forced pool before calling the original implementation
     def _appropriate_pool(method_name, args)
+      if @_forced_pool
+        return @master_pool if @_forced_pool == :master
+        return @slave_pool if @_forced_pool == :slave && !@slave_pool.completely_blacklisted?
+      end
+
       # the args provided absolutely need master
       if needs_master?(method_name, args)
         stick_to_master(method_name, args)
@@ -228,23 +256,22 @@ module Makara
     end
 
 
+    # patched so it does not read from memcache anymore, but uses `stick_to_master_until`
     def previously_stuck_to_master?
       return false unless @sticky
-      !!Makara::Cache.read("makara::#{Makara::Context.get_previous}-#{@id}")
+      !!Makara::Context.stick_to_master_until
     end
 
 
+    # Patched so we don't return early when we've already stuck to master in the current request.
+    # This allows to extend the duration of `stick_to_master_until` each time a write happens
     def stick_to_master(method_name, args, write_to_cache = true)
-      # if we're already stuck to master, don't bother doing it again
-      return if @master_context == Makara::Context.get_current
-
       # check to see if we're configured, bypassed, or some custom implementation has input
       return unless should_stick?(method_name, args)
 
       # do the sticking
       stick_to_master!(write_to_cache)
     end
-
 
     # if we are configured to be sticky and we aren't bypassing stickiness
     def should_stick?(method_name, args)
