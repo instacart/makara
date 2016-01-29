@@ -114,7 +114,7 @@ module Makara
       ttl = [stick_to_master_until - now, Makara.master_ttl].min
 
       value = "#{Makara::Context.get_current}--#{status}--#{stick_to_master_until}"
-      secure = Rails.env.production? || Rails.env.staging?
+      secure = defined?(Rails) && (Rails.env.production? || Rails.env.staging?)
       cookie_value = {
         :path => '/',
         :value => value,

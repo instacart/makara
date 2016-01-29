@@ -108,10 +108,10 @@ describe 'MakaraPostgreSQLAdapter' do
         ActiveRecord::Base.establish_connection(config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         ActiveRecord::Base.clear_all_connections!
+        change_context
 
         custom_config = config.deep_dup
         custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
-
         ActiveRecord::Base.establish_connection(custom_config)
 
         connection.execute('SELECT * FROM users')

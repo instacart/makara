@@ -1,5 +1,8 @@
 require 'makara/version'
 require 'makara/railtie' if defined?(Rails)
+require 'active_record'
+require 'active_support/all'
+
 module Makara
 
   autoload :Cache,              'makara/cache'
@@ -46,6 +49,6 @@ module Makara
   end
 
   def self.master_ttl
-    Rails.configuration.database_configuration[Rails.env]["makara"]["master_ttl"].to_i
+    ActiveRecord::Base.connection.config[:master_ttl].to_i
   end
 end
