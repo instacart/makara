@@ -140,7 +140,7 @@ production:
     # the following are default values
     blacklist_duration: 5
     master_ttl: 5
-    master_strategy: failover
+    master_strategy: round_robin
     sticky: true
 
     # list your connections with the override values (they're merged into the top-level config)
