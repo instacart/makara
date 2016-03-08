@@ -28,8 +28,7 @@ Changed
 
 Changed
 
-- A context is local to the curent thread of execution. This will allow you to stick to master safely in a single thread
- +in systems such as sidekiq, for instance. Fix [#83](https://github.com/taskrabbit/makara/issues/83). [#84](https://github.com/taskrabbit/makara/pull/84) Matt Camuto
+- A context is local to the curent thread of execution. This will allow you to stick to master safely in a single thread in systems such as sidekiq, for instance. Fix [#83](https://github.com/taskrabbit/makara/issues/83). [#84](https://github.com/taskrabbit/makara/pull/84) Matt Camuto
 
 ## v0.3.2 - 2015-05-16
 
