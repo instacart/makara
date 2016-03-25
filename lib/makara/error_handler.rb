@@ -31,7 +31,7 @@ module Makara
 
 
     def harshly(e)
-      ::Makara::Logging::Logger.log("[Makara] Harshly handling: #{e}")
+      ::Makara::Logging::Logger.log("[Makara] Harshly handling: #{e}\n#{e.backtrace.join("\n\t")}")
       raise e
     end
 
