@@ -22,6 +22,7 @@ services:
 before_script:
   - mysql -e 'create database makara_test;'
   - psql -c 'create database makara_test;' -U postgres
+  - psql -c 'create extension postgis;' -U postgres
 
 before_install:
   - gem update --system 2.1.11
