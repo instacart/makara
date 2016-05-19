@@ -12,6 +12,8 @@ gem 'i18n', '~> 0.6.0'
 gem 'mysql2', '~> 0.3.10', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
+gem 'activerecord-postgis-adapter', :platform => :ruby
+gem 'rgeo', :platform => :ruby
 
 rmajor, rminor, rpatch = RUBY_VERSION.split(/[^\d]/)[0..2].map(&:to_i)
 
