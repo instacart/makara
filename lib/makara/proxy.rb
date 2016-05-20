@@ -141,7 +141,7 @@ module Makara
       @master_pool.provide do |con|
         yield con
       end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
         @master_pool.disabled = true
         @slave_pool.provide do |con|
@@ -256,14 +256,14 @@ module Makara
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
-        @master_pool.add master_config.merge(@config_parser.makara_config) do
+        @master_pool.add master_config do
           graceful_connection_for(master_config)
         end
       end
 
       @slave_pool = Makara::Pool.new('slave', self)
       @config_parser.slave_configs.each do |slave_config|
-        @slave_pool.add slave_config.merge(@config_parser.makara_config) do
+        @slave_pool.add slave_config do
           graceful_connection_for(slave_config)
         end
       end

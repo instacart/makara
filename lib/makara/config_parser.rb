@@ -157,16 +157,16 @@ module Makara
 
 
     def master_configs
-      all_configs.
-        select{|config| config[:role] == 'master' }.
-        map{|config| config.except(:role) }
+      all_configs
+        .select { |config| config[:role] == 'master' }
+        .map { |config| config.except(:role) }
     end
 
 
     def slave_configs
-      all_configs.
-        reject{|config| config[:role] == 'master' }.
-        map{|config| config.except(:role) }
+      all_configs
+        .reject { |config| config[:role] == 'master' }
+        .map { |config| config.except(:role) }
     end
 
 
@@ -175,7 +175,8 @@ module Makara
 
     def all_configs
       @makara_config[:connections].map do |connection|
-        base_config.merge(connection.symbolize_keys)
+        base_config.merge(makara_config.except(:connections))
+                   .merge(connection.symbolize_keys)
       end
     end
 

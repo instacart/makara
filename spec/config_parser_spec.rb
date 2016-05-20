@@ -88,15 +88,73 @@ describe Makara::ConfigParser do
     expect(parsera.id).to eq(parserc.id)
   end
 
-  it 'should provide master and slave configs' do
-    parser = described_class.new(config)
-    expect(parser.master_configs).to eq([
-      {:name => 'themaster', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true}
-    ])
-    expect(parser.slave_configs).to eq([
-      {:name => 'slave1', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true},
-      {:name => 'slave2', :top_level => 'value', :blacklist_duration => 30, :master_ttl => 5, :sticky => true}
-    ])
-  end
+  context 'master and slave configs' do
+    it 'should provide master and slave configs' do
+      parser = described_class.new(config)
+      expect(parser.master_configs).to eq([
+        {
+          :name => 'themaster',
+          :top_level => 'value',
+          :sticky => true,
+          :blacklist_duration => 30,
+          :master_ttl => 5,
+          :sticky => true
+        }
+      ])
+      expect(parser.slave_configs).to eq([
+        {
+          :name => 'slave1',
+          :top_level => 'value',
+          :sticky => true,
+          :blacklist_duration => 30,
+          :master_ttl => 5,
+          :sticky => true
+        },
+        {
+          :name => 'slave2',
+          :top_level => 'value',
+          :sticky => true,
+          :blacklist_duration => 30,
+          :master_ttl => 5,
+          :sticky => true
+        }
+      ])
+    end
 
+    it 'connection configuration should override makara config' do
+      config[:makara][:blacklist_duration] = 123
+      config[:makara][:connections][0][:blacklist_duration] = 456
+      config[:makara][:connections][1][:top_level] = 'slave value'
+
+      parser = described_class.new(config)
+      expect(parser.master_configs).to eq([
+        {
+          :name => 'themaster',
+          :top_level => 'value',
+          :sticky => true,
+          :blacklist_duration => 456,
+          :master_ttl => 5,
+          :sticky => true
+        }
+      ])
+      expect(parser.slave_configs).to eq([
+        {
+          :name => 'slave1',
+          :top_level => 'slave value',
+          :sticky => true,
+          :blacklist_duration => 123,
+          :master_ttl => 5,
+          :sticky => true
+        },
+        {
+          :name => 'slave2',
+          :top_level => 'value',
+          :sticky => true,
+          :blacklist_duration => 123,
+          :master_ttl => 5,
+          :sticky => true
+        }
+      ])
+    end
+  end
 end
