@@ -51,11 +51,21 @@ describe 'MakaraPostgreSQLAdapter' do
         end
       end
 
+      context 'when querying an aggregate' do
+        it 'should respect the transaction' do
+          User.transaction { User.count }
+        end
+      end
+
+      context 'when querying for a specific record' do
+        it 'should respect the transaction' do
+          User.transaction { User.find(1) }
+        end
+      end
+
       context 'when executing a query' do
         it 'should respect the transaction' do
-          ActiveRecord::Base.transaction do
-            connection.execute('SELECT 1')
-          end
+          User.transaction { connection.execute('SELECT 1') }
         end
       end
     end
