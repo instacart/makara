@@ -18,6 +18,28 @@ describe 'MakaraPostgreSQLAdapter' do
     change_context
   end
 
+  context 'polymorphic associations' do
+    before do
+      class Picture < ActiveRecord::Base
+        belongs_to :imageable, polymorphic: true
+      end
+
+      class User < ActiveRecord::Base
+        has_many :pictures, as: :imageable
+      end
+    end
+
+    it 'should respect the transaction when querying through the polymorphic relation' do
+      ActiveRecord::Base.establish_connection(config)
+      connection.slave_pool.connections.each do |slave|
+        expect(slave).to receive(:execute).never
+      end
+      ActiveRecord::Base.transaction do
+        user = User.create(name: "hello")
+        user.pictures.count
+      end
+    end
+  end
 
   it 'should allow a connection to be established' do
     ActiveRecord::Base.establish_connection(config)
