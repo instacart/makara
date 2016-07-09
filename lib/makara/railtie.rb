@@ -1,7 +1,7 @@
 module Makara
   class Railtie < ::Rails::Railtie
 
-    config.app_middleware.use 'Makara::Middleware'
+    config.app_middleware.use Makara::Middleware
 
 
     initializer "makara.initialize_logger" do |app|
