@@ -16,8 +16,10 @@ There is a potential performance issue when used alongside certain versions of
 
 ## Installation
 
+Use the current version of the gem from [rubygems](https://rubygems.org/gems/makara) in your `Gemfile`.
+
 ```ruby
-gem 'makara', github: 'taskrabbit/makara', tag: 'v0.3.x'
+gem 'makara'
 ```
 
 ## Basic Usage
