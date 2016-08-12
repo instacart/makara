@@ -1,4 +1,5 @@
 require 'active_support/core_ext/object/try'
+require 'active_support/notifications'
 
 # The Makara Cache should have access to your centralized cache store.
 # It serves the purpose of storing the Makara::Context across requests, servers, etc.
@@ -16,10 +17,13 @@ module Makara
       end
 
       def read(key)
+        ActiveSupport::Notifications.instrument('makara.cache.read', { key: key })
         store.try(:read, key)
       end
 
       def write(key, value, ttl)
+        payload = { key: key, value: value, ttl: ttl.to_i }
+        ActiveSupport::Notifications.instrument('makara.cache.write', payload)
         store.try(:write, key, value, :expires_in => ttl.to_i)
       end
 

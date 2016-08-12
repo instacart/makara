@@ -1,4 +1,5 @@
 require 'digest/md5'
+require 'active_support/notifications'
 
 # Keeps track of the current and previous context (hexdigests)
 # If a new context is needed it can be generated via Makara::Context.generate
@@ -13,19 +14,25 @@ module Makara
       end
 
       def get_previous
-        get_current_thread_local_for(:makara_context_previous)
+        get_current_thread_local_for(:makara_context_previous).tap do |context|
+          ActiveSupport::Notifications.instrument('makara.context.get_previous', context: context)
+        end
       end
 
       def set_previous(context)
-        set_current_thread_local(:makara_context_previous,context)
+        ActiveSupport::Notifications.instrument('makara.context.set_previous', context: context)
+        set_current_thread_local(:makara_context_previous, context)
       end
 
       def get_current
-        get_current_thread_local_for(:makara_context_current)
+        get_current_thread_local_for(:makara_context_current).tap do |context|
+          ActiveSupport::Notifications.instrument('makara.context.get_current', context: context)
+        end
       end
 
       def set_current(context)
-        set_current_thread_local(:makara_context_current,context)
+        ActiveSupport::Notifications.instrument('makara.context.set_current', context: context)
+        set_current_thread_local(:makara_context_current, context)
       end
 
       protected
