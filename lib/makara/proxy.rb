@@ -59,10 +59,13 @@ module Makara
     end
 
     def without_sticking
+      before_context = @master_context
+      @master_context = nil
       @skip_sticking = true
       yield
     ensure
       @skip_sticking = false
+      @master_context ||= before_context
     end
 
     def hijacked?

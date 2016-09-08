@@ -81,13 +81,27 @@ describe Makara::Proxy do
     end
 
     it 'should not stick to master if we are in a without_sticking block' do
+      expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
+
       proxy.without_sticking do
         expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
         expect(proxy.master_for?('select * from users')).to eq(false)
       end
 
+      expect(proxy.master_for?('select * from users')).to eq(true)
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
+    end
+
+    it 'should not stick to master after without_sticking block if there is a write in it' do
+      expect(proxy.master_for?('select * from users')).to eq(false)
+
+      proxy.without_sticking do
+        expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
+        expect(proxy.master_for?('select * from users')).to eq(false)
+      end
+
+      expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
     # if the context changes we should still use master until the previous context is no longer relevant
