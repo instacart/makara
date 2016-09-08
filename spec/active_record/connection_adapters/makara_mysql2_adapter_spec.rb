@@ -153,6 +153,10 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should use transactions to signify master' do
+      connection.slave_pool.connections.each do |slave|
+        expect(slave).to receive(:execute).never
+      end
+
       con = connection.master_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
       expect(con).to receive(:execute).with('COMMIT').once

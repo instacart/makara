@@ -72,6 +72,20 @@ describe 'MakaraPostgreSQLAdapter' do
       connection.execute('SELECT * FROM users')
     end
 
+    it 'should use transactions to signify master' do
+      connection.slave_pool.connections.each do |slave|
+        expect(slave).to receive(:execute).never
+      end
+
+      con = connection.master_pool.connections.first
+      expect(con).to receive(:execute).with('SELECT * FROM users').once
+      expect(con).to receive(:execute).with('COMMIT').once
+
+      ActiveRecord::Base.transaction do
+        connection.execute('SELECT * FROM users')
+      end
+    end
+
     it 'should send writes to master' do
       con = connection.master_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
