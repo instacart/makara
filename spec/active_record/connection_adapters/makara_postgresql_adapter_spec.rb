@@ -27,6 +27,7 @@ describe 'MakaraPostgreSQLAdapter' do
   context 'with the connection established and schema loaded' do
 
     before do
+          puts config
       ActiveRecord::Base.establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
@@ -72,26 +73,11 @@ describe 'MakaraPostgreSQLAdapter' do
       connection.execute('SELECT * FROM users')
     end
 
-    it 'should use transactions to signify master' do
-      connection.slave_pool.connections.each do |slave|
-        expect(slave).to receive(:execute).never
-      end
-
-      con = connection.master_pool.connections.first
-      expect(con).to receive(:execute).with('SELECT * FROM users').once
-      expect(con).to receive(:execute).with('COMMIT').once
-
-      ActiveRecord::Base.transaction do
-        connection.execute('SELECT * FROM users')
-      end
-    end
-
     it 'should send writes to master' do
       con = connection.master_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end
-
   end
 
   context 'without live connections' do
@@ -130,6 +116,65 @@ describe 'MakaraPostgreSQLAdapter' do
 
       connection.execute('SELECT * FROM users')
       expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+    end
+  end
+
+  context 'transaction support' do
+    before do
+      class User < ActiveRecord::Base
+      end
+    end
+    shared_examples 'a transaction supporter' do
+      before do
+        ActiveRecord::Base.establish_connection(config)
+        # Pre-loads the attributes so that schema queries don't hit slave
+        # user = User.create(name: 'hello')
+        connection.slave_pool.connections.each do |slave|
+          # Using method missing to help with back trace, literally
+          # no query should be executed on slave once a transaction is opened
+          expect(slave).to receive(:method_missing).never
+          expect(slave).to receive(:execute).never
+        end
+      end
+
+      context 'when querying through a polymorphic relation' do
+        it 'should respect the transaction' do
+          User.transaction do
+            user = User.create(name: 'hello')
+            user.reload
+          end
+        end
+      end
+
+      context 'when querying an aggregate' do
+        it 'should respect the transaction' do
+          User.transaction { User.count }
+        end
+      end
+
+      context 'when querying for a specific record' do
+        it 'should respect the transaction' do
+          User.transaction { User.first }
+        end
+      end
+
+      context 'when executing a query' do
+        it 'should respect the transaction' do
+          User.transaction { connection.execute('SELECT 1') }
+        end
+      end
+    end
+
+    context 'when sticky is true' do
+      before { config['makara']['sticky'] = true }
+
+      it_behaves_like 'a transaction supporter'
+    end
+
+    context 'when sticky is false' do
+      before { config['makara']['sticky'] = false }
+
+      it_behaves_like 'a transaction supporter'
     end
   end
 end

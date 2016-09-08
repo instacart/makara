@@ -211,6 +211,9 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
+      elsif in_transaction?
+        @master_pool
+
       # yay! use a slave
       else
         @slave_pool
@@ -222,6 +225,13 @@ module Makara
       true
     end
 
+    def in_transaction?
+      if respond_to?(:open_transactions)
+        self.open_transactions > 0
+      else
+        false
+      end
+    end
 
     def hijacked
       @hijacked = true
