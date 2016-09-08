@@ -184,8 +184,9 @@ describe 'MakaraMysql2Adapter' do
     shared_examples 'a transaction supporter' do
       before do
         ActiveRecord::Base.establish_connection(config)
-        # Pre-loads the attributes so that schema queries don't hit slave
-        # user = User.create(name: 'hello')
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        change_context
+
         connection.slave_pool.connections.each do |slave|
           # Using method missing to help with back trace, literally
           # no query should be executed on slave once a transaction is opened

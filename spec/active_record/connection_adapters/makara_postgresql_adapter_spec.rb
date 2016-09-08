@@ -123,6 +123,9 @@ describe 'MakaraPostgreSQLAdapter' do
     shared_examples 'a transaction supporter' do
       before do
         ActiveRecord::Base.establish_connection(config)
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        change_context
+
         # Pre-loads the attributes so that schema queries don't hit slave
         # user = User.create(name: 'hello')
         connection.slave_pool.connections.each do |slave|
