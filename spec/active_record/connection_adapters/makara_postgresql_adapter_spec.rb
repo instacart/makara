@@ -119,11 +119,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
   end
 
-  context 'transaction support' do
-    before do
-      class User < ActiveRecord::Base
-      end
-    end
+  describe 'transaction support' do
     shared_examples 'a transaction supporter' do
       before do
         ActiveRecord::Base.establish_connection(config)
@@ -139,28 +135,28 @@ describe 'MakaraPostgreSQLAdapter' do
 
       context 'when querying through a polymorphic relation' do
         it 'should respect the transaction' do
-          User.transaction do
-            user = User.create(name: 'hello')
-            user.reload
+          ActiveRecord::Base.transaction do
+            connection.execute("INSERT INTO users (name) VALUES ('John')")
+            connection.execute('SELECT * FROM users')
           end
         end
       end
 
       context 'when querying an aggregate' do
         it 'should respect the transaction' do
-          User.transaction { User.count }
+          ActiveRecord::Base.transaction { connection.execute('SELECT COUNT(*) FROM users') }
         end
       end
 
       context 'when querying for a specific record' do
         it 'should respect the transaction' do
-          User.transaction { User.first }
+          ActiveRecord::Base.transaction { connection.execute('SELECT * FROM users WHERE id = 1') }
         end
       end
 
       context 'when executing a query' do
         it 'should respect the transaction' do
-          User.transaction { connection.execute('SELECT 1') }
+          ActiveRecord::Base.transaction { connection.execute('SELECT 1') }
         end
       end
     end
