@@ -27,6 +27,7 @@ describe 'MakaraPostgreSQLAdapter' do
   context 'with the connection established and schema loaded' do
 
     before do
+          puts config
       ActiveRecord::Base.establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
@@ -77,45 +78,102 @@ describe 'MakaraPostgreSQLAdapter' do
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end
-
   end
 
   context 'without live connections' do
-      it 'should raise errors on read or write' do
-        allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(StandardError.new('could not connect to server: Connection refused'))
+    it 'should raise errors on read or write' do
+      allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(StandardError.new('could not connect to server: Connection refused'))
 
+      ActiveRecord::Base.establish_connection(config)
+      expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+    end
+  end
+
+  context 'with only master connection' do
+    it 'should not raise errors on read and write' do
+      custom_config = config.deep_dup
+      custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+
+      ActiveRecord::Base.establish_connection(custom_config)
+      load(File.dirname(__FILE__) + '/../../support/schema.rb')
+
+      connection.execute('SELECT * FROM users')
+      connection.execute('INSERT INTO users (name) VALUES (\'John\')')
+    end
+  end
+
+  context 'with only slave connection' do
+    it 'should raise error only on write' do
+      ActiveRecord::Base.establish_connection(config)
+      load(File.dirname(__FILE__) + '/../../support/schema.rb')
+      ActiveRecord::Base.clear_all_connections!
+
+      custom_config = config.deep_dup
+      custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
+
+      ActiveRecord::Base.establish_connection(custom_config)
+
+      connection.execute('SELECT * FROM users')
+      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+    end
+  end
+
+  describe 'transaction support' do
+    shared_examples 'a transaction supporter' do
+      before do
         ActiveRecord::Base.establish_connection(config)
-        expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-      end
-    end
-
-    context 'with only master connection' do
-      it 'should not raise errors on read and write' do
-        custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
-
-        ActiveRecord::Base.establish_connection(custom_config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        change_context
 
-        connection.execute('SELECT * FROM users')
-        connection.execute('INSERT INTO users (name) VALUES (\'John\')')
+        # Pre-loads the attributes so that schema queries don't hit slave
+        # user = User.create(name: 'hello')
+        connection.slave_pool.connections.each do |slave|
+          # Using method missing to help with back trace, literally
+          # no query should be executed on slave once a transaction is opened
+          expect(slave).to receive(:method_missing).never
+          expect(slave).to receive(:execute).never
+        end
+      end
+
+      context 'when querying through a polymorphic relation' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction do
+            connection.execute("INSERT INTO users (name) VALUES ('John')")
+            connection.execute('SELECT * FROM users')
+          end
+        end
+      end
+
+      context 'when querying an aggregate' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT COUNT(*) FROM users') }
+        end
+      end
+
+      context 'when querying for a specific record' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT * FROM users WHERE id = 1') }
+        end
+      end
+
+      context 'when executing a query' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT 1') }
+        end
       end
     end
 
-    context 'with only slave connection' do
-      it 'should raise error only on write' do
-        ActiveRecord::Base.establish_connection(config)
-        load(File.dirname(__FILE__) + '/../../support/schema.rb')
-        ActiveRecord::Base.clear_all_connections!
+    context 'when sticky is true' do
+      before { config['makara']['sticky'] = true }
 
-        custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
-
-        ActiveRecord::Base.establish_connection(custom_config)
-
-        connection.execute('SELECT * FROM users')
-        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-      end
+      it_behaves_like 'a transaction supporter'
     end
+
+    context 'when sticky is false' do
+      before { config['makara']['sticky'] = false }
+
+      it_behaves_like 'a transaction supporter'
+    end
+  end
 end

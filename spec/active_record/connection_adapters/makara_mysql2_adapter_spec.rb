@@ -10,6 +10,8 @@ describe 'MakaraMysql2Adapter' do
     base
   }
 
+  let(:connection) { ActiveRecord::Base.connection }
+
   before :each do
     ActiveRecord::Base.clear_all_connections!
     change_context
@@ -99,8 +101,6 @@ describe 'MakaraMysql2Adapter' do
 
   context 'with the connection established and schema loaded' do
 
-    let(:connection) { ActiveRecord::Base.connection }
-
     before do
       ActiveRecord::Base.establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -178,6 +178,62 @@ describe 'MakaraMysql2Adapter' do
       end
     end
 
+  end
+
+  describe 'transaction support' do
+    shared_examples 'a transaction supporter' do
+      before do
+        ActiveRecord::Base.establish_connection(config)
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        change_context
+
+        connection.slave_pool.connections.each do |slave|
+          # Using method missing to help with back trace, literally
+          # no query should be executed on slave once a transaction is opened
+          expect(slave).to receive(:method_missing).never
+          expect(slave).to receive(:execute).never
+        end
+      end
+
+      context 'when querying through a polymorphic relation' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction do
+            connection.execute("INSERT INTO users (name) VALUES ('John')")
+            connection.execute('SELECT * FROM users')
+          end
+        end
+      end
+
+      context 'when querying an aggregate' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT COUNT(*) FROM users') }
+        end
+      end
+
+      context 'when querying for a specific record' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT * FROM users WHERE id = 1') }
+        end
+      end
+
+      context 'when executing a query' do
+        it 'should respect the transaction' do
+          ActiveRecord::Base.transaction { connection.execute('SELECT 1') }
+        end
+      end
+    end
+
+    context 'when sticky is true' do
+      before { config['makara']['sticky'] = true }
+
+      it_behaves_like 'a transaction supporter'
+    end
+
+    context 'when sticky is false' do
+      before { config['makara']['sticky'] = false }
+
+      it_behaves_like 'a transaction supporter'
+    end
   end
 
 end
