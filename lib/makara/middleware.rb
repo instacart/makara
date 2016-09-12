@@ -12,14 +12,13 @@ module Makara
 
 
     def initialize(app)
-      require 'byebug'; byebug
+      puts "INITIALIZE HERE"
       @app = app
     end
 
 
     def call(env)
-      puts "LOADEDMAKRA"
-      require 'byebug'; byebug
+      puts "API CALLS HAPPENED"
       return @app.call(env) if ignore_request?(env)
 
       Makara::Context.set_previous previous_context(env)
