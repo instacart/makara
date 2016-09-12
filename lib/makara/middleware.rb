@@ -12,12 +12,13 @@ module Makara
 
 
     def initialize(app)
+      require 'byebug'; byebug
       @app = app
     end
 
 
     def call(env)
-
+      require 'byebug'; byebug
       return @app.call(env) if ignore_request?(env)
 
       Makara::Context.set_previous previous_context(env)
