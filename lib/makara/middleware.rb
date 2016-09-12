@@ -18,6 +18,7 @@ module Makara
 
 
     def call(env)
+      puts "LOADEDMAKRA"
       require 'byebug'; byebug
       return @app.call(env) if ignore_request?(env)
 
