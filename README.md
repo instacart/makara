@@ -162,6 +162,7 @@ Following the adapter choice is all the standard configurations (host, port, ret
 
 The makara subconfig sets up the proxy with a few of its own options, then provides the connection list. The makara options are:
 * blacklist_duration - the number of seconds a node is blacklisted when a connection failure occurs
+* disable_blacklist - do not blacklist node at any error, useful in case of one master
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
 * master_strategy - use a different strategy for picking the "current" node: `failover` will try to keep the same one until it is blacklisted. The default is `round_robin` which will cycle through available ones.
