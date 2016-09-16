@@ -44,7 +44,7 @@ module Makara
     def _makara_blacklist!
       @connection.disconnect! if @connection
       @connection = nil
-      @blacklisted_until = Time.now.to_i + @config[:blacklist_duration]
+      @blacklisted_until = Time.now.to_i + @config[:blacklist_duration] unless @config[:disable_blacklist]
     end
 
     # release the blacklist
