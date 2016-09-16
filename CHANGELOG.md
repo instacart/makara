@@ -1,6 +1,27 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## v0.3.7.rc - 2016-09-16
+
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.6...v0.3.7.rc)
+
+Changed
+
+- Fix the hierarchy of the config file [#116](https://github.com/taskrabbit/makara/pull/116) Kevin Bacha
+- "Disable blacklist" parameter [#134](https://github.com/taskrabbit/makara/pull/134) Alex Tonkonozhenko
+- Fixes bug in `without_sticking` [#96](https://github.com/taskrabbit/makara/pull/96) Brian Leonard
+- Always stick inside transactions [#96](https://github.com/taskrabbit/makara/pull/96) Brian Leonard
+- Rails 5 support [#122](https://github.com/taskrabbit/makara/pull/122) Jonny McAllister
+
+## v0.3.6 - 2016-04-21
+
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.5...v0.3.6)
+
+Changed
+
+- Allow different strategies such as `priority` and `round_robin` for pools [#105](https://github.com/taskrabbit/makara/pull/105) Brian Leonard
+
+
 ## v0.3.5 - 2016-01-08
 
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.4.rc1...v0.3.5)
