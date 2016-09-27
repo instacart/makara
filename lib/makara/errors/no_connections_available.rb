@@ -1,6 +1,6 @@
 module Makara
   module Errors
-    class NoConnectionsAvailable < ::StandardError
+    class NoConnectionsAvailable < MakaraError
 
       attr_reader :role
 
