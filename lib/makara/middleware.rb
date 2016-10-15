@@ -37,7 +37,7 @@ module Makara
     # ignore asset paths
     # consider allowing a filter proc to be provided in an initializer
     def ignore_request?(env)
-      if defined?(Rails)
+      if defined?(Rails) && Rails.try(:application).try(:config).try(:assets).try(:prefix)
         if env['PATH_INFO'].to_s =~ /^#{Rails.application.config.assets.prefix}/
           return true
         end
