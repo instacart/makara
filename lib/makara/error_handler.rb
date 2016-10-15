@@ -11,7 +11,7 @@ module Makara
 
     rescue Exception => e
 
-      if e.class.name =~ /^Makara::/
+      if e.is_a?(Makara::Errors::MakaraError)
         harshly(e)
       else
         gracefully(connection, e)

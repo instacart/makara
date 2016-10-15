@@ -1,6 +1,6 @@
 module Makara
   module Errors
-    class AllConnectionsBlacklisted < StandardError
+    class AllConnectionsBlacklisted < MakaraError
 
       def initialize(pool, errors)
         errors = [*errors]
