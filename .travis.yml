@@ -12,6 +12,7 @@ gemfile:
   - gemfiles/ar40.gemfile
   - gemfiles/ar41.gemfile
   - gemfiles/ar42.gemfile
+  - Gemfile
 
 sudo: false
 
