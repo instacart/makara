@@ -13,14 +13,14 @@ module Makara
 
       def write(key, value, options = {})
         clean
-        @data[key] = [value, Time.now.to_i + (options[:expires_in] || 5).to_i]
+        @data[key] = [value, Time.now.to_f + (options[:expires_in] || 5).to_f]
         true
       end
 
       protected
 
       def clean
-        @data.delete_if{|k,v| v[1] <= Time.now.to_i }
+        @data.delete_if{|k,v| v[1] <= Time.now.to_f }
       end
 
     end
