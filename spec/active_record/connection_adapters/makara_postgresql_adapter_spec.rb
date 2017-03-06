@@ -5,11 +5,11 @@ describe 'MakaraPostgreSQLAdapter' do
 
   let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
 
-  let(:config){
+  let(:config) do
     base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
     base['username'] = db_username
     base
-  }
+  end
 
   let(:connection) { ActiveRecord::Base.connection }
 
