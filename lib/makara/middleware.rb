@@ -12,12 +12,13 @@ module Makara
 
 
     def initialize(app)
+      puts "INITIALIZE HERE"
       @app = app
     end
 
 
     def call(env)
-
+      puts "API CALLS HAPPENED"
       return @app.call(env) if ignore_request?(env)
 
       Makara::Context.set_previous previous_context(env)
