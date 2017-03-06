@@ -2,14 +2,13 @@ require 'spec_helper'
 require 'active_record/connection_adapters/postgresql_adapter'
 
 describe 'MakaraPostgreSQLAdapter' do
+  let(:db_username) { ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
 
-  let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
-
-  let(:config){
+  let(:config) do
     base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
     base['username'] = db_username
     base
-  }
+  end
 
   let(:connection) { ActiveRecord::Base.connection }
 
@@ -18,6 +17,71 @@ describe 'MakaraPostgreSQLAdapter' do
     change_context
   end
 
+  context 'polymorphic associations' do
+    before do
+      class Picture < ActiveRecord::Base
+        belongs_to :imageable, polymorphic: true
+      end
+
+      class User < ActiveRecord::Base
+        has_many :pictures, as: :imageable
+      end
+    end
+
+    shared_examples 'a transaction supporter' do
+      before do
+        ActiveRecord::Base.establish_connection(config)
+        # Pre-loads the attributes so that schema queries don't hit slave
+        user = User.create(name: 'hello')
+        user.pictures.count
+        connection.slave_pool.connections.each do |slave|
+          # Using method missing to help with back trace, literally
+          # no query should be executed on slave once a transaction is opened
+          expect(slave).to receive(:method_missing).never
+          expect(slave).to receive(:execute).never
+        end
+      end
+
+      context 'when querying through a polymorphic relation' do
+        it 'should respect the transaction' do
+          User.transaction do
+            user = User.create(name: 'hello')
+            user.pictures.count
+          end
+        end
+      end
+
+      context 'when querying an aggregate' do
+        it 'should respect the transaction' do
+          User.transaction { User.count }
+        end
+      end
+
+      context 'when querying for a specific record' do
+        it 'should respect the transaction' do
+          User.transaction { User.find(1) }
+        end
+      end
+
+      context 'when executing a query' do
+        it 'should respect the transaction' do
+          User.transaction { connection.execute('SELECT 1') }
+        end
+      end
+    end
+
+    context 'when sticky is true' do
+      before { config['makara']['sticky'] = true }
+
+      it_behaves_like 'a transaction supporter'
+    end
+
+    context 'when sticky is false' do
+      before { config['makara']['sticky'] = false }
+
+      it_behaves_like 'a transaction supporter'
+    end
+  end
 
   it 'should allow a connection to be established' do
     ActiveRecord::Base.establish_connection(config)
