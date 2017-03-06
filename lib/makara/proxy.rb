@@ -2,6 +2,7 @@ require 'delegate'
 require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/string/inflections'
+require 'active_support/notifications'
 
 # The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
 # being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
@@ -192,10 +193,12 @@ module Makara
       # the args provided absolutely need master
       if needs_master?(method_name, args)
         stick_to_master(method_name, args)
+        ActiveSupport::Notifications.instrument('makara.pool.master')
         @master_pool
 
       # in this context, we've already stuck to master
       elsif Makara::Context.get_current == @master_context
+        ActiveSupport::Notifications.instrument('makara.pool.master')
         @master_pool
 
       # the previous context stuck us to master
@@ -204,11 +207,13 @@ module Makara
         # we're only on master because of the previous context so
         # behave like we're sticking to master but store the current context
         stick_to_master(method_name, args, false)
+        ActiveSupport::Notifications.instrument('makara.pool.master')
         @master_pool
 
       # all slaves are down (or empty)
       elsif @slave_pool.completely_blacklisted?
         stick_to_master(method_name, args)
+        ActiveSupport::Notifications.instrument('makara.pool.master')
         @master_pool
 
       elsif in_transaction?
@@ -216,12 +221,15 @@ module Makara
 
       # yay! use a slave
       else
+        ActiveSupport::Notifications.instrument('makara.pool.slave')
         @slave_pool
       end
     end
 
     # do these args require a master connection
     def needs_master?(method_name, args)
+      payload = { method: method_name, args: args }
+      ActiveSupport::Notifications.instrument('makara.proxy.needs_master', payload)
       true
     end
 
@@ -236,8 +244,10 @@ module Makara
     def hijacked
       @hijacked = true
       yield
+      ActiveSupport::Notifications.instrument('makara.proxy.hijacked', true)
     ensure
       @hijacked = false
+      ActiveSupport::Notifications.instrument('makara.proxy.hijacked', false)
     end
 
 
@@ -248,6 +258,9 @@ module Makara
 
 
     def stick_to_master(method_name, args, write_to_cache = true)
+      payload = {method: method_name, args: args, write_to_cache: write_to_cache }
+      ActiveSupport::Notifications.instrument('makara.proxy.stick_to_master', payload)
+
       # if we're already stuck to master, don't bother doing it again
       return if @master_context == Makara::Context.get_current
 
