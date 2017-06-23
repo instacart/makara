@@ -80,10 +80,10 @@ module Makara
     def strategy_for(role)
       strategy_name = @config_parser.makara_config["#{role}_strategy".to_sym]
       case strategy_name
-      when 'round_robin', 'roundrobin', nil, ''
-        strategy_name = "::Makara::Strategies::RoundRobin"
-      when 'failover'
-        strategy_name = "::Makara::Strategies::PriorityFailover"
+        when 'round_robin', 'roundrobin', nil, ''
+          strategy_name = "::Makara::Strategies::RoundRobin"
+        when 'failover'
+          strategy_name = "::Makara::Strategies::PriorityFailover"
       end
       strategy_name.constantize.new(self)
     end
@@ -197,9 +197,11 @@ module Makara
       # in this context, we've already stuck to master
       elsif Makara::Context.get_current == @master_context
         @master_pool
-
-      # the previous context stuck us to master
-      elsif previously_stuck_to_master?
+        
+      # check if the previous context stuck us to master, if we haven't already checked for this thread.
+      # if we weren't previously stuck to master, we don't need to keep checking with each DB request.
+      elsif !Makara::Context.checked_previous? && previously_stuck_to_master?
+        Makara::Context.set_checked_previous
 
         # we're only on master because of the previous context so
         # behave like we're sticking to master but store the current context

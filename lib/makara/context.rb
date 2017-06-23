@@ -13,15 +13,24 @@ module Makara
       end
 
       def get_previous
-        get_current_thread_local_for(:makara_context_previous)
+        get_current_thread_local_context_for(:makara_context_previous)
       end
 
       def set_previous(context)
+        set_current_thread_local(:makara_checked_previous,false)
         set_current_thread_local(:makara_context_previous,context)
       end
 
+      def checked_previous?
+        get_current_thread_local_for(:makara_checked_previous)
+      end
+
+      def set_checked_previous
+        set_current_thread_local(:makara_checked_previous,true)
+      end
+
       def get_current
-        get_current_thread_local_for(:makara_context_current)
+        get_current_thread_local_context_for(:makara_context_current)
       end
 
       def set_current(context)
@@ -32,7 +41,11 @@ module Makara
 
       def get_current_thread_local_for(type)
         t = Thread.current
-        current = t.respond_to?(:thread_variable_get) ? t.thread_variable_get(type) : t[type]
+        t.respond_to?(:thread_variable_get) ? t.thread_variable_get(type) : t[type]
+      end
+
+      def get_current_thread_local_context_for(type)
+        current = get_current_thread_local_for(type)
         current ||= set_current_thread_local(type,generate)
       end
 

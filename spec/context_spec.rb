@@ -101,6 +101,15 @@ describe Makara::Context do
       threads.map(&:join)
       expect(uniq_curret_contexts.uniq.count).to eq(3)
     end
+
+    it 'sets thread local variable makara_checked_previous to false' do
+      Makara::Context.set_checked_previous
+      expect(Makara::Context.checked_previous?).to be true
+
+      Makara::Context.set_previous("val")
+
+      expect(Makara::Context.checked_previous?).to be false
+    end
   end
 
 end
