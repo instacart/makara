@@ -242,7 +242,7 @@ module Makara
 
     def previously_stuck_to_master?
       return false unless @sticky
-      Makara::Context.get_cached_previous(@id)
+      Makara::Context.cached_previous?(@id)
     end
 
 
