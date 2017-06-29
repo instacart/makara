@@ -74,7 +74,7 @@ module Makara
 
     def stick_to_master!(write_to_cache = true)
       @master_context = Makara::Context.get_current
-      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+      Makara::Context.cache_current(@id, @ttl) if write_to_cache
     end
 
     def strategy_for(role)
@@ -194,21 +194,18 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      # in this context, we've already stuck to master
+        # in this context, we've already stuck to master
       elsif Makara::Context.get_current == @master_context
         @master_pool
-        
-      # check if the previous context stuck us to master, if we haven't already checked for this thread.
-      # if we weren't previously stuck to master, we don't need to keep checking with each DB request.
-      elsif !Makara::Context.checked_previous? && previously_stuck_to_master?
-        Makara::Context.set_checked_previous
+
+      elsif previously_stuck_to_master?
 
         # we're only on master because of the previous context so
         # behave like we're sticking to master but store the current context
         stick_to_master(method_name, args, false)
         @master_pool
 
-      # all slaves are down (or empty)
+        # all slaves are down (or empty)
       elsif @slave_pool.completely_blacklisted?
         stick_to_master(method_name, args)
         @master_pool
@@ -216,7 +213,7 @@ module Makara
       elsif in_transaction?
         @master_pool
 
-      # yay! use a slave
+        # yay! use a slave
       else
         @slave_pool
       end
@@ -245,7 +242,7 @@ module Makara
 
     def previously_stuck_to_master?
       return false unless @sticky
-      !!Makara::Cache.read("makara::#{Makara::Context.get_previous}-#{@id}")
+      Makara::Context.get_cached_previous(@id)
     end
 
 
