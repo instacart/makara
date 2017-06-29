@@ -1,19 +1,6 @@
-language: ruby
-
-rvm:
-  - 2.0.0
-  - 2.1.1
-  - jruby
-
-gemfile:
-  - gemfiles/ar30.gemfile
-  - gemfiles/ar31.gemfile
-  - gemfiles/ar32.gemfile
-  - gemfiles/ar40.gemfile
-  - gemfiles/ar41.gemfile
-  - gemfiles/ar42.gemfile
-
 sudo: false
+language: ruby
+cache: bundler
 
 services:
   - mysql
@@ -23,6 +10,60 @@ before_script:
   - mysql -e 'create database makara_test;'
   - psql -c 'create database makara_test;' -U postgres
 
-before_install:
-  - gem update --system 2.1.11
-  - gem --version
+rvm:
+  - 2.0
+  - 2.1
+  - 2.2
+  - 2.3
+  - 2.4
+  - ruby-head
+  - jruby
+
+gemfile:
+  - gemfiles/ar30.gemfile
+  - gemfiles/ar31.gemfile
+  - gemfiles/ar32.gemfile
+  - gemfiles/ar40.gemfile
+  - gemfiles/ar41.gemfile
+  - gemfiles/ar42.gemfile
+  - gemfiles/ar50.gemfile
+  - gemfiles/ar51.gemfile
+  - gemfiles/ar-head.gemfile
+
+env:
+  global:
+    - "JRUBY_OPTS='--dev -J-Xmx1024M'"
+
+matrix:
+  exclude:
+    - gemfile: gemfiles/ar30.gemfile
+      rvm: 2.2
+    - gemfile: gemfiles/ar30.gemfile
+      rvm: 2.3
+    - gemfile: gemfiles/ar30.gemfile
+      rvm: 2.4
+    - gemfile: gemfiles/ar30.gemfile
+      rvm: ruby-head
+    - gemfile: gemfiles/ar50.gemfile
+      rvm: 2.0
+    - gemfile: gemfiles/ar50.gemfile
+      rvm: 2.1
+    - gemfile: gemfiles/ar50.gemfile
+      rvm: 2.2
+    - gemfile: gemfiles/ar51.gemfile
+      rvm: 2.0
+    - gemfile: gemfiles/ar51.gemfile
+      rvm: 2.1
+    - gemfile: gemfiles/ar51.gemfile
+      rvm: 2.2
+    - gemfile: gemfiles/ar-head.gemfile
+      rvm: 2.0
+    - gemfile: gemfiles/ar-head.gemfile
+      rvm: 2.1
+    - gemfile: gemfiles/ar-head.gemfile
+      rvm: 2.2
+  allow_failures:
+    - gemfile: gemfiles/ar-head.gemfile
+    - rvm: ruby-head
+    - rvm: jruby
+  fast_finish: true
