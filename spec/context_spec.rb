@@ -102,51 +102,44 @@ describe Makara::Context do
       expect(uniq_curret_contexts.uniq.count).to eq(3)
     end
 
-    it 'sets thread local variable makara_cached_previous to nil' do
-      t = Thread.current
-      t.respond_to?(:thread_variable_set) ? t.thread_variable_set(:makara_cached_previous,1) : t[:makara_cached_previous]=1
+    it 'clears config sticky cache' do
+      Makara::Cache.store = :memory
 
-      Makara::Context.set_previous("val")
+      Makara::Context.set_previous('a')
+      Makara::Context.stick('a', 1, 10)
+      expect(Makara::Context.previously_stuck?(1)).to be_truthy
 
-      thread_var = t.respond_to?(:thread_variable_get) ? t.thread_variable_get(:makara_cached_previous) : t[:makara_cached_previous]
-      expect(thread_var).to be nil
+      Makara::Context.set_previous('b')
+      expect(Makara::Context.previously_stuck?(1)).to be_falsey
     end
   end
 
-  describe 'cache_current' do
-    it 'caches the current context using Makara::Cache' do
-      context = 'some_val'
-      config_id = 1
-      ttl = 10
+  describe 'stick' do
+    it 'sticks a config to master for subsequent requests' do
       Makara::Cache.store = :memory
-      allow(Makara::Context).to receive(:get_current) { context }
 
-      # expect it to not be set yet
-      expect(Makara::Cache.read("makara::#{context}-#{config_id}")).to eq(nil)
+      expect(Makara::Context.stuck?('context', 1)).to be_falsey
 
-      Makara::Context.cache_current(config_id, ttl)
-      # expect it to be set now
-      expect(Makara::Cache.read("makara::#{context}-#{config_id}")).to eq('1')
+      Makara::Context.stick('context', 1, 10)
+      expect(Makara::Context.stuck?('context', 1)).to be_truthy
+      expect(Makara::Context.stuck?('context', 2)).to be_falsey
     end
   end
 
-  describe 'cached_previous?' do
-    it 'gets the context that was cached via cache_current' do
-      context = 'some_val'
-      config_id = 1
-      ttl = 10
+  describe 'previously_stuck?' do
+    it 'checks whether a config was stuck to master in the previous context' do
       Makara::Cache.store = :memory
+      Makara::Context.set_previous 'previous'
 
-      # this emulates handling a web request, which gets stuck to master, and therefore stores the current context in cache
-      allow(Makara::Context).to receive(:get_current) { context }
-      Makara::Context.cache_current(config_id, ttl)
+      # Emulate sticking the previous web request to master.
+      Makara::Context.stick 'previous', 1, 10
 
-      # this emulates handling a subsequent web request, which included a cookie that is the context from the last request,
-      # i.e., now that is considered the "previous" context
-      allow(Makara::Context).to receive(:get_previous) { context }
-      cached_context =  Makara::Context.cached_previous?(config_id)
+      # Emulate handling the subsequent web request with a previous context
+      # cookie that is stuck to master.
+      expect(Makara::Context.previously_stuck?(1)).to be_truthy
 
-      expect(cached_context).to eq(true)
+      # Other configs should not be stuck to master, though.
+      expect(Makara::Context.previously_stuck?(2)).to be_falsey
     end
   end
 end

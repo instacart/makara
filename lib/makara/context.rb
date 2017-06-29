@@ -13,55 +13,69 @@ module Makara
       end
 
       def get_previous
-        get_current_thread_local_context_for(:makara_context_previous)
+        fetch(:makara_context_previous) { generate }
       end
 
       def set_previous(context)
-        set_current_thread_local(:makara_cached_previous,nil)
-        set_current_thread_local(:makara_context_previous,context)
+        previously_sticky.clear
+        set(:makara_context_previous,context)
       end
 
       def get_current
-        get_current_thread_local_context_for(:makara_context_current)
+        fetch(:makara_context_current) { generate }
       end
 
       def set_current(context)
-        set_current_thread_local(:makara_context_current,context)
+        set(:makara_context_current,context)
       end
 
-      # cache the current context so that it can be checked as the "previous" context by a subsequent request.
-      # this is done when the current context gets stuck to master.
-      # the current context is sent with the response as a cookie - any subsequent request will send the cookie (until it expires);
-      # if the context from the cookie is found in the cache, it means the previous request was stuck to maaster
-      def cache_current(config_id, ttl)
-        Makara::Cache.write("makara::#{get_current}-#{config_id}", '1', ttl)
-      end
-
-      def cached_previous?(config_id)
-        cached_previous = get_current_thread_local_for(:makara_cached_previous)
-        # if haven't memoized the result of the Cache.read yet
-        if cached_previous.nil?
-          cached_previous = !!Makara::Cache.read("makara::#{Makara::Context.get_previous}-#{config_id}")
-          set_current_thread_local(:makara_cached_previous,cached_previous)
+      def previously_stuck?(config_id)
+        previously_sticky.fetch(config_id) do
+          stuck?(Makara::Context.get_previous, config_id)
         end
-        cached_previous
+      end
+
+      # Called by `Proxy#stick_to_master!` to stick subsequent requests to
+      # master. They'll see the current context as their previous context
+      # when they're asking whether they should be stuck to master.
+      def stick(context, config_id, ttl)
+        Makara::Cache.write(cache_key_for(context, config_id), '1', ttl)
+      end
+
+      def stuck?(context, config_id)
+        !!Makara::Cache.read(cache_key_for(context, config_id))
       end
 
       protected
 
-      def get_current_thread_local_for(type)
-        t = Thread.current
-        t.respond_to?(:thread_variable_get) ? t.thread_variable_get(type) : t[type]
+      def previously_sticky
+        fetch(:makara_previously_sticky) { Hash.new }
       end
 
-      def get_current_thread_local_context_for(type)
-        current = get_current_thread_local_for(type)
-        current ||= set_current_thread_local(type,generate)
+      def cache_key_for(context, config_id)
+        "makara::#{context}-#{config_id}"
       end
 
-      def set_current_thread_local(type,context)
-        t = Thread.current
-        t.respond_to?(:thread_variable_set) ? t.thread_variable_set(type,context) : t[type]=context
+      def fetch(key)
+        get(key) || set(key,yield)
+      end
+
+      if Thread.current.respond_to?(:thread_variable_get)
+        def get(key)
+          Thread.current.thread_variable_get(key)
+        end
+
+        def set(key,value)
+          Thread.current.thread_variable_set(key,value)
+        end
+      else
+        def get(key)
+          Thread.current[key]
+        end
+
+        def set(key,value)
+          Thread.current[key]=value
+        end
       end
 
     end
