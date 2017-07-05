@@ -165,24 +165,33 @@ module ActiveRecord
 
 
       def should_stick?(method_name, args)
-        sql = args.first.to_s
+        sql = coerce_query_to_sql_string(args.first)
         return false if sql_skip_stickiness_matchers.any?{|m| sql =~ m }
         super
       end
 
 
       def needed_by_all?(method_name, args)
-        sql = args.first.to_s
+        sql = coerce_query_to_sql_string(args.first)
         return true if sql_all_matchers.any?{|m| sql =~ m }
         false
       end
 
 
       def needs_master?(method_name, args)
-        sql = args.first.to_s
+        sql = coerce_query_to_sql_string(args.first)
         return true if sql_master_matchers.any?{|m| sql =~ m }
         return false if sql_slave_matchers.any?{|m| sql =~ m }
         true
+      end
+
+
+      def coerce_query_to_sql_string(sql_or_arel)
+        if sql_or_arel.respond_to?(:to_sql)
+          sql_or_arel.to_sql
+        else
+          sql_or_arel.to_s
+        end
       end
 
 
