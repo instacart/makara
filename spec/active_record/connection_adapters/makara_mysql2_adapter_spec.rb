@@ -24,44 +24,6 @@ describe 'MakaraMysql2Adapter' do
       expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
     end
 
-    it 'should not blow up if a connection fails' do
-      wrong_config = config.deep_dup
-      wrong_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
-
-      original_method = ActiveRecord::Base.method(:mysql2_connection)
-
-      allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
-        if config[:username] == 'other'
-          raise "could not connect"
-        else
-          original_method.call(config)
-        end
-      end
-
-      ActiveRecord::Base.establish_connection(wrong_config)
-      ActiveRecord::Base.connection
-
-      load(File.dirname(__FILE__) + '/../../support/schema.rb')
-      Makara::Context.set_current Makara::Context.generate
-
-      allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
-        config[:username] = db_username
-        original_method.call(config)
-      end
-
-      ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
-      ActiveRecord::Base.connection.slave_pool.provide do |con|
-        res = con.execute('SELECT count(*) FROM users')
-        if defined?(JRUBY_VERSION)
-          expect(res[0]).to eq('count(*)' => 0)
-        else
-          expect(res.to_a[0][0]).to eq(0)
-        end
-      end
-
-      ActiveRecord::Base.remove_connection
-    end
-
     it 'should execute a send_to_all against master even if no slaves are connected' do
       ActiveRecord::Base.establish_connection(config)
       connection = ActiveRecord::Base.connection
@@ -95,6 +57,50 @@ describe 'MakaraMysql2Adapter' do
         connection.execute('SET @t1 = 1')
       }.to raise_error(Makara::Errors::NoConnectionsAvailable)
 
+    end
+
+    context "unconnect afterwards" do
+      after :each do
+        ActiveRecord::Base.clear_all_connections!
+      end
+
+      it 'should not blow up if a connection fails' do
+        wrong_config = config.deep_dup
+        wrong_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
+
+        original_method = ActiveRecord::Base.method(:mysql2_connection)
+
+        allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
+          if config[:username] == 'other'
+            raise "could not connect"
+          else
+            original_method.call(config)
+          end
+        end
+
+        ActiveRecord::Base.establish_connection(wrong_config)
+        ActiveRecord::Base.connection
+
+        load(File.dirname(__FILE__) + '/../../support/schema.rb')
+        Makara::Context.set_current Makara::Context.generate
+
+        allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
+          config[:username] = db_username
+          original_method.call(config)
+        end
+
+        ActiveRecord::Base.connection.slave_pool.connections.each(&:_makara_whitelist!)
+        ActiveRecord::Base.connection.slave_pool.provide do |con|
+          res = con.execute('SELECT count(*) FROM users')
+          if defined?(JRUBY_VERSION)
+            expect(res[0]).to eq('count(*)' => 0)
+          else
+            expect(res.to_a[0][0]).to eq(0)
+          end
+        end
+
+        ActiveRecord::Base.remove_connection
+      end
     end
 
   end
