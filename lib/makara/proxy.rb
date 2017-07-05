@@ -74,18 +74,26 @@ module Makara
 
     def stick_to_master!(write_to_cache = true)
       @master_context = Makara::Context.get_current
-      Makara::Context.cache_current(@id, @ttl) if write_to_cache
+      Makara::Context.stick(@master_context, @id, @ttl) if write_to_cache
     end
 
     def strategy_for(role)
-      strategy_name = @config_parser.makara_config["#{role}_strategy".to_sym]
+      strategy_class_for(strategy_name_for(role)).new(self)
+    end
+
+    def strategy_name_for(role)
+      @config_parser.makara_config["#{role}_strategy".to_sym]
+    end
+
+    def strategy_class_for(strategy_name)
       case strategy_name
-        when 'round_robin', 'roundrobin', nil, ''
-          strategy_name = "::Makara::Strategies::RoundRobin"
-        when 'failover'
-          strategy_name = "::Makara::Strategies::PriorityFailover"
+      when 'round_robin', 'roundrobin', nil, ''
+        ::Makara::Strategies::RoundRobin
+      when 'failover'
+        ::Makara::Strategies::PriorityFailover
+      else
+        strategy_name.constantize
       end
-      strategy_name.constantize.new(self)
     end
 
     def method_missing(m, *args, &block)
@@ -194,7 +202,7 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-        # in this context, we've already stuck to master
+      # in this context, we've already stuck to master
       elsif Makara::Context.get_current == @master_context
         @master_pool
 
@@ -205,7 +213,7 @@ module Makara
         stick_to_master(method_name, args, false)
         @master_pool
 
-        # all slaves are down (or empty)
+      # all slaves are down (or empty)
       elsif @slave_pool.completely_blacklisted?
         stick_to_master(method_name, args)
         @master_pool
@@ -213,7 +221,7 @@ module Makara
       elsif in_transaction?
         @master_pool
 
-        # yay! use a slave
+      # yay! use a slave
       else
         @slave_pool
       end
@@ -241,8 +249,7 @@ module Makara
 
 
     def previously_stuck_to_master?
-      return false unless @sticky
-      Makara::Context.cached_previous?(@id)
+      @sticky && Makara::Context.previously_stuck?(@id)
     end
 
 
