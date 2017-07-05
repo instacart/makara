@@ -74,16 +74,16 @@ module Makara
 
     def stick_to_master!(write_to_cache = true)
       @master_context = Makara::Context.get_current
-      Makara::Cache.write("makara::#{@master_context}-#{@id}", '1', @ttl) if write_to_cache
+      Makara::Context.cache_current(@id, @ttl) if write_to_cache
     end
 
     def strategy_for(role)
       strategy_name = @config_parser.makara_config["#{role}_strategy".to_sym]
       case strategy_name
-      when 'round_robin', 'roundrobin', nil, ''
-        strategy_name = "::Makara::Strategies::RoundRobin"
-      when 'failover'
-        strategy_name = "::Makara::Strategies::PriorityFailover"
+        when 'round_robin', 'roundrobin', nil, ''
+          strategy_name = "::Makara::Strategies::RoundRobin"
+        when 'failover'
+          strategy_name = "::Makara::Strategies::PriorityFailover"
       end
       strategy_name.constantize.new(self)
     end
@@ -194,11 +194,10 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      # in this context, we've already stuck to master
+        # in this context, we've already stuck to master
       elsif Makara::Context.get_current == @master_context
         @master_pool
 
-      # the previous context stuck us to master
       elsif previously_stuck_to_master?
 
         # we're only on master because of the previous context so
@@ -206,7 +205,7 @@ module Makara
         stick_to_master(method_name, args, false)
         @master_pool
 
-      # all slaves are down (or empty)
+        # all slaves are down (or empty)
       elsif @slave_pool.completely_blacklisted?
         stick_to_master(method_name, args)
         @master_pool
@@ -214,7 +213,7 @@ module Makara
       elsif in_transaction?
         @master_pool
 
-      # yay! use a slave
+        # yay! use a slave
       else
         @slave_pool
       end
@@ -243,7 +242,7 @@ module Makara
 
     def previously_stuck_to_master?
       return false unless @sticky
-      !!Makara::Cache.read("makara::#{Makara::Context.get_previous}-#{@id}")
+      Makara::Context.cached_previous?(@id)
     end
 
 
