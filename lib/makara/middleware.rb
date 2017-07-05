@@ -11,14 +11,14 @@ module Makara
     IDENTIFIER = '_mkra_ctxt'
 
 
-    def initialize(app)
+    def initialize(app, options = {})
       @app = app
+      @skip_middleware = Makara.config.skip_middleware
     end
-
 
     def call(env)
 
-      return @app.call(env) if ignore_request?(env)
+      return @app.call(env) if @skip_middleware || ignore_request?(env)
 
       Makara::Context.set_previous previous_context(env)
       Makara::Context.set_current new_context(env)

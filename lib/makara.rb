@@ -29,4 +29,15 @@ module Makara
     autoload :PriorityFailover, 'makara/strategies/priority_failover'
   end
 
+  class Config
+    attr_accessor :skip_middleware
+  end
+
+  def self.config
+    @@config ||= Config.new
+  end
+
+  def self.configure
+    yield self.config
+  end
 end

@@ -71,6 +71,19 @@ Makara::Cache.store = MyRedisCacheStore.new
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current master context. If the next request is executed before the cookie expires, master will be used. If something occurs which naturally requires master on the second request, the context is changed and stored again.
 
+### Skipping middleware and manage your own context
+If for some reason you want to skip the middleware and use
+something else to manage your own context. There is a built in option
+to short circuit the middleware in rails applications.
+Just add this snippet to any of your application.rb or environment files:
+
+```ruby
+config.makara.skip_middleware = true
+```
+
+Makara will generate a new context between each request and store this in your
+cache store.  It is up to you to set previous/current contexts as needed.
+
 #### Changing Context
 
 If you need to change the makara context, releasing any stuck connections, all you have to do is:
