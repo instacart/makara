@@ -20,12 +20,12 @@ describe 'MakaraMysql2Adapter' do
   context "unconnected" do
 
     it 'should allow a connection to be established' do
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
     end
 
     it 'should execute a send_to_all against master even if no slaves are connected' do
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       connection = ActiveRecord::Base.connection
 
       connection.slave_pool.connections.each do |c|
@@ -44,7 +44,7 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should execute a send_to_all and raise a NoConnectionsAvailable error' do
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       connection = ActiveRecord::Base.connection
 
       (connection.slave_pool.connections | connection.master_pool.connections).each do |c|
@@ -78,7 +78,7 @@ describe 'MakaraMysql2Adapter' do
           end
         end
 
-        ActiveRecord::Base.establish_connection(wrong_config)
+        establish_connection(wrong_config)
         ActiveRecord::Base.connection
 
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -108,7 +108,7 @@ describe 'MakaraMysql2Adapter' do
   context 'with the connection established and schema loaded' do
 
     before do
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
@@ -189,7 +189,7 @@ describe 'MakaraMysql2Adapter' do
   describe 'transaction support' do
     shared_examples 'a transaction supporter' do
       before do
-        ActiveRecord::Base.establish_connection(config)
+        establish_connection(config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 
