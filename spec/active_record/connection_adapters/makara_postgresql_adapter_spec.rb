@@ -20,15 +20,14 @@ describe 'MakaraPostgreSQLAdapter' do
 
 
   it 'should allow a connection to be established' do
-    ActiveRecord::Base.establish_connection(config)
+    establish_connection(config)
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter)
   end
 
   context 'with the connection established and schema loaded' do
 
     before do
-          puts config
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
@@ -95,7 +94,7 @@ describe 'MakaraPostgreSQLAdapter' do
       custom_config = config.deep_dup
       custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
 
-      ActiveRecord::Base.establish_connection(custom_config)
+      establish_connection(custom_config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
 
       connection.execute('SELECT * FROM users')
@@ -105,14 +104,14 @@ describe 'MakaraPostgreSQLAdapter' do
 
   context 'with only slave connection' do
     it 'should raise error only on write' do
-      ActiveRecord::Base.establish_connection(config)
+      establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       ActiveRecord::Base.clear_all_connections!
 
       custom_config = config.deep_dup
       custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
 
-      ActiveRecord::Base.establish_connection(custom_config)
+      establish_connection(custom_config)
 
       connection.execute('SELECT * FROM users')
       expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
@@ -122,7 +121,7 @@ describe 'MakaraPostgreSQLAdapter' do
   describe 'transaction support' do
     shared_examples 'a transaction supporter' do
       before do
-        ActiveRecord::Base.establish_connection(config)
+        establish_connection(config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 

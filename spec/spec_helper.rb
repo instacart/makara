@@ -19,13 +19,13 @@ RSpec.configure do |config|
 
   config.order = 'random'
 
+  require "#{File.dirname(__FILE__)}/support/helpers"
   require "#{File.dirname(__FILE__)}/support/proxy_extensions"
   require "#{File.dirname(__FILE__)}/support/pool_extensions"
-  require "#{File.dirname(__FILE__)}/support/configurator"
   require "#{File.dirname(__FILE__)}/support/mock_objects"
   require "#{File.dirname(__FILE__)}/support/deep_dup"
 
-  config.include Configurator
+  config.include SpecHelpers
 
   config.before :each do
     Makara::Cache.store = :memory
