@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## v0.3.8 - 2016-07-11
+
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.7...v0.3.8) 
+
+Changed
+- Rails 5.1 compatibility [#150](https://github.com/taskrabbit/makara/pull/150) Jeremy Daer
+- Minimize redundant context cache requests [#157](https://github.com/taskrabbit/makara/issues/157) Greg Patrick
+- thread-local cache for previous context stickiness [#158](https://github.com/taskrabbit/makara/issues/158)  Jeremy Daer
+- Configurable cookie options [#159](https://github.com/taskrabbit/makara/pull/159) Jeremy Daer
+- Test against Rails 5.x and Ruby 2.x [#160](https://github.com/taskrabbit/makara/pull/160) Jeremy Daer
+
 ## v0.3.7 - 2016-09-22
 
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.6...v0.3.7)
