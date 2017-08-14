@@ -13,3 +13,5 @@ gem 'mysql2', '~> 0.3.10', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
 gem 'pg', :platform => :ruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
+gem 'activerecord-postgis-adapter', :platform => :ruby
+gem 'rgeo', :platform => :ruby
