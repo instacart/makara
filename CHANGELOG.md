@@ -1,7 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## v0.3.8 - 2016-07-11
+## v0.3.9 - 2017-08-14
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.8...v0.3.9) 
+
+Changed
+- Add postgis support [#118](https://github.com/taskrabbit/makara/pull/118) Kevin Bacha
+
+## v0.3.8 - 2017-07-11
 
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.7...v0.3.8) 
 
