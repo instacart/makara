@@ -97,8 +97,7 @@ describe Makara::ConfigParser do
           :top_level => 'value',
           :sticky => true,
           :blacklist_duration => 30,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         }
       ])
       expect(parser.slave_configs).to eq([
@@ -107,16 +106,14 @@ describe Makara::ConfigParser do
           :top_level => 'value',
           :sticky => true,
           :blacklist_duration => 30,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         },
         {
           :name => 'slave2',
           :top_level => 'value',
           :sticky => true,
           :blacklist_duration => 30,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         }
       ])
     end
@@ -133,8 +130,7 @@ describe Makara::ConfigParser do
           :top_level => 'value',
           :sticky => true,
           :blacklist_duration => 456,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         }
       ])
       expect(parser.slave_configs).to eq([
@@ -143,16 +139,14 @@ describe Makara::ConfigParser do
           :top_level => 'slave value',
           :sticky => true,
           :blacklist_duration => 123,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         },
         {
           :name => 'slave2',
           :top_level => 'value',
           :sticky => true,
           :blacklist_duration => 123,
-          :master_ttl => 5,
-          :sticky => true
+          :master_ttl => 5
         }
       ])
     end
