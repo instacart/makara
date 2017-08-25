@@ -3,11 +3,14 @@
 # also rgeo only works on 2.1+
 
 rmajor, rminor, rpatch = RUBY_VERSION.split(/[^\d]/)[0..2].map(&:to_i)
+require 'active_record'
+
+# TODO: test this in AR 5+ ?
 
 if RUBY_ENGINE == 'ruby' &&
     ActiveRecord::VERSION::MAJOR == 4 &&
     ActiveRecord::VERSION::MINOR >= 2 &&
-    rmajor > 2 || (rmajor == 2 && rminor >= 1)
+    (rmajor > 2 || (rmajor == 2 && rminor >= 1))
 
   require 'spec_helper'
   require 'rgeo'
