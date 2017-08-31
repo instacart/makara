@@ -1,9 +1,9 @@
-ActiveRecord::Schema.define(:version => 20130628161227) do
+conn = ActiveRecord::Base.connection
 
-  drop_table "users" if table_exists? "users"
-
-  create_table "users" do |t|
+if conn.table_exists? "users"
+  conn.execute("TRUNCATE TABLE users")
+else
+  conn.create_table "users" do |t|
     t.string   "name"
   end
-
 end

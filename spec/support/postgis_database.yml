@@ -4,6 +4,8 @@ test:
   username: 'root'
   password: ''
 
+  timeout: 5000
+
   makara:
     blacklist_duration: 2
     master_ttl: 5

@@ -4,6 +4,7 @@ test:
   username: 'root'
   password: ''
 
+  timeout: 5000
   connect_timeout: 1
   read_timeout: 1
   write_timeout: 2

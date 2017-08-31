@@ -1,6 +1,7 @@
 sudo: false
 language: ruby
 cache: bundler
+dist: precise
 
 services:
   - mysql
