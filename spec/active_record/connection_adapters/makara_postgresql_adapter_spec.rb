@@ -77,22 +77,6 @@ describe 'MakaraPostgreSQLAdapter' do
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end
-
-    it 'should send nextval to master' do
-      con = connection.master_pool.connections.first
-      expect(con).to receive(:execute).with('SELECT nextval(\'users_id_seq\')')
-      connection.execute('SELECT nextval(\'users_id_seq\')')
-    end
-
-    it 'should send show to the slave' do
-      # ensure the next connection will be the first one
-      connection.slave_pool.strategy.instance_variable_set('@current_idx', connection.slave_pool.connections.length)
-
-      con = connection.slave_pool.connections.first
-      expect(con).to receive(:execute).with('SHOW hot_standby_feedback').once
-
-      connection.execute('SHOW hot_standby_feedback')
-    end
   end
 
   context 'without live connections' do

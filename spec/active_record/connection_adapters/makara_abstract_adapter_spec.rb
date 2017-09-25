@@ -27,7 +27,10 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     '    select * from users for update' => true,
     'select * from users lock in share mode' => true,
     'select * from users where name = "for update"' => false,
-    'select * from users where name = "lock in share mode"' => false
+    'select * from users where name = "lock in share mode"' => false,
+    'select nextval(\'users_id_seq\')' => true,
+    'select currval(\'users_id_seq\')' => true,
+    'select lastval()' => true
   }.each do |sql, should_go_to_master|
 
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
