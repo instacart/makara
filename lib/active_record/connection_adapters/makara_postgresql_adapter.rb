@@ -34,9 +34,14 @@ module ActiveRecord
       end
 
       PSQL_SQL_MASTER_MATCHERS = [/\A\s*select.+nextval\(/i].map(&:freeze).freeze
+      PSQL_SQL_SLAVE_MATCHERS  = [/\A\s*show\s/i].map(&:freeze).freeze
 
       def sql_master_matchers
         SQL_MASTER_MATCHERS + PSQL_SQL_MASTER_MATCHERS
+      end
+
+      def sql_slave_matchers
+        SQL_SLAVE_MATCHERS + PSQL_SQL_SLAVE_MATCHERS
       end
 
       protected
