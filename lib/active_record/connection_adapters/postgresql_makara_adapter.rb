@@ -33,6 +33,12 @@ module ActiveRecord
         end
       end
 
+      PSQL_SQL_MASTER_MATCHERS = [/\A\s*select.+nextval\(/i].map(&:freeze).freeze
+
+      def sql_master_matchers
+        SQL_MASTER_MATCHERS + PSQL_SQL_MASTER_MATCHERS
+      end
+
       protected
 
       def active_record_connection_for(config)
