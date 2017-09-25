@@ -52,6 +52,28 @@ describe Makara::Cache do
       expect(data).not_to have_key('test')
     end
 
+    it 'has thread-safety' do
+      store = Makara::Cache::MemoryStore.new
+      previous_value = Thread.abort_on_exception
+
+      begin
+        Thread.abort_on_exception = true
+
+        workers = 2.times.map do
+          Thread.new do
+            100.times do |n|
+              store.write(n, 'value', expires_in: 0.5)
+              sleep(0.01)
+            end
+          end
+        end
+
+        expect { workers.map(&:join) }.to_not raise_error
+      ensure
+        Thread.abort_on_exception = previous_value
+      end
+    end
+
   end
 
 
