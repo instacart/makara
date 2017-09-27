@@ -4,6 +4,7 @@ module Makara
 
       def initialize
         @data = {}
+        @mutex = Mutex.new
       end
 
       def read(key)
@@ -20,7 +21,9 @@ module Makara
       protected
 
       def clean
-        @data.delete_if{|k,v| v[1] <= Time.now.to_i }
+        @mutex.synchronize do
+          @data.delete_if{|k,v| v[1] <= Time.now.to_i }
+        end
       end
 
     end
