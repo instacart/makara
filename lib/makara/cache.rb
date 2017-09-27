@@ -20,7 +20,7 @@ module Makara
       end
 
       def write(key, value, ttl)
-        store.try(:write, key, value, :expires_in => ttl.to_i)
+        store.try(:write, key, value, :expires_in => ttl.to_f)
       end
 
       protected
