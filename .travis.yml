@@ -7,6 +7,9 @@ services:
   - mysql
   - postgresql
 
+before_install:
+  - gem install bundler
+
 before_script:
   - mysql -e 'create database makara_test;'
   - psql -c 'create database makara_test;' -U postgres
