@@ -77,6 +77,13 @@ describe Makara::Middleware do
     expect(curr2).to eq(Makara::Context.get_current)
   end
 
+  it 'skip process if Makara::Context.skip_context_process set to true' do
+    allow(Makara::Context).to receive(:skip_context_process).and_return(true)
+    middleware.call(env)
+    expect(Makara::Context).not_to receive(:set_previous)
+    expect(Makara::Context).not_to receive(:set_current)
+  end
+
   def context_from(response)
     response[2][0].split('-')
   end
