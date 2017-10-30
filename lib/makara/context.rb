@@ -7,6 +7,10 @@ module Makara
   class Context
     class << self
 
+      @skip_context_process = false
+
+      attr_accessor :skip_context_process
+
       def generate(seed = nil)
         seed ||= "#{Time.now.to_i}#{Thread.current.object_id}#{rand(99999)}"
         Digest::MD5.hexdigest(seed)

@@ -24,7 +24,7 @@ module Makara
 
     def call(env)
 
-      return @app.call(env) if ignore_request?(env)
+      return @app.call(env) if Makarara::Context.skip_context_process || ignore_request?(env)
 
       Makara::Context.set_previous previous_context(env)
       Makara::Context.set_current new_context(env)
