@@ -64,17 +64,14 @@ module Makara
       @connections.each do |con|
         next if con._makara_blacklisted?
         begin
-          if block
-            value = @proxy.error_handler.handle(con) do
+          ret = @proxy.error_handler.handle(con) do
+            if block
               yield con
+            else
+              con.send(method, *args)
             end
           end
 
-          if method
-            ret = con.send(method, *args)
-          else
-            ret = value
-          end
           one_worked = true
         rescue Makara::Errors::BlacklistConnection => e
           errors.insert(0, e)
