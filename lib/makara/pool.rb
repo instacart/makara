@@ -57,6 +57,8 @@ module Makara
     # send this method to all available nodes
     # send nil to just yield with each con if there is block
     def send_to_all(method, *args, &block)
+      return if @disabled
+
       ret = nil
       one_worked = false # actually found one that worked
       errors = []
@@ -79,13 +81,7 @@ module Makara
         end
       end
 
-      if !one_worked
-        if connection_made?
-          raise Makara::Errors::AllConnectionsBlacklisted.new(self, errors)
-        else
-          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
-        end
-      end
+      raise Makara::Errors::NoConnectionsAvailable.new(@role) unless one_worked
 
       ret
     end
