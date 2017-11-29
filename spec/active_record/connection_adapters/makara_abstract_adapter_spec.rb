@@ -30,7 +30,9 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select * from users where name = "lock in share mode"' => false,
     'select nextval(\'users_id_seq\')' => true,
     'select currval(\'users_id_seq\')' => true,
-    'select lastval()' => true
+    'select lastval()' => true,
+    'with fence as (select * from users) select * from fence' => false,
+    'with fence as (select * from felines) insert to cats' => true
   }.each do |sql, should_go_to_master|
 
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
