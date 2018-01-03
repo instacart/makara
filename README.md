@@ -120,7 +120,13 @@ By creating a makara database adapter which simply acts as a proxy we avoid any 
 
 ### What goes where?
 
-Any `SELECT` statements will execute against your slave(s), anything else will go to master. The only edge case is `SET` operations which are sent to all connections. Execution of specific methods such as `connect!`, `disconnect!`, and `clear_cache!` are invoked on all underlying connections.
+In general: Any `SELECT` statements will execute against your slave(s), anything else will go to master.
+
+There are some edge cases:
+* `SET` operations will be sent to all connections
+* Execution of specific methods such as `connect!`, `disconnect!`, and `clear_cache!` are invoked on all underlying connections
+* Calls inside a transaction will always be sent to the master (otherwise changes from within the transaction could not be read back on most transaction isolation levels)
+* Locking reads (e.g. `SELECT ... FOR UPDATE`) will always be sent to the master
 
 ### Errors / blacklisting
 
