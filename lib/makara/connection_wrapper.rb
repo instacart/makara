@@ -102,6 +102,13 @@ module Makara
       end
     end
 
+    def in_transaction?
+      if @connection.respond_to?(:open_transactions)
+        @connection.open_transactions > 0
+      else
+        false
+      end
+    end
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)

@@ -42,7 +42,7 @@ module ActiveRecord
           when *harsh_errors
             harshly(e)
           else
-            if connection_message?(e) || custom_error_message?(connection, e)
+            if !connection.in_transaction? && (connection_message?(e) || custom_error_message?(connection, e))
               gracefully(connection, e)
             else
               harshly(e)
