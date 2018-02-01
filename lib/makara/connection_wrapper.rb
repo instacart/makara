@@ -146,10 +146,10 @@ module Makara
       # The new definition should allow for the proxy to intercept the invocation if required.
       @proxy.class.hijack_methods.each do |meth|
         extension << %Q{
-          def #{meth}(*args)
+          def #{meth}(*args, &block)
             _makara_hijack do |proxy|
               if proxy
-                proxy.#{meth}(*args)
+                proxy.#{meth}(*args, &block)
               else
                 super
               end
