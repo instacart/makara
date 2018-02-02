@@ -14,8 +14,11 @@ describe Makara::ConnectionWrapper do
   end
 
   it 'should invoke hijacked methods on the proxy when invoked directly' do
-    expect(proxy).to receive(:execute).with('test').once
-    connection.execute("test")
+    expect(proxy).to receive(:execute).with('test').once do |&block|
+      expect(block.call).to eq('Hello')
+    end
+
+    connection.execute('test') { 'Hello' }
   end
 
   it 'should have a default weight of 1' do
