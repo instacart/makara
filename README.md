@@ -63,13 +63,9 @@ Makara comes with a config parser which will handle providing subconfigs to the 
 
 ### Context
 
-Makara handles stickyness by keeping track of a context (sha). In a multi-instance environment it persists a context in a cache. If Rails is present it will automatically use Rails.cache. You can provide any kind of store as long as it responds to the methods required in [lib/makara/cache.rb](lib/makara/cache.rb).
+Makara handles stickiness by keeping track of which configurations are stuck at any given moment. The context is basically a hash of configuration ids and the timestamp until which they are stuck.
 
-```ruby
-Makara::Cache.store = MyRedisCacheStore.new
-```
-
-To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current master context. If the next request is executed before the cookie expires, master will be used. If something occurs which naturally requires master on the second request, the context is changed and stored again.
+To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
 
 #### Changing Context
 
