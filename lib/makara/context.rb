@@ -54,9 +54,10 @@ module Makara
         current.stuck?(config_id)
       end
 
-      def commit(headers)
+      def commit(headers, cookie_options = {})
         if current.dirty?
-          Rack::Utils.set_cookie_header! headers, IDENTIFIER, DEFAULT_OPTIONS.merge(current.to_cookie_options)
+          cookie = DEFAULT_OPTIONS.merge(cookie_options)
+          Rack::Utils.set_cookie_header! headers, IDENTIFIER, cookie.merge(current.to_cookie_options)
         end
       end
 

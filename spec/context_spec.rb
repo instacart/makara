@@ -79,5 +79,12 @@ describe Makara::Context do
       Makara::Context.commit(headers)
       expect(headers['Set-Cookie']).to eq("_mkra_ctxt=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=11; HttpOnly")
     end
+
+    it 'allows custom cookie options to be provided' do
+      Makara::Context.stick('mariadb', 10)
+
+      Makara::Context.commit(headers, { :secure => true })
+      expect(headers['Set-Cookie']).to include("path=/; max-age=11; secure; HttpOnly")
+    end
   end
 end
