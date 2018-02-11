@@ -80,6 +80,13 @@ describe Makara::Context do
       expect(headers['Set-Cookie']).to eq("_mkra_ctxt=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=11; HttpOnly")
     end
 
+    it 'clears expired entries for configs that are no longer stuck' do
+      Timecop.travel(now + 10)
+
+      Makara::Context.commit(headers)
+      expect(headers['Set-Cookie']).to eq("_mkra_ctxt=; path=/; max-age=0; HttpOnly")
+    end
+
     it 'allows custom cookie options to be provided' do
       Makara::Context.stick('mariadb', 10)
 

@@ -23,7 +23,7 @@ module Makara
     end
 
     def stuck?(config_id)
-      data[config_id] && data[config_id] > Time.now.to_f
+      data[config_id] && !expired?(data[config_id])
     end
 
     # Indicates whether there have been changes to the context that need
@@ -32,10 +32,25 @@ module Makara
       @dirty
     end
 
+    def clear_expired
+      previous_size = data.size
+      data.delete_if { |_, timestamp| expired?(timestamp) }
+      @dirty ||= previous_size != data.size
+    end
+
     def to_cookie_options
-      max_age = (data.values.max - Time.now.to_f).ceil + 1
+      max_age = if data.any?
+        (data.values.max - Time.now.to_f).ceil + 1
+      else
+        0
+      end
+
       value = data.collect { |config_id, ttl| "#{config_id}:#{ttl}" }.join('|')
       { :max_age => max_age, :value => value }
+    end
+
+    def expired?(timestamp)
+      timestamp <= Time.now.to_f
     end
 
     class << self
@@ -55,6 +70,7 @@ module Makara
       end
 
       def commit(headers, cookie_options = {})
+        current.clear_expired
         if current.dirty?
           cookie = DEFAULT_OPTIONS.merge(cookie_options)
           Rack::Utils.set_cookie_header! headers, IDENTIFIER, cookie.merge(current.to_cookie_options)
