@@ -1,7 +1,6 @@
 require 'active_support/core_ext/hash/keys'
 
 # Wraps a collection of similar connections and chooses which one to use
-# Uses the Makara::Context to determine if the connection needs rotation.
 # Provides convenience methods for accessing underlying connections
 
 module Makara
@@ -18,7 +17,6 @@ module Makara
     def initialize(role, proxy)
       @role             = role
       @proxy            = proxy
-      @context          = Makara::Context.get_current
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
@@ -137,16 +135,7 @@ module Makara
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
     def next
-      if @proxy.sticky && Makara::Context.get_current == @context
-        con = @strategy.current
-        return con if con
-      end
-
-      con = @strategy.next
-      if con
-        @context = Makara::Context.get_current
-      end
-      con
+      (@strategy.current if @proxy.sticky) || @strategy.next
     end
   end
 end
