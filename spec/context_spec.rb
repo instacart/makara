@@ -1,146 +1,83 @@
 require 'spec_helper'
+require 'rack'
 
 describe Makara::Context do
+  let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
+  let(:cookie_string) { "mysql:#{now.to_f + 5}|redis:#{now.to_f + 5}" }
+  let(:request) { Rack::Request.new({'HTTP_COOKIE' => "_mkra_ctxt=#{cookie_string}"}) }
 
-  describe 'get_current' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
-
-      1.upto(3).map do |i|
-        threads << Thread.new do
-          current = Makara::Context.get_current
-          expect(current).to_not be_nil
-          expect(uniq_curret_contexts).to_not include(current)
-          uniq_curret_contexts << current
-
-          sleep(0.2)
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
+  before do
+    Timecop.freeze(now)
   end
 
-  describe 'set_current' do
-
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
-
-      1.upto(3).map do |i|
-        threads << Thread.new do
-
-          current = Makara::Context.set_current("val#{i}")
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          sleep(0.2)
-
-          current = Makara::Context.get_current
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          uniq_curret_contexts << current
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
+  after do
+    Timecop.return
   end
 
-  describe 'get_previous' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
+  it 'does not share stickiness state across threads' do
+    contexts = {}
+    threads = []
 
-      1.upto(3).map do |i|
-        threads << Thread.new do
-          current = Makara::Context.get_previous
-          expect(current).to_not be_nil
-          expect(uniq_curret_contexts).to_not include(current)
-          uniq_curret_contexts << current
+    [1, -1].each_with_index do |f, i|
+      threads << Thread.new do
+        cookie_string = "mysql:#{now.to_f + f*5}"
+        request = Rack::Request.new({'HTTP_COOKIE' => "_mkra_ctxt=#{cookie_string}"})
 
-          sleep(0.2)
-        end
-        sleep(0.1)
+        Makara::Context.init(request)
+        contexts["context_#{i}"] = Makara::Context.stuck?('mysql')
+
+        sleep(0.2)
       end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
+      sleep(0.1)
     end
+
+    threads.map(&:join)
+    expect(contexts).to eq({ 'context_0' => true, 'context_1' => false })
   end
 
-  describe 'set_previous' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
+  describe 'init' do
+    it 'parses stickiness information from cookie string' do
+      Makara::Context.init(request)
 
-      1.upto(3).map do |i|
-        threads << Thread.new do
-
-          current = Makara::Context.set_previous("val#{i}")
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          sleep(0.2)
-
-          current = Makara::Context.get_previous
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          uniq_curret_contexts << current
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
-
-    it 'clears config sticky cache' do
-      Makara::Cache.store = :memory
-
-      Makara::Context.set_previous('a')
-      Makara::Context.stick('a', 1, 10)
-      expect(Makara::Context.previously_stuck?(1)).to be_truthy
-
-      Makara::Context.set_previous('b')
-      expect(Makara::Context.previously_stuck?(1)).to be_falsey
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+      expect(Makara::Context.stuck?('redis')).to be_truthy
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
     end
   end
 
   describe 'stick' do
-    it 'sticks a config to master for subsequent requests' do
-      Makara::Cache.store = :memory
+    before do
+      Makara::Context.init(request)
+    end
 
-      expect(Makara::Context.stuck?('context', 1)).to be_falsey
+    it 'sticks a config to master for subsequent requests up to the ttl given' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
-      Makara::Context.stick('context', 1, 10)
-      expect(Makara::Context.stuck?('context', 1)).to be_truthy
-      expect(Makara::Context.stuck?('context', 2)).to be_falsey
+      Makara::Context.stick('mariadb', 10)
+
+      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+      Timecop.travel(now + 20)
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
     end
   end
 
-  describe 'previously_stuck?' do
-    it 'checks whether a config was stuck to master in the previous context' do
-      Makara::Cache.store = :memory
-      Makara::Context.set_previous 'previous'
+  describe 'commit' do
+    let(:headers) { {} }
 
-      # Emulate sticking the previous web request to master.
-      Makara::Context.stick 'previous', 1, 10
+    before do
+      Makara::Context.init(request)
+    end
 
-      # Emulate handling the subsequent web request with a previous context
-      # cookie that is stuck to master.
-      expect(Makara::Context.previously_stuck?(1)).to be_truthy
+    it 'does not set a cookie if there is nothing new to stick' do
+      Makara::Context.commit(headers)
+      expect(headers).to eq({})
+    end
 
-      # Other configs should not be stuck to master, though.
-      expect(Makara::Context.previously_stuck?(2)).to be_falsey
+    it 'sets the context cookie with updated stickiness and enough max-age' do
+      Makara::Context.stick('mariadb', 10)
+
+      Makara::Context.commit(headers)
+      expect(headers['Set-Cookie']).to eq("_mkra_ctxt=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=11; HttpOnly")
     end
   end
 end
-

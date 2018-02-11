@@ -29,20 +29,7 @@ RSpec.configure do |config|
   config.include SpecHelpers
 
   config.before :each do
-    Makara::Cache.store = :memory
-    change_context
     allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:should_shuffle?){ false }
     RSpec::Mocks.space.proxy_for(ActiveRecord::Base).reset # make sure not stubbed in some way
   end
-
-  def change_context
-    Makara::Context.set_previous nil
-    Makara::Context.set_current nil
-  end
-
-  def roll_context
-    Makara::Context.set_previous Makara::Context.get_current
-    Makara::Context.set_current Makara::Context.generate
-  end
-
 end
