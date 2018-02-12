@@ -270,16 +270,7 @@ def handle_request_after_third_party_record_creation
 end
 ```
 
-Similarly, if you have a third party service which will conduct a generic request against your Rack app, you can force master via a query param:
-
-```ruby
-def send_url_to_third_party
-  context = Makara::Context.get_current
-  ThirdParty.read_from_here!("http://mysite.com/path/to/resource?_mkra_ctxt=#{context}")
-end
-```
-
 ## Todo
 
-* Cookie based cache store?
+* Support for providing context as query param
 * More real world examples
