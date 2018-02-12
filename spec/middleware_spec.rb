@@ -11,7 +11,7 @@ describe Makara::Middleware do
 
   let(:env){ {} }
   let(:proxy){ FakeProxy.new(config(1,2)) }
-  let(:middleware){ described_class.new(app, :secure => true) }
+  let(:middleware){ described_class.new(app) }
 
   let(:key){ Makara::Middleware::IDENTIFIER }
 
@@ -56,7 +56,7 @@ describe Makara::Middleware do
 
     status, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; secure; HttpOnly")
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; HttpOnly")
   end
 
   it 'should preserve the same context if the previous request was a redirect' do
@@ -75,6 +75,26 @@ describe Makara::Middleware do
 
     expect(prev2).to eq('abcdefg')
     expect(curr2).to eq(Makara::Context.get_current)
+  end
+
+  it 'should set the secure flag on the cookie if the request is HTTPS' do
+    env[:query] = 'update users set name = "phil"'
+    env['HTTPS'] = 'on'
+    status, headers, body = middleware.call(env)
+
+    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; secure; HttpOnly")
+  end
+
+  context 'with secure: true cookie_options' do
+    let(:middleware){ described_class.new(app, secure: false) }
+
+    it 'should permit the secure flag to be overridden, even if the request is HTTPS' do
+      env[:query] = 'update users set name = "phil"'
+      env['HTTPS'] = 'on'
+      status, headers, body = middleware.call(env)
+
+      expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; HttpOnly")
+    end
   end
 
   def context_from(response)
