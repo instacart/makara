@@ -45,7 +45,11 @@ module Makara
 
       protected
       def current
-        get(:makara_current_context)
+        fetch(:makara_current_context) { new({}) }
+      end
+
+      def fetch(key)
+        get(key) || set(key, yield)
       end
 
       if Thread.current.respond_to?(:thread_variable_get)
@@ -54,7 +58,7 @@ module Makara
         end
 
         def set(key, value)
-          Thread.current.thread_variable_set(key,value)
+          Thread.current.thread_variable_set(key, value)
         end
       else
         def get(key)
