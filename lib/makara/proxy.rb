@@ -54,28 +54,23 @@ module Makara
       @hijacked       = false
       @error_handler  ||= ::Makara::ErrorHandler.new
       @skip_sticking  = false
-      @stuck = false
       instantiate_connections
       super(config)
     end
 
     def without_sticking
-      previous_stuck_value = @stuck
-      @stuck = false
       @skip_sticking = true
       yield
     ensure
       @skip_sticking = false
-      @stuck = previous_stuck_value
     end
 
     def hijacked?
       @hijacked
     end
 
-    def stick_to_master!(store = true)
-      @stuck = true
-      Makara::Context.stick(@id, @ttl) if store
+    def stick_to_master!
+      Makara::Context.stick(@id, @ttl)
     end
 
     def strategy_for(role)
@@ -202,16 +197,11 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      # in this request we've already stuck to master
-      elsif @stuck
-        @master_pool
-
       elsif stuck_to_master?
 
-        # we're only on master because of the previous context so
-        # behave like we're sticking to master without storing a new
-        # stickiness value
-        stick_to_master(method_name, args, false)
+        # we're on master because we already stuck this config in this
+        # request or because we got stuck in previous requests and the
+        # stickiness is still valid
         @master_pool
 
       # all slaves are down (or empty)
@@ -254,12 +244,12 @@ module Makara
     end
 
 
-    def stick_to_master(method_name, args, store = true)
+    def stick_to_master(method_name, args)
       # check to see if we're configured, bypassed, or some custom implementation has input
       return unless should_stick?(method_name, args)
 
       # do the sticking
-      stick_to_master!(store)
+      stick_to_master!
     end
 
 

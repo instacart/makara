@@ -104,12 +104,9 @@ describe Makara::Proxy do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
-    # if the context changes we should still use master until the previous context is no longer relevant
-    it 'should release master if the context changes and enough time passes' do
+    it 'should release master if enough time passes' do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
-
-      change_context
 
       Timecop.travel Time.now + 10 do
         expect(proxy.master_for?('select * from users')).to eq(false)
