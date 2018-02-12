@@ -67,13 +67,12 @@ Makara handles stickiness by keeping track of which configurations are stuck at 
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
 
-#### Changing Context
+#### Releasing stuck connections (clearing context)
 
-If you need to change the makara context, releasing any stuck connections, all you have to do is:
+If you need to clear the current context, releasing any stuck connections, all you have to do is:
 
 ```ruby
-ctx = Makara::Context.generate # or any unique sha
-Makara::Context.set_current ctx
+Makara::Context.release_all
 ```
 
 A context is local to the curent thread of execution. This will allow you to stick to master safely in a single thread

@@ -32,10 +32,21 @@ module Makara
       @dirty
     end
 
-    def clear_expired
+    def release(config_id)
+      @dirty ||= !!data.delete(config_id)
+    end
+
+    def release_expired
       previous_size = data.size
       data.delete_if { |_, timestamp| expired?(timestamp) }
       @dirty ||= previous_size != data.size
+    end
+
+    def release_all
+      if self.data.any?
+        self.data = {}
+        @dirty = true
+      end
     end
 
     def to_cookie_options
@@ -70,11 +81,19 @@ module Makara
       end
 
       def commit(headers, cookie_options = {})
-        current.clear_expired
+        current.release_expired
         if current.dirty?
           cookie = DEFAULT_OPTIONS.merge(cookie_options)
           Rack::Utils.set_cookie_header! headers, IDENTIFIER, cookie.merge(current.to_cookie_options)
         end
+      end
+
+      def release(config_id)
+        current.release(config_id)
+      end
+
+      def release_all
+        current.release_all
       end
 
       protected

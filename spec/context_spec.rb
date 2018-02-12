@@ -94,4 +94,46 @@ describe Makara::Context do
       expect(headers['Set-Cookie']).to include("path=/; max-age=11; secure; HttpOnly")
     end
   end
+
+  describe 'release' do
+    let(:headers) { {} }
+
+    before do
+      Makara::Context.init(request)
+    end
+
+    it 'clears stickiness for the given config' do
+      Makara::Context.release('mysql')
+
+      Makara::Context.commit(headers)
+      expect(headers['Set-Cookie']).to eq("_mkra_ctxt=redis%3A#{(now + 5).to_f}; path=/; max-age=6; HttpOnly")
+    end
+
+    it 'does nothing if the config given was not stuck' do
+      Makara::Context.release('mariadb')
+
+      Makara::Context.commit(headers)
+      expect(headers).to eq({})
+    end
+  end
+
+  describe 'release_all' do
+    let(:headers) { {} }
+
+    it 'clears stickiness for all stuck configs' do
+      Makara::Context.init(request)
+      Makara::Context.release_all
+
+      Makara::Context.commit(headers)
+      expect(headers['Set-Cookie']).to eq("_mkra_ctxt=; path=/; max-age=0; HttpOnly")
+    end
+
+    it 'does nothing if there were no stuck configs' do
+      Makara::Context.init(Rack::Request.new({}))
+      Makara::Context.release_all
+
+      Makara::Context.commit(headers)
+      expect(headers).to eq({})
+    end
+  end
 end

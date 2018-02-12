@@ -113,23 +113,13 @@ describe Makara::Proxy do
       end
     end
 
-    it 'should not release master if the previous context is still relevant' do
+    it 'should release master if all stuck connections are released' do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
 
-      change_context
+      Makara::Context.release_all
 
-      proxy.master_for?('select * from users')
-      expect(proxy.master_for?('select * from users')).to eq(true)
-
-      Timecop.travel Time.now + 10 do
-        # cache is expired but context has not changed
-        expect(proxy.master_for?('select * from users')).to eq(true)
-
-        change_context
-
-        expect(proxy.master_for?('select * from users')).to eq(false)
-      end
+      expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
     it 'should use master if all slaves are blacklisted' do
