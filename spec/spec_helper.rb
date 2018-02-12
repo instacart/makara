@@ -2,6 +2,7 @@ require 'active_record'
 require 'makara'
 require 'timecop'
 require 'yaml'
+require 'rack'
 
 begin
   require 'byebug'
@@ -29,7 +30,12 @@ RSpec.configure do |config|
   config.include SpecHelpers
 
   config.before :each do
+    change_context
     allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:should_shuffle?){ false }
     RSpec::Mocks.space.proxy_for(ActiveRecord::Base).reset # make sure not stubbed in some way
+  end
+
+  def change_context
+    Makara::Context.init(Rack::Request.new({}))
   end
 end

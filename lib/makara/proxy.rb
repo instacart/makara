@@ -54,27 +54,28 @@ module Makara
       @hijacked       = false
       @error_handler  ||= ::Makara::ErrorHandler.new
       @skip_sticking  = false
+      @stuck = false
       instantiate_connections
       super(config)
     end
 
     def without_sticking
-      before_context = @master_context
-      @master_context = nil
+      previous_stuck_value = @stuck
+      @stuck = false
       @skip_sticking = true
       yield
     ensure
       @skip_sticking = false
-      @master_context ||= before_context
+      @stuck = previous_stuck_value
     end
 
     def hijacked?
       @hijacked
     end
 
-    def stick_to_master!(write_to_cache = true)
-      @master_context = Makara::Context.get_current
-      Makara::Context.stick(@master_context, @id, @ttl) if write_to_cache
+    def stick_to_master!(store = true)
+      @stuck = true
+      Makara::Context.stick(@id, @ttl) if store
     end
 
     def strategy_for(role)
@@ -201,14 +202,15 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      # in this context, we've already stuck to master
-      elsif Makara::Context.get_current == @master_context
+      # in this request we've already stuck to master
+      elsif @stuck
         @master_pool
 
-      elsif previously_stuck_to_master?
+      elsif stuck_to_master?
 
         # we're only on master because of the previous context so
-        # behave like we're sticking to master but store the current context
+        # behave like we're sticking to master without storing a new
+        # stickiness value
         stick_to_master(method_name, args, false)
         @master_pool
 
@@ -247,24 +249,22 @@ module Makara
     end
 
 
-    def previously_stuck_to_master?
-      @sticky && Makara::Context.previously_stuck?(@id)
+    def stuck_to_master?
+      @sticky && !@skip_sticking && Makara::Context.stuck?(@id)
     end
 
 
-    def stick_to_master(method_name, args, write_to_cache = true)
-      # if we're already stuck to master, don't bother doing it again
-      return if @master_context == Makara::Context.get_current
-
+    def stick_to_master(method_name, args, store = true)
       # check to see if we're configured, bypassed, or some custom implementation has input
       return unless should_stick?(method_name, args)
 
       # do the sticking
-      stick_to_master!(write_to_cache)
+      stick_to_master!(store)
     end
 
 
-    # if we are configured to be sticky and we aren't bypassing stickiness
+    # If we are configured to be sticky and we aren't bypassing stickiness,
+    # (method and args don't matter)
     def should_stick?(method_name, args)
       @sticky && !@skip_sticking
     end

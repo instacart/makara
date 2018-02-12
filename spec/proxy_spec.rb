@@ -120,7 +120,7 @@ describe Makara::Proxy do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
 
-      roll_context
+      change_context
 
       proxy.master_for?('select * from users')
       expect(proxy.master_for?('select * from users')).to eq(true)
@@ -129,17 +129,10 @@ describe Makara::Proxy do
         # cache is expired but context has not changed
         expect(proxy.master_for?('select * from users')).to eq(true)
 
-        roll_context
+        change_context
 
         expect(proxy.master_for?('select * from users')).to eq(false)
       end
-    end
-
-    it 'should release master if context changes enough' do
-      expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
-      roll_context
-      roll_context
-      expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
     it 'should use master if all slaves are blacklisted' do
