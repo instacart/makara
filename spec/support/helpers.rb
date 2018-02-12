@@ -19,6 +19,7 @@ module SpecHelpers
         # :master_ttl => 5,
         # :blacklist_duration => 30,
         # :sticky => true
+        :id => 'mock_mysql',
         :connections => connections
       }
     }

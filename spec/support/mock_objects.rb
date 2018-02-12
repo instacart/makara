@@ -11,7 +11,7 @@ class FakeConnection < Struct.new(:config)
   end
 
   def query(content)
-    []
+    config[:name]
   end
 
   def active?

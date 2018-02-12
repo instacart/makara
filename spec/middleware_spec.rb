@@ -1,11 +1,11 @@
 require 'spec_helper'
 
 describe Makara::Middleware do
-
+  let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
   let(:app){
     lambda{|env|
-      proxy.query(env[:query] || 'select * from users')
-      [200, {}, ["#{Makara::Context.get_current}-#{Makara::Context.get_previous}"]]
+      response = proxy.query(env[:query] || 'select * from users')
+      [200, {}, response]
     }
   }
 
@@ -13,72 +13,42 @@ describe Makara::Middleware do
   let(:proxy){ FakeProxy.new(config(1,2)) }
   let(:middleware){ described_class.new(app, :secure => true) }
 
-  let(:key){ Makara::Middleware::IDENTIFIER }
+  let(:key){ Makara::Context::IDENTIFIER }
 
-  it 'should set the context before the request' do
-    Makara::Context.set_previous 'old'
-    Makara::Context.set_current 'old'
+  before do
+    @hijacked_methods = FakeProxy.hijack_methods
+    FakeProxy.hijack_method :query
+    Timecop.freeze(now)
+  end
 
-    response = middleware.call(env)
-    current, prev = context_from(response)
+  after do
+    Timecop.return
+    FakeProxy.hijack_methods = []
+    FakeProxy.hijack_method(*@hijacked_methods)
+  end
 
-    expect(current).not_to eq('old')
-    expect(prev).not_to eq('old')
+  it 'should init the context and not be stuck by default' do
+    _, headers, body = middleware.call(env)
 
-    expect(current).to eq(Makara::Context.get_current)
-    expect(prev).to eq(Makara::Context.get_previous)
+    expect(headers).to eq({})
+    expect(body).to eq('slave/1')
   end
 
   it 'should use the cookie-provided context if present' do
-    env['HTTP_COOKIE'] = "#{key}=abcdefg--200; path=/; max-age=5"
+    env['HTTP_COOKIE'] = "#{key}=mock_mysql%3A#{(now + 3).to_f}; path=/; max-age=5"
 
-    response = middleware.call(env)
-    current, prev = context_from(response)
+    _, headers, body = middleware.call(env)
 
-    expect(prev).to eq('abcdefg')
-    expect(current).to eq(Makara::Context.get_current)
-    expect(current).not_to eq('abcdefg')
-  end
-
-  it 'should use the param-provided context if present' do
-    env['QUERY_STRING'] = "dog=true&#{key}=abcdefg&cat=false"
-
-    response = middleware.call(env)
-    current, prev = context_from(response)
-
-    expect(prev).to eq('abcdefg')
-    expect(current).to eq(Makara::Context.get_current)
-    expect(current).not_to eq('abcdefg')
+    expect(headers).to eq({})
+    expect(body).to eq('master/1')
   end
 
   it 'should set the cookie if master is used' do
     env[:query] = 'update users set name = "phil"'
 
-    status, headers, body = middleware.call(env)
+    _, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=#{Makara::Context.get_current}--200; path=/; max-age=5; secure; HttpOnly")
+    expect(headers['Set-Cookie']).to eq("#{key}=mock_mysql%3A#{(now + 5).to_f}; path=/; max-age=6; secure; HttpOnly")
+    expect(body).to eq('master/1')
   end
-
-  it 'should preserve the same context if the previous request was a redirect' do
-    env['HTTP_COOKIE'] = "#{key}=abcdefg--301; path=/; max-age=5"
-
-    response    = middleware.call(env)
-    curr, prev  = context_from(response)
-
-    expect(curr).to eq('abcdefg')
-    expect(prev).to eq('abcdefg')
-
-    env['HTTP_COOKIE'] = response[1]['Set-Cookie']
-
-    response      = middleware.call(env)
-    curr2, prev2  = context_from(response)
-
-    expect(prev2).to eq('abcdefg')
-    expect(curr2).to eq(Makara::Context.get_current)
-  end
-
-  def context_from(response)
-    response[2][0].split('-')
-  end
-
 end
