@@ -4,7 +4,7 @@ require 'digest/md5'
 module Makara
   class Context
 
-    IDENTIFIER = '_mkra_ctxt'
+    IDENTIFIER = '_mkra_stck'
 
     DEFAULT_OPTIONS = {
       path: "/",
