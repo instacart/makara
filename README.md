@@ -65,7 +65,7 @@ Makara comes with a config parser which will handle providing subconfigs to the 
 
 Makara handles stickiness by keeping track of which configurations are stuck at any given moment. The context is basically a hash of configuration ids and the timestamp until which they are stuck.
 
-To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_ctxt` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
+To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_stck` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
 
 #### Releasing stuck connections (clearing context)
 
@@ -75,11 +75,17 @@ If you need to clear the current context, releasing any stuck connections, all y
 Makara::Context.release_all
 ```
 
+You can also clear stuck connections for a specific configuration id:
+```ruby
+Makara::Context.release(config_id)
+Makara::Context.release('mysql_main')
+```
+
 A context is local to the curent thread of execution. This will allow you to stick to master safely in a single thread
 in systems such as sidekiq, for instance.
 
 
-### Forcing Master
+#### Forcing Master
 
 If you need to force master in your app then you can simply invoke stick_to_master! on your connection:
 
@@ -89,7 +95,7 @@ proxy.stick_to_master!(write_to_cache)
 ```
 
 
-### Skipping the Stickiness
+#### Skipping the Stickiness
 
 If you're using the `sticky: true` configuration and you find yourself in a situation where you need to write information through the proxy but you don't want the context to be stuck to master, you should use a `without_sticking` block:
 
@@ -140,6 +146,8 @@ production:
   # add a makara subconfig
   makara:
 
+    # optional id to identify this configuration for stickiness
+    id: mysql
     # the following are default values
     blacklist_duration: 5
     master_ttl: 5
@@ -162,6 +170,7 @@ Let's break this down a little bit. At the top level of your config you have the
 Following the adapter choice is all the standard configurations (host, port, retry, database, username, password, etc). With all the standard configurations provided, you can now provide the makara subconfig.
 
 The makara subconfig sets up the proxy with a few of its own options, then provides the connection list. The makara options are:
+* id - an identifier for this configuration, used for sticky behaviour and context. The default is to use a MD5 hash of the configuration contents, so if you are setting `sticky` to true, it's a good idea to also set an `id`. Otherwise any stuck connection will be cleared if the configuration changes (as the default MD5 hash id would change as well)
 * blacklist_duration - the number of seconds a node is blacklisted when a connection failure occurs
 * disable_blacklist - do not blacklist node at any error, useful in case of one master
 * sticky - if a node should be stuck to once it's used during a specific context
