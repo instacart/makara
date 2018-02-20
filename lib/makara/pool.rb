@@ -135,7 +135,11 @@ module Makara
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
     def next
-      (@strategy.current if @proxy.sticky) || @strategy.next
+      if @proxy.sticky && @strategy.current
+        @strategy.current
+      else
+        @strategy.next
+      end
     end
   end
 end
