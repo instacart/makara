@@ -49,7 +49,7 @@ describe Makara::Context do
       Makara::Context.set_current(context_data)
     end
 
-    it 'sticks a config to master for subsequent requests up to the ttl given' do
+    it 'sticks a proxy to master for subsequent requests' do
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
       Makara::Context.stick('mariadb', 10)
@@ -78,7 +78,7 @@ describe Makara::Context do
       expect(next_context['mariadb']).to eq((now + 10).to_f)
     end
 
-    it 'clears expired entries for configs that are no longer stuck' do
+    it 'clears expired entries for proxies that are no longer stuck' do
       Timecop.travel(now + 10)
 
       expect(Makara::Context.next).to eq({})
@@ -90,7 +90,7 @@ describe Makara::Context do
       Makara::Context.set_current(context_data)
     end
 
-    it 'clears stickiness for the given config' do
+    it 'clears stickiness for the given proxy' do
       expect(Makara::Context.stuck?('mysql')).to be_truthy
 
       Makara::Context.release('mysql')
@@ -102,7 +102,7 @@ describe Makara::Context do
       expect(next_context['redis']).to eq((now + 5).to_f)
     end
 
-    it 'does nothing if the config given was not stuck' do
+    it 'does nothing if the proxy given was not stuck' do
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
       Makara::Context.release('mariadb')
@@ -113,7 +113,7 @@ describe Makara::Context do
   end
 
   describe 'release_all' do
-    it 'clears stickiness for all stuck configs' do
+    it 'clears stickiness for all stuck proxies' do
       Makara::Context.set_current(context_data)
       expect(Makara::Context.stuck?('mysql')).to be_truthy
       expect(Makara::Context.stuck?('redis')).to be_truthy
@@ -125,7 +125,7 @@ describe Makara::Context do
       expect(Makara::Context.next).to eq({})
     end
 
-    it 'does nothing if there were no stuck configs' do
+    it 'does nothing if there were no stuck proxies' do
       Makara::Context.set_current({})
 
       Makara::Context.release_all

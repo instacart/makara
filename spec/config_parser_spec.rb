@@ -79,7 +79,7 @@ describe Makara::ConfigParser do
 
   end
 
-  it 'should provide an id based on the recursively sorted config' do
+  it 'should provide a default proxy id based on the recursively sorted config' do
     parsera = described_class.new(config)
     parserb = described_class.new(config.merge(:other => 'value'))
     parserc = described_class.new(config)
