@@ -36,6 +36,6 @@ RSpec.configure do |config|
   end
 
   def change_context
-    Makara::Context.init(Rack::Request.new({}))
+    Makara::Context.set_current({})
   end
 end

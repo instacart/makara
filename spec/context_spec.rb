@@ -4,9 +4,7 @@ require 'time'
 
 describe Makara::Context do
   let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
-  let(:cookie_string) { "mysql:#{now.to_f + 5}|redis:#{now.to_f + 5}" }
-  let(:cookie_key) { Makara::Cookie::IDENTIFIER }
-  let(:request) { Rack::Request.new({'HTTP_COOKIE' => "#{cookie_key}=#{cookie_string}"}) }
+  let(:context_data) { { "mysql" => now.to_f + 5, "redis" => now.to_f + 5 } }
 
   before do
     Timecop.freeze(now)
@@ -22,10 +20,9 @@ describe Makara::Context do
 
     [1, -1].each_with_index do |f, i|
       threads << Thread.new do
-        cookie_string = "mysql:#{now.to_f + f*5}"
-        request = Rack::Request.new({'HTTP_COOKIE' => "#{cookie_key}=#{cookie_string}"})
+        context_data = { "mysql" => now.to_f + f*5 }
+        Makara::Context.set_current(context_data)
 
-        Makara::Context.init(request)
         contexts["context_#{i}"] = Makara::Context.stuck?('mysql')
 
         sleep(0.2)
@@ -37,9 +34,9 @@ describe Makara::Context do
     expect(contexts).to eq({ 'context_0' => true, 'context_1' => false })
   end
 
-  describe 'init' do
-    it 'parses stickiness information from cookie string' do
-      Makara::Context.init(request)
+  describe 'set_current' do
+    it 'sets stickiness information from given hash' do
+      Makara::Context.set_current(context_data)
 
       expect(Makara::Context.stuck?('mysql')).to be_truthy
       expect(Makara::Context.stuck?('redis')).to be_truthy
@@ -49,7 +46,7 @@ describe Makara::Context do
 
   describe 'stick' do
     before do
-      Makara::Context.init(request)
+      Makara::Context.set_current(context_data)
     end
 
     it 'sticks a config to master for subsequent requests up to the ttl given' do
@@ -63,80 +60,77 @@ describe Makara::Context do
     end
   end
 
-  describe 'commit' do
-    let(:headers) { {} }
-
+  describe 'next' do
     before do
-      Makara::Context.init(request)
+      Makara::Context.set_current(context_data)
     end
 
-    it 'does not set a cookie if there is nothing new to stick' do
-      Makara::Context.commit(headers)
-      expect(headers).to eq({})
+    it 'returns nil if there is nothing new to stick' do
+      expect(Makara::Context.next).to be_nil
     end
 
-    it 'sets the context cookie with updated stickiness and enough max-age' do
+    it 'returns hash with updated stickiness' do
       Makara::Context.stick('mariadb', 10)
 
-      Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f};")
-      expect(headers['Set-Cookie']).to include("path=/; max-age=15; expires=#{(Time.now + 15).gmtime.rfc2822}; HttpOnly")
+      next_context = Makara::Context.next
+      expect(next_context['mysql']).to eq((now + 5).to_f)
+      expect(next_context['redis']).to eq((now + 5).to_f)
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
     end
 
     it 'clears expired entries for configs that are no longer stuck' do
       Timecop.travel(now + 10)
 
-      Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.gmtime.rfc2822}; HttpOnly")
-    end
-
-    it 'allows custom cookie options to be provided' do
-      Makara::Context.stick('mariadb', 10)
-
-      Makara::Context.commit(headers, { :secure => true })
-      expect(headers['Set-Cookie']).to include("path=/; max-age=15; expires=#{(Time.now + 15).gmtime.rfc2822}; secure; HttpOnly")
+      expect(Makara::Context.next).to eq({})
     end
   end
 
   describe 'release' do
-    let(:headers) { {} }
-
     before do
-      Makara::Context.init(request)
+      Makara::Context.set_current(context_data)
     end
 
     it 'clears stickiness for the given config' do
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+
       Makara::Context.release('mysql')
 
-      Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=redis%3A#{(now + 5).to_f}; path=/; max-age=10; expires=#{(Time.now + 10).gmtime.rfc2822}; HttpOnly")
+      expect(Makara::Context.stuck?('mysql')).to be_falsey
+
+      next_context = Makara::Context.next
+      expect(next_context.key?('mysql')).to be_falsey
+      expect(next_context['redis']).to eq((now + 5).to_f)
     end
 
     it 'does nothing if the config given was not stuck' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
       Makara::Context.release('mariadb')
 
-      Makara::Context.commit(headers)
-      expect(headers).to eq({})
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+      expect(Makara::Context.next).to be_nil
     end
   end
 
   describe 'release_all' do
-    let(:headers) { {} }
-
     it 'clears stickiness for all stuck configs' do
-      Makara::Context.init(request)
+      Makara::Context.set_current(context_data)
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+      expect(Makara::Context.stuck?('redis')).to be_truthy
+
       Makara::Context.release_all
 
-      Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.gmtime.rfc2822}; HttpOnly")
+      expect(Makara::Context.stuck?('mysql')).to be_falsey
+      expect(Makara::Context.stuck?('redis')).to be_falsey
+      expect(Makara::Context.next).to eq({})
     end
 
     it 'does nothing if there were no stuck configs' do
-      Makara::Context.init(Rack::Request.new({}))
+      Makara::Context.set_current({})
+
       Makara::Context.release_all
 
-      Makara::Context.commit(headers)
-      expect(headers).to eq({})
+      expect(Makara::Context.next).to be_nil
     end
   end
 end

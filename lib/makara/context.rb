@@ -20,12 +20,6 @@ module Makara
       data[proxy_id] && !expired?(data[proxy_id])
     end
 
-    # Indicates whether there have been changes to the context that need
-    # to be persisted when the request finishes
-    def dirty?
-      @dirty
-    end
-
     def release(proxy_id)
       @dirty ||= !!data.delete(proxy_id)
     end
@@ -43,7 +37,7 @@ module Makara
       end
     end
 
-    def next
+    def persistable_data
       if dirty?
         data
       end
@@ -51,14 +45,19 @@ module Makara
 
     private
 
+    # Indicates whether there have been changes to the context that need
+    # to be persisted when the request finishes
+    def dirty?
+      @dirty
+    end
+
     def expired?(timestamp)
       timestamp <= Time.now.to_f
     end
 
     class << self
-      def init(request)
-        data = Makara::Cookie.fetch(request)
-        set(:makara_current_context, new(data))
+      def set_current(context_data)
+        set(:makara_current_context, new(context_data))
       end
 
       # Called by `Proxy#stick_to_master!` to stick subsequent requests to
@@ -71,9 +70,9 @@ module Makara
         current.stuck?(proxy_id)
       end
 
-      def commit(headers, cookie_options = {})
+      def next
         current.release_expired
-        Makara::Cookie.store(current.next, headers, cookie_options)
+        current.persistable_data
       end
 
       def release(proxy_id)

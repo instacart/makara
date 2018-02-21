@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'time'
 
 describe Makara::Middleware do
   let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
@@ -13,7 +14,7 @@ describe Makara::Middleware do
   let(:proxy){ FakeProxy.new(config(1,2)) }
   let(:middleware){ described_class.new(app, :secure => true) }
 
-  let(:key){ Makara::Context::IDENTIFIER }
+  let(:key){ Makara::Cookie::IDENTIFIER }
 
   before do
     @hijacked_methods = FakeProxy.hijack_methods
@@ -48,7 +49,7 @@ describe Makara::Middleware do
 
     _, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=mock_mysql%3A#{(now + 5).to_f}; path=/; max-age=6; secure; HttpOnly")
+    expect(headers['Set-Cookie']).to eq("#{key}=mock_mysql%3A#{(now + 5).to_f}; path=/; max-age=10; expires=#{(Time.now + 10).gmtime.rfc2822}; secure; HttpOnly")
     expect(body).to eq('master/1')
   end
 end

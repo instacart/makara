@@ -11,13 +11,10 @@ module Makara
 
     def call(env)
       return @app.call(env) if ignore_request?(env)
-
-      request = Rack::Request.new(env)
-      Makara::Context.init(request)
+      set_current_context(env)
 
       status, headers, body = @app.call(env)
-
-      Makara::Context.commit(headers, @cookie_options)
+      store_new_context(headers)
 
       [status, headers, body]
     end
@@ -25,6 +22,14 @@ module Makara
 
     protected
 
+    def set_current_context(env)
+      context_data = Makara::Cookie.fetch(Rack::Request.new(env))
+      Makara::Context.set_current(context_data)
+    end
+
+    def store_new_context(headers)
+      Makara::Cookie.store(Makara::Context.next, headers, @cookie_options)
+    end
 
     # ignore asset paths
     # consider allowing a filter proc to be provided in an initializer
