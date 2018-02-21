@@ -4,13 +4,6 @@ require 'digest/md5'
 module Makara
   class Context
 
-    IDENTIFIER = '_mkra_stck'
-
-    DEFAULT_OPTIONS = {
-      path: "/",
-      http_only: true
-    }
-
     attr_accessor :data
 
     def initialize(data)
@@ -50,15 +43,10 @@ module Makara
       end
     end
 
-    def to_cookie_options
-      max_age = if data.any?
-        (data.values.max - Time.now.to_f).ceil + 1
-      else
-        0
+    def next
+      if dirty?
+        data
       end
-
-      value = data.collect { |proxy_id, ttl| "#{proxy_id}:#{ttl}" }.join('|')
-      { :max_age => max_age, :value => value }
     end
 
     private
@@ -69,7 +57,7 @@ module Makara
 
     class << self
       def init(request)
-        data = parse(request.cookies[IDENTIFIER].to_s)
+        data = Makara::Cookie.fetch(request)
         set(:makara_current_context, new(data))
       end
 
@@ -85,10 +73,7 @@ module Makara
 
       def commit(headers, cookie_options = {})
         current.release_expired
-        if current.dirty?
-          cookie = DEFAULT_OPTIONS.merge(cookie_options)
-          Rack::Utils.set_cookie_header! headers, IDENTIFIER, cookie.merge(current.to_cookie_options)
-        end
+        Makara::Cookie.store(current.next, headers, cookie_options)
       end
 
       def release(proxy_id)

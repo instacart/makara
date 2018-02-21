@@ -4,7 +4,7 @@ require 'rack'
 describe Makara::Context do
   let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
   let(:cookie_string) { "mysql:#{now.to_f + 5}|redis:#{now.to_f + 5}" }
-  let(:cookie_key) { Makara::Context::IDENTIFIER }
+  let(:cookie_key) { Makara::Cookie::IDENTIFIER }
   let(:request) { Rack::Request.new({'HTTP_COOKIE' => "#{cookie_key}=#{cookie_string}"}) }
 
   before do
@@ -78,7 +78,7 @@ describe Makara::Context do
       Makara::Context.stick('mariadb', 10)
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=11; HttpOnly")
+      expect(headers['Set-Cookie']).to eq("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=15; HttpOnly")
     end
 
     it 'clears expired entries for configs that are no longer stuck' do
@@ -92,7 +92,7 @@ describe Makara::Context do
       Makara::Context.stick('mariadb', 10)
 
       Makara::Context.commit(headers, { :secure => true })
-      expect(headers['Set-Cookie']).to include("path=/; max-age=11; secure; HttpOnly")
+      expect(headers['Set-Cookie']).to include("path=/; max-age=15; secure; HttpOnly")
     end
   end
 
@@ -107,7 +107,7 @@ describe Makara::Context do
       Makara::Context.release('mysql')
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=redis%3A#{(now + 5).to_f}; path=/; max-age=6; HttpOnly")
+      expect(headers['Set-Cookie']).to eq("#{cookie_key}=redis%3A#{(now + 5).to_f}; path=/; max-age=10; HttpOnly")
     end
 
     it 'does nothing if the config given was not stuck' do
