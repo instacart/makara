@@ -34,12 +34,14 @@ module Makara
 
     def build_cookie(context_data, options)
       cookie = DEFAULT_OPTIONS.merge(options)
+      now = Time.now
 
       cookie[:max_age] = if context_data.any?
-        (context_data.values.max - Time.now.to_f).ceil + 5
+        (context_data.values.max - now.to_f).ceil + 5
       else
         0
       end
+      cookie[:expires] = now + cookie[:max_age]
       cookie[:value] = context_data.collect { |proxy_id, ttl| "#{proxy_id}:#{ttl}" }.join('|')
 
       cookie

@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'rack'
+require 'time'
 
 describe Makara::Context do
   let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
@@ -78,21 +79,22 @@ describe Makara::Context do
       Makara::Context.stick('mariadb', 10)
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f}; path=/; max-age=15; HttpOnly")
+      expect(headers['Set-Cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f}%7Cmariadb%3A#{(now + 10).to_f};")
+      expect(headers['Set-Cookie']).to include("path=/; max-age=15; expires=#{(Time.now + 15).gmtime.rfc2822}; HttpOnly")
     end
 
     it 'clears expired entries for configs that are no longer stuck' do
       Timecop.travel(now + 10)
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; HttpOnly")
+      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.gmtime.rfc2822}; HttpOnly")
     end
 
     it 'allows custom cookie options to be provided' do
       Makara::Context.stick('mariadb', 10)
 
       Makara::Context.commit(headers, { :secure => true })
-      expect(headers['Set-Cookie']).to include("path=/; max-age=15; secure; HttpOnly")
+      expect(headers['Set-Cookie']).to include("path=/; max-age=15; expires=#{(Time.now + 15).gmtime.rfc2822}; secure; HttpOnly")
     end
   end
 
@@ -107,7 +109,7 @@ describe Makara::Context do
       Makara::Context.release('mysql')
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=redis%3A#{(now + 5).to_f}; path=/; max-age=10; HttpOnly")
+      expect(headers['Set-Cookie']).to eq("#{cookie_key}=redis%3A#{(now + 5).to_f}; path=/; max-age=10; expires=#{(Time.now + 10).gmtime.rfc2822}; HttpOnly")
     end
 
     it 'does nothing if the config given was not stuck' do
@@ -126,7 +128,7 @@ describe Makara::Context do
       Makara::Context.release_all
 
       Makara::Context.commit(headers)
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; HttpOnly")
+      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.gmtime.rfc2822}; HttpOnly")
     end
 
     it 'does nothing if there were no stuck configs' do
