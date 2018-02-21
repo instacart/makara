@@ -199,7 +199,7 @@ module Makara
 
       elsif stuck_to_master?
 
-        # we're on master because we already stuck this config in this
+        # we're on master because we already stuck this proxy in this
         # request or because we got stuck in previous requests and the
         # stickiness is still valid
         @master_pool

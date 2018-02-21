@@ -11,6 +11,62 @@ module Makara
       http_only: true
     }
 
+    attr_accessor :data
+
+    def initialize(data)
+      @data = data
+      @dirty = false
+    end
+
+    def stick(proxy_id, ttl)
+      data[proxy_id] = Time.now.to_f + ttl.to_f
+      @dirty = true
+    end
+
+    def stuck?(proxy_id)
+      data[proxy_id] && !expired?(data[proxy_id])
+    end
+
+    # Indicates whether there have been changes to the context that need
+    # to be persisted when the request finishes
+    def dirty?
+      @dirty
+    end
+
+    def release(proxy_id)
+      @dirty ||= !!data.delete(proxy_id)
+    end
+
+    def release_expired
+      previous_size = data.size
+      data.delete_if { |_, timestamp| expired?(timestamp) }
+      @dirty ||= previous_size != data.size
+    end
+
+    def release_all
+      if self.data.any?
+        self.data = {}
+        @dirty = true
+      end
+    end
+
+    def to_cookie_options
+      max_age = if data.any?
+        (data.values.max - Time.now.to_f).ceil + 1
+      else
+        0
+      end
+
+      value = data.collect { |proxy_id, ttl| "#{proxy_id}:#{ttl}" }.join('|')
+      { :max_age => max_age, :value => value }
+    end
+
+    private
+
+    def expired?(timestamp)
+      timestamp <= Time.now.to_f
+    end
+
     class << self
       def init(request)
         data = parse(request.cookies[IDENTIFIER].to_s)
@@ -19,12 +75,12 @@ module Makara
 
       # Called by `Proxy#stick_to_master!` to stick subsequent requests to
       # master when using the given config
-      def stick(config_id, ttl)
-        current.stick(config_id, ttl)
+      def stick(proxy_id, ttl)
+        current.stick(proxy_id, ttl)
       end
 
-      def stuck?(config_id)
-        current.stuck?(config_id)
+      def stuck?(proxy_id)
+        current.stuck?(proxy_id)
       end
 
       def commit(headers, cookie_options = {})
@@ -35,8 +91,8 @@ module Makara
         end
       end
 
-      def release(config_id)
-        current.release(config_id)
+      def release(proxy_id)
+        current.release(proxy_id)
       end
 
       def release_all
@@ -72,73 +128,17 @@ module Makara
 
       private
 
-      # Pairs of {config_id}:{timestamp}, separated by "|"
-      # config_id1:1518270031.3132212|config_id2:1518270030.313232 ..
+      # Pairs of {proxy_id}:{timestamp}, separated by "|"
+      # proxy_id1:1518270031.3132212|proxy_id2:1518270030.313232 ..
       def parse(cookie_string)
         return {} if cookie_string.empty?
 
         states = cookie_string.split("|")
         states.each_with_object({}) do |state, data|
-          config_id, timestamp = state.split(":")
-          data[config_id] = timestamp.to_f if config_id && timestamp
+          proxy_id, timestamp = state.split(":")
+          data[proxy_id] = timestamp.to_f if proxy_id && timestamp
         end
       end
-    end
-
-    attr_accessor :data
-
-    def initialize(data)
-      @data = data
-      @dirty = false
-    end
-
-    def stick(config_id, ttl)
-      data[config_id] = Time.now.to_f + ttl.to_f
-      @dirty = true
-    end
-
-    def stuck?(config_id)
-      data[config_id] && !expired?(data[config_id])
-    end
-
-    # Indicates whether there have been changes to the context that need
-    # to be persisted when the request finishes
-    def dirty?
-      @dirty
-    end
-
-    def release(config_id)
-      @dirty ||= !!data.delete(config_id)
-    end
-
-    def release_expired
-      previous_size = data.size
-      data.delete_if { |_, timestamp| expired?(timestamp) }
-      @dirty ||= previous_size != data.size
-    end
-
-    def release_all
-      if self.data.any?
-        self.data = {}
-        @dirty = true
-      end
-    end
-
-    def to_cookie_options
-      max_age = if data.any?
-        (data.values.max - Time.now.to_f).ceil + 1
-      else
-        0
-      end
-
-      value = data.collect { |config_id, ttl| "#{config_id}:#{ttl}" }.join('|')
-      { :max_age => max_age, :value => value }
-    end
-
-    private
-
-    def expired?(timestamp)
-      timestamp <= Time.now.to_f
     end
   end
 end
