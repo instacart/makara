@@ -144,7 +144,7 @@ module Makara
       @config = config.symbolize_keys
       @makara_config = DEFAULTS.merge(@config[:makara] || {})
       @makara_config = @makara_config.symbolize_keys
-      @id = @makara_config[:id]
+      @id = sanitize_id(@makara_config[:id])
     end
 
 
@@ -197,5 +197,15 @@ module Makara
 
     end
 
+
+    def sanitize_id(id)
+      return if id.nil? || id.empty?
+
+      id.gsub(/[\|:]/, '').tap do |sanitized_id|
+        if sanitized_id.size != id.size
+          Logging::Logger.log "Proxy id '#{id}' changed to '#{sanitized_id}'", :warn
+        end
+      end
+    end
   end
 end
