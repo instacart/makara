@@ -69,8 +69,11 @@ module Makara
       @hijacked
     end
 
-    def stick_to_master!
-      Makara::Context.stick(@id, @ttl)
+    # If persist is true, we stick the proxy to master for subsequent requests
+    # up to master_ttl duration. Otherwise we just stick it for the current request
+    def stick_to_master!(persist = true)
+      stickiness_duration = persist ? @ttl : 0
+      Makara::Context.stick(@id, stickiness_duration)
     end
 
     def strategy_for(role)
@@ -240,9 +243,8 @@ module Makara
 
 
     def stuck_to_master?
-      @sticky && !@skip_sticking && Makara::Context.stuck?(@id)
+      sticky? && Makara::Context.stuck?(@id)
     end
-
 
     def stick_to_master(method_name, args)
       # check to see if we're configured, bypassed, or some custom implementation has input
@@ -252,13 +254,16 @@ module Makara
       stick_to_master!
     end
 
-
-    # If we are configured to be sticky and we aren't bypassing stickiness,
-    # (method and args don't matter)
+    # For the generic proxy implementation, we stick if we are sticky,
+    # method and args don't matter
     def should_stick?(method_name, args)
-      @sticky && !@skip_sticking
+      sticky?
     end
 
+    # If we are configured to be sticky and we aren't bypassing stickiness,
+    def sticky?
+      @sticky && !@skip_sticking
+    end
 
     # use the config parser to generate a master and slave pool
     def instantiate_connections

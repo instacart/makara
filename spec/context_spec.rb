@@ -49,7 +49,7 @@ describe Makara::Context do
       Makara::Context.set_current(context_data)
     end
 
-    it 'sticks a proxy to master for the current full request' do
+    it 'sticks a proxy to master for the current request' do
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
       Makara::Context.stick('mariadb', 10)
@@ -64,6 +64,15 @@ describe Makara::Context do
       Timecop.travel(Time.now + 20)
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
     end
+
+    it 'supports floats as ttl' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
+      Makara::Context.stick('mariadb', 0.5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to eq((now + 0.5).to_f)
+    end
   end
 
   describe 'next' do
@@ -72,6 +81,12 @@ describe Makara::Context do
     end
 
     it 'returns nil if there is nothing new to stick' do
+      expect(Makara::Context.next).to be_nil
+    end
+
+    it "doesn't store staged proxies with 0 stickiness duration" do
+      Makara::Context.stick('mariadb', 0)
+
       expect(Makara::Context.next).to be_nil
     end
 

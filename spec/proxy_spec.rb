@@ -41,20 +41,57 @@ describe Makara::Proxy do
     expect(proxy.irespondtothis).to eq('hello!')
   end
 
-  it 'should use master if manually forced' do
-    proxy = klass.new(config(1, 2))
+  describe '#stick_to_master' do
+    let(:proxy) { klass.new(config(1, 2)) }
 
-    expect(proxy.master_for?('select * from users')).to eq(false)
+    it 'should use master if manually forced' do
+      expect(proxy.master_for?('select * from users')).to eq(false)
 
-    proxy.stick_to_master!
+      proxy.stick_to_master!
 
-    expect(proxy.master_for?('select * from users')).to eq(true)
+      expect(proxy.master_for?('select * from users')).to eq(true)
+    end
+
+    it 'should persist stickiness by default' do
+      now = Time.now
+      proxy.stick_to_master!
+
+      next_context = Makara::Context.next
+      expect(next_context[proxy.id]).to be >= (now + 5).to_f
+
+      proxy = klass.new(config(1, 2))
+      expect(proxy.master_for?('select * from users')).to eq(true)
+    end
+
+    it 'optionally skips stickiness persistence, so it applies only to the current request' do
+      now = Time.now
+      proxy.stick_to_master!(false)
+
+      expect(proxy.master_for?('select * from users')).to eq(true)
+      next_context = Makara::Context.next
+      expect(next_context).to be_nil # Nothing to persist, so context is empty
+
+      proxy = klass.new(config(1, 2))
+      expect(proxy.master_for?('select * from users')).to eq(false)
+    end
+
+    it 'supports a float master_ttl for stickiness duration' do
+      now = Time.now
+      config = config(1, 2).dup
+      config[:makara][:master_ttl] = 0.5
+      proxy = klass.new(config)
+
+      proxy.stick_to_master!
+
+      next_context = Makara::Context.next
+      expect(next_context[proxy.id]).to be >= (now + 0.5).to_f
+      expect(next_context[proxy.id]).to be < (now + 1).to_f
+    end
   end
 
 
-  context '#appropriate_pool' do
-
-    let(:proxy){ klass.new(config(1,1)) }
+  describe '#appropriate_pool' do
+    let(:proxy) { klass.new(config(1,1)) }
 
     it 'should be sticky by default' do
       expect(proxy.sticky).to eq(true)
@@ -170,9 +207,5 @@ describe Makara::Proxy do
       proxy.slave_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
       proxy.master_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
     end
-
   end
-
-
-
 end

@@ -54,7 +54,7 @@ module Makara
     # Indicates whether there have been changes to the context that need
     # to be persisted when the request finishes
     def dirty?
-      @dirty || staged_data.any?
+      @dirty
     end
 
     def was_dirty?
@@ -73,7 +73,10 @@ module Makara
 
     def store_staged_data
       staged_data.each do |proxy_id, ttl|
-        self.stored_data[proxy_id] = Time.now.to_f + ttl
+        if ttl > 0
+          self.stored_data[proxy_id] = Time.now.to_f + ttl
+          @dirty = true
+        end
       end
     end
 
