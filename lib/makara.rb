@@ -2,6 +2,7 @@ require 'makara/version'
 require 'makara/railtie' if defined?(Rails)
 module Makara
 
+  autoload :Cache,              'makara/cache'
   autoload :ConfigParser,       'makara/config_parser'
   autoload :ConnectionWrapper,  'makara/connection_wrapper'
   autoload :Context,            'makara/context'
