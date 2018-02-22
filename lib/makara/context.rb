@@ -3,44 +3,50 @@ require 'digest/md5'
 # Keeps track of the current stickiness state for different Makara configurations
 module Makara
   class Context
+    attr_accessor :stored_data, :staged_data
 
-    attr_accessor :data
-
-    def initialize(data)
-      @data = data
-      @dirty = false
+    def initialize(context_data)
+      @stored_data = context_data
+      @staged_data = {}
+      @dirty = @was_dirty = false
     end
 
-    def stick(proxy_id, ttl)
-      data[proxy_id] = Time.now.to_f + ttl.to_f
-      @dirty = true
+    def stage(proxy_id, ttl)
+      staged_data[proxy_id] = ttl.to_f
     end
 
     def stuck?(proxy_id)
-      data[proxy_id] && !expired?(data[proxy_id])
+      stored_data[proxy_id] && !expired?(stored_data[proxy_id])
+    end
+
+    def staged?(proxy_id)
+      staged_data.key?(proxy_id)
     end
 
     def release(proxy_id)
-      @dirty ||= !!data.delete(proxy_id)
-    end
-
-    def release_expired
-      previous_size = data.size
-      data.delete_if { |_, timestamp| expired?(timestamp) }
-      @dirty ||= previous_size != data.size
+      @dirty ||= !!stored_data.delete(proxy_id)
+      staged_data.delete(proxy_id)
     end
 
     def release_all
-      if self.data.any?
-        self.data = {}
+      if self.stored_data.any?
+        self.stored_data = {}
+        # We need to track a change made to the current stored data
+        # so we can commit it later
         @dirty = true
       end
+      self.staged_data = {}
     end
 
-    def persistable_data
-      if dirty?
-        data
-      end
+    # Stores the staged data with an expiration time based on the current time,
+    # and clears any expired entries. Returns true if any changes were made to
+    # the current store
+    def commit
+      release_expired
+      store_staged_data
+      clean
+
+      was_dirty?
     end
 
     private
@@ -48,11 +54,33 @@ module Makara
     # Indicates whether there have been changes to the context that need
     # to be persisted when the request finishes
     def dirty?
-      @dirty
+      @dirty || staged_data.any?
+    end
+
+    def was_dirty?
+      @was_dirty
     end
 
     def expired?(timestamp)
       timestamp <= Time.now.to_f
+    end
+
+    def release_expired
+      previous_size = stored_data.size
+      stored_data.delete_if { |_, timestamp| expired?(timestamp) }
+      @dirty ||= previous_size != stored_data.size
+    end
+
+    def store_staged_data
+      staged_data.each do |proxy_id, ttl|
+        self.stored_data[proxy_id] = Time.now.to_f + ttl
+      end
+    end
+
+    def clean
+      @was_dirty = dirty?
+      @dirty = false
+      @staged_data = {}
     end
 
     class << self
@@ -60,19 +88,19 @@ module Makara
         set(:makara_current_context, new(context_data))
       end
 
-      # Called by `Proxy#stick_to_master!` to stick subsequent requests to
-      # master when using the given config
+      # Called by `Proxy#stick_to_master!` to use master in subsequent requests
       def stick(proxy_id, ttl)
-        current.stick(proxy_id, ttl)
+        current.stage(proxy_id, ttl)
       end
 
       def stuck?(proxy_id)
-        current.stuck?(proxy_id)
+        current.staged?(proxy_id) || current.stuck?(proxy_id)
       end
 
       def next
-        current.release_expired
-        current.persistable_data
+        if current.commit
+          current.stored_data
+        end
       end
 
       def release(proxy_id)

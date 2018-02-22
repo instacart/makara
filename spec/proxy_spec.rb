@@ -104,12 +104,14 @@ describe Makara::Proxy do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
-    it 'should release master if enough time passes' do
+    it "should not release master if it was stuck in the same request (no context changes yet)" do
       expect(proxy.master_for?('insert into users values (a,b,c)')).to eq(true)
       expect(proxy.master_for?('select * from users')).to eq(true)
 
       Timecop.travel Time.now + 10 do
-        expect(proxy.master_for?('select * from users')).to eq(false)
+        # master_ttl has passed but we are still in the same request, so current context
+        # is still relevant
+        expect(proxy.master_for?('select * from users')).to eq(true)
       end
     end
 

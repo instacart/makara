@@ -49,13 +49,19 @@ describe Makara::Context do
       Makara::Context.set_current(context_data)
     end
 
-    it 'sticks a proxy to master for subsequent requests' do
+    it 'sticks a proxy to master for the current full request' do
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
       Makara::Context.stick('mariadb', 10)
 
       expect(Makara::Context.stuck?('mariadb')).to be_truthy
-      Timecop.travel(now + 20)
+      Timecop.travel(Time.now + 20)
+      # The stickiness would have expired but it hasn't been committed yet
+      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+
+      # It expires after going to the next request
+      Makara::Context.next
+      Timecop.travel(Time.now + 20)
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
     end
   end
@@ -82,6 +88,20 @@ describe Makara::Context do
       Timecop.travel(now + 10)
 
       expect(Makara::Context.next).to eq({})
+    end
+
+    it 'sets expiration time with ttl based on the invokation time' do
+      Makara::Context.stick('mariadb', 10)
+      request_ends_at = Time.now + 20
+      Timecop.travel(request_ends_at)
+
+      next_context = Makara::Context.next
+
+      # The previous stuck proxies would have expired
+      expect(next_context['mysql']).to be_nil
+      expect(next_context['redis']).to be_nil
+      # But the proxy stuck in that request would expire in ttl seconds from now
+      expect(next_context['mariadb']).to be >= (request_ends_at + 10).to_f
     end
   end
 
