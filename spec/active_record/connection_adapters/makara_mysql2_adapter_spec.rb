@@ -172,9 +172,6 @@ describe 'MakaraMysql2Adapter' do
 
       connection = Test::User.connection
       con = connection.slave_pool.connections.first
-      # con = connection.master_pool.connections.first
-      # expect(con).to receive(:execute).with('SELECT  1 AS one FROM `users` LIMIT 1').once
-
       Test::User.exists?
     end
 
