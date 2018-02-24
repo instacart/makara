@@ -23,6 +23,8 @@ module Makara
       end
 
       def next
+        return safe_value(0, true) if single_one?
+
         idx = @current_idx
         begin
 
@@ -66,6 +68,10 @@ module Makara
       # stub in test mode to ensure consistency
       def should_shuffle?
         true
+      end
+
+      def single_one?
+        false
       end
     end
   end
