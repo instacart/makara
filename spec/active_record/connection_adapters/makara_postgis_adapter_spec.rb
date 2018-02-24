@@ -91,10 +91,7 @@ if RUBY_ENGINE == 'ruby' &&
 
       it 'should send reads to the slave' do
         # ensure the next connection will be the first one
-        connection.slave_pool
-                  .strategy
-                  .instance_variable_set('@current_idx',
-                                         connection.slave_pool.connections.length)
+        allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
         con = connection.slave_pool.connections.first
         expect(con).to receive(:execute).with('SELECT * FROM users').once
