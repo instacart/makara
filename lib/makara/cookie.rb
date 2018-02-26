@@ -9,6 +9,8 @@ module Makara
       http_only: true
     }
 
+    MAX_AGE_BUFFER = 5
+
     def fetch(request)
       parse(request.cookies[IDENTIFIER].to_s)
     end
@@ -37,7 +39,7 @@ module Makara
       now = Time.now
 
       cookie[:max_age] = if context_data.any?
-        (context_data.values.max - now.to_f).ceil + 5
+        (context_data.values.max - now.to_f).ceil + MAX_AGE_BUFFER
       else
         0
       end

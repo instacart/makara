@@ -63,7 +63,7 @@ Makara comes with a config parser which will handle providing subconfigs to the 
 
 ### Stickiness Context
 
-Makara handles stickiness by keeping track of which proxies are stuck at any given moment. The context is basically a hash of proxy ids and the timestamp until which they are stuck.
+Makara handles stickiness by keeping track of which proxies are stuck at any given moment. The context is basically a mapping of proxy ids to the timestamp until which they are stuck.
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_stck` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
 
@@ -96,7 +96,7 @@ persist = true # or false, it's true by default
 proxy.stick_to_master!(persist)
 ```
 
-It'll keep the proxy stick to master for the current request, and if `persist = true` (default), it'll be also stored in the context for subsequent requests, keeping the proxy stuck up to the duration of `master_ttl` configured for the proxy.
+It'll keep the proxy stuck to master for the current request, and if `persist = true` (default), it'll be also stored in the context for subsequent requests, keeping the proxy stuck up to the duration of `master_ttl` configured for the proxy.
 
 #### Skipping the Stickiness
 

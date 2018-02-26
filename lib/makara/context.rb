@@ -1,6 +1,6 @@
 require 'digest/md5'
 
-# Keeps track of the current stickiness state for different Makara configurations
+# Keeps track of the current stickiness state for different Makara proxies
 module Makara
   class Context
     attr_accessor :stored_data, :staged_data
@@ -138,20 +138,6 @@ module Makara
 
         def set(key, value)
           Thread.current[key]=value
-        end
-      end
-
-      private
-
-      # Pairs of {proxy_id}:{timestamp}, separated by "|"
-      # proxy_id1:1518270031.3132212|proxy_id2:1518270030.313232 ..
-      def parse(cookie_string)
-        return {} if cookie_string.empty?
-
-        states = cookie_string.split("|")
-        states.each_with_object({}) do |state, data|
-          proxy_id, timestamp = state.split(":")
-          data[proxy_id] = timestamp.to_f if proxy_id && timestamp
         end
       end
     end
