@@ -4,15 +4,18 @@ require 'digest/md5'
 module Makara
   class Context
     attr_accessor :stored_data, :staged_data
+    attr_reader :current_timestamp
 
     def initialize(context_data)
       @stored_data = context_data
       @staged_data = {}
       @dirty = @was_dirty = false
+
+      freeze_time
     end
 
     def stage(proxy_id, ttl)
-      staged_data[proxy_id] = ttl.to_f
+      staged_data[proxy_id] = [staged_data[proxy_id].to_f, ttl.to_f].max
     end
 
     def stuck?(proxy_id)
@@ -42,6 +45,7 @@ module Makara
     # and clears any expired entries. Returns true if any changes were made to
     # the current store
     def commit
+      freeze_time
       release_expired
       store_staged_data
       clean
@@ -50,6 +54,10 @@ module Makara
     end
 
     private
+
+    def freeze_time
+      @current_timestamp = Time.now.to_f
+    end
 
     # Indicates whether there have been changes to the context that need
     # to be persisted when the request finishes
@@ -62,7 +70,7 @@ module Makara
     end
 
     def expired?(timestamp)
-      timestamp <= Time.now.to_f
+      timestamp <= current_timestamp
     end
 
     def release_expired
@@ -73,8 +81,8 @@ module Makara
 
     def store_staged_data
       staged_data.each do |proxy_id, ttl|
-        if ttl > 0
-          self.stored_data[proxy_id] = Time.now.to_f + ttl
+        if ttl > 0 && self.stored_data[proxy_id].to_f < current_timestamp + ttl
+          self.stored_data[proxy_id] = current_timestamp + ttl
           @dirty = true
         end
       end

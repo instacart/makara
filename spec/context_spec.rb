@@ -56,13 +56,37 @@ describe Makara::Context do
 
       expect(Makara::Context.stuck?('mariadb')).to be_truthy
       Timecop.travel(Time.now + 20)
-      # The stickiness would have expired but it hasn't been committed yet
-      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+      # The ttl kicks off when the context is committed
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to be >= now.to_f + 30 # 10 ttl + 20 seconds that have passed
 
       # It expires after going to the next request
-      Makara::Context.next
       Timecop.travel(Time.now + 20)
+      Makara::Context.next
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
+    end
+
+    it "doesn't overwrite previously stuck proxies with current-request-only stickiness" do
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+
+      # ttl=0 to avoid persisting mysql for the next request
+      Makara::Context.stick('mysql', 0)
+
+      Makara::Context.next
+      # mysql proxy is still stuck in the next context
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+    end
+
+    it 'uses always the max ttl given' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
+      Makara::Context.stick('mariadb', 10)
+      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+
+      Makara::Context.stick('mariadb', 5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
     end
 
     it 'supports floats as ttl' do
@@ -97,6 +121,20 @@ describe Makara::Context do
       expect(next_context['mysql']).to eq((now + 5).to_f)
       expect(next_context['redis']).to eq((now + 5).to_f)
       expect(next_context['mariadb']).to eq((now + 10).to_f)
+    end
+
+    it "doesn't update previously stored proxies if the update will cause a sooner expiration" do
+      Makara::Context.stick('mariadb', 10)
+      Makara::Context.stick('mysql', 2.5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mysql']).to eq((now + 5).to_f)
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
+
+      Makara::Context.set_current(context_data)
+      Makara::Context.stick('mysql', 2.5)
+
+      expect(Makara::Context.next).to be_nil
     end
 
     it 'clears expired entries for proxies that are no longer stuck' do
