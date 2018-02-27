@@ -127,7 +127,7 @@ module Makara
     # NOTE: Does not use ENV['DATABASE_URL']
     def self.merge_and_resolve_default_url_config(config)
       if ENV['DATABASE_URL']
-        Logging::Logger.log "Please rename DATABASE_URL to use in the database.yml", :warn
+        Makara::Logging::Logger.log "Please rename DATABASE_URL to use in the database.yml", :warn
       end
       return config unless config.key?(:url)
       url = config[:url]
@@ -203,7 +203,7 @@ module Makara
 
       id.gsub(/[\|:]/, '').tap do |sanitized_id|
         if sanitized_id.size != id.size
-          Logging::Logger.log "Proxy id '#{id}' changed to '#{sanitized_id}'", :warn
+          Makara::Logging::Logger.log "Proxy id '#{id}' changed to '#{sanitized_id}'", :warn
         end
       end
     end

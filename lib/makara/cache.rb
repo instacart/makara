@@ -4,7 +4,7 @@ module Makara
     class << self
 
       def store=(store)
-        Logging::Logger.log deprecation_warning, :warn
+        Makara::Logging::Logger.log deprecation_warning, :warn
       end
 
       private
