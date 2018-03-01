@@ -32,7 +32,11 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select currval(\'users_id_seq\')' => true,
     'select lastval()' => true,
     'with fence as (select * from users) select * from fence' => false,
-    'with fence as (select * from felines) insert to cats' => true
+    'with fence as (select * from felines) insert to cats' => true,
+    'select get_lock(\'foo\', 0)' => true,
+    'select release_lock(\'foo\')' => true,
+    'select pg_advisory_lock(12345)' => true,
+    'select pg_advisory_unlock(12345)' => true
   }.each do |sql, should_go_to_master|
 
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
