@@ -21,6 +21,7 @@ rvm:
   - 2.2
   - 2.3
   - 2.4
+  - 2.5
   - ruby-head
   - jruby
 
@@ -47,7 +48,33 @@ matrix:
       rvm: 2.3
     - gemfile: gemfiles/ar30.gemfile
       rvm: 2.4
+    - gemfile: gemfiles/ar31.gemfile
+      rvm: 2.4
+    - gemfile: gemfiles/ar32.gemfile
+      rvm: 2.4
+    - gemfile: gemfiles/ar40.gemfile
+      rvm: 2.4
+    - gemfile: gemfiles/ar41.gemfile
+      rvm: 2.4
     - gemfile: gemfiles/ar30.gemfile
+      rvm: 2.5
+    - gemfile: gemfiles/ar31.gemfile
+      rvm: 2.5
+    - gemfile: gemfiles/ar32.gemfile
+      rvm: 2.5
+    - gemfile: gemfiles/ar40.gemfile
+      rvm: 2.5
+    - gemfile: gemfiles/ar41.gemfile
+      rvm: 2.5
+    - gemfile: gemfiles/ar30.gemfile
+      rvm: ruby-head
+    - gemfile: gemfiles/ar31.gemfile
+      rvm: ruby-head
+    - gemfile: gemfiles/ar32.gemfile
+      rvm: ruby-head
+    - gemfile: gemfiles/ar40.gemfile
+      rvm: ruby-head
+    - gemfile: gemfiles/ar41.gemfile
       rvm: ruby-head
     - gemfile: gemfiles/ar50.gemfile
       rvm: 2.0
@@ -67,6 +94,10 @@ matrix:
       rvm: 2.1
     - gemfile: gemfiles/ar-head.gemfile
       rvm: 2.2
+    - gemfile: gemfiles/ar-head.gemfile
+      rvm: 2.3
+    - gemfile: gemfiles/ar-head.gemfile
+      rvm: 2.4
   allow_failures:
     - gemfile: gemfiles/ar-head.gemfile
     - rvm: ruby-head
