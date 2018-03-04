@@ -74,9 +74,15 @@ describe 'MakaraPostgreSQLAdapter' do
 
     it 'should send exists? to slave' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      Test::User.exists? # flush other (schema) things that need to happen
       
       con = connection.slave_pool.connections.first
-      expect(con).to receive(:select_value).and_call_original
+      if ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2
+        expect(con).to receive(:exec_no_cache).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      else
+        # "SELECT  1 AS one FROM \"users\" LIMIT $1"
+        expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      end
       Test::User.exists?
     end
 
