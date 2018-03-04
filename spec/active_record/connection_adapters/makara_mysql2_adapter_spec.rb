@@ -158,20 +158,11 @@ describe 'MakaraMysql2Adapter' do
       connection.execute('SELECT * FROM users')
     end
 
-    it 'should send exists query to slave' do
-      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
-
-      con = connection.slave_pool.connections.first
-      expect(con).to receive(:execute).with('SELECT  1 AS one FROM `users` LIMIT 1').once
-      connection.execute('SELECT  1 AS one FROM `users` LIMIT 1')
-    end
-
     it 'should send exists? to slave' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
-      Test::User.exists? # run all the schema checking stuff on master first
-
-      connection = Test::User.connection
+      
       con = connection.slave_pool.connections.first
+      expect(con).to receive(:select_value).and_call_original
       Test::User.exists?
     end
 

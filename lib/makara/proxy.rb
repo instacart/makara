@@ -182,9 +182,6 @@ module Makara
 
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
-
-      # puts "#{pool.role}::: #{args.join(" | ")}"
-
       yield pool
 
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
