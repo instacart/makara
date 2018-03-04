@@ -165,7 +165,11 @@ describe 'MakaraMysql2Adapter' do
       Test::User.exists? # flush other (schema) things that need to happen
       
       con = connection.slave_pool.connections.first
-      expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      if (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
+        expect(con).to receive(:execute).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      else
+        expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      end
       Test::User.exists?
     end
 
