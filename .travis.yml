@@ -21,7 +21,7 @@ rvm:
   - 2.2
   - 2.3
   - 2.4
-  - 2.5
+  - 2.5.0
   - ruby-head
   - jruby
 
@@ -57,15 +57,15 @@ matrix:
     - gemfile: gemfiles/ar41.gemfile
       rvm: 2.4
     - gemfile: gemfiles/ar30.gemfile
-      rvm: 2.5
+      rvm: 2.5.0
     - gemfile: gemfiles/ar31.gemfile
-      rvm: 2.5
+      rvm: 2.5.0
     - gemfile: gemfiles/ar32.gemfile
-      rvm: 2.5
+      rvm: 2.5.0
     - gemfile: gemfiles/ar40.gemfile
-      rvm: 2.5
+      rvm: 2.5.0
     - gemfile: gemfiles/ar41.gemfile
-      rvm: 2.5
+      rvm: 2.5.0
     - gemfile: gemfiles/ar30.gemfile
       rvm: ruby-head
     - gemfile: gemfiles/ar31.gemfile
