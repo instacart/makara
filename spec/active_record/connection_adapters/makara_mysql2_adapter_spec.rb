@@ -150,12 +150,27 @@ describe 'MakaraMysql2Adapter' do
 
     it 'should send reads to the slave' do
       # ensure the next connection will be the first one
-      connection.slave_pool.strategy.instance_variable_set('@current_idx', connection.slave_pool.connections.length)
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
       con = connection.slave_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
 
       connection.execute('SELECT * FROM users')
+    end
+
+    it 'should send exists? to slave' do
+      next if ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR == 0 # query doesn't work?
+
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      Test::User.exists? # flush other (schema) things that need to happen
+      
+      con = connection.slave_pool.connections.first
+      if (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
+        expect(con).to receive(:execute).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      else
+        expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      end
+      Test::User.exists?
     end
 
     it 'should send writes to master' do

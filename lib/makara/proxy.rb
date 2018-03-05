@@ -182,7 +182,6 @@ module Makara
 
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
-
       yield pool
 
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
