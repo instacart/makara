@@ -151,4 +151,16 @@ describe Makara::ConfigParser do
       ])
     end
   end
+
+  context "issue 167" do
+    let(:config){
+      YAML.load_file(File.expand_path('spec/support/issue_167.yml'))['production']
+    }
+
+    it "should load without crashing" do
+      parser = described_class.new(config)
+      expect(parser.master_configs.first[:database]).to eq('prod_database')
+    end
+
+  end
 end

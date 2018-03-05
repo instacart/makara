@@ -1,0 +1,42 @@
+default: &default
+  adapter: mysql2_makara
+  encoding: utf8
+  reconnect: true
+  pool: 5
+
+development:
+  <<: *default
+  database: dev_database
+  username: dev_username
+  password: dev_password
+  port: 3333
+  host: hostname
+
+test:
+  <<: *default
+  database: test_database
+
+production:
+  <<: *default
+  makara:
+    # the following are default values
+    blacklist_duration: 5
+    master_ttl: 1
+    master_strategy: round_robin
+    sticky: false
+
+    connections:
+      - role: master
+        host: hostname
+        database: prod_database
+        port: 3333
+        username: username
+        password: password
+        blacklist_duration: 5
+
+      - role: slave
+        database: prod_database
+        port: 3333
+        host: hostname
+        username: username
+        password: password
