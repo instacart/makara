@@ -64,6 +64,7 @@ module Makara
     end
 
     def _makara_connection
+      return if _makara_blacklisted?
       current = @connection
 
       if current
