@@ -106,13 +106,10 @@ module Makara
 
         value
 
-      # if we've made any connections within this pool, we should report the blackout.
-      elsif connection_made?
+      else
         err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
         @blacklist_errors = []
         raise err
-      else
-        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
     # when a connection causes a blacklist error within the provided block, we blacklist it then retry
@@ -122,10 +119,7 @@ module Makara
       retry
     end
 
-
-
     protected
-
 
     # have we connected to any of the underlying connections.
     def connection_made?

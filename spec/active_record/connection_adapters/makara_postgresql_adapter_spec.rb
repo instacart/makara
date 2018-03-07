@@ -77,7 +77,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
-      
+
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2) ||
          (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
@@ -100,8 +100,8 @@ describe 'MakaraPostgreSQLAdapter' do
       allow(ActiveRecord::Base).to receive(:postgresql_connection).and_raise(StandardError.new('could not connect to server: Connection refused'))
 
       ActiveRecord::Base.establish_connection(config)
-      expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
     end
   end
 
@@ -130,7 +130,7 @@ describe 'MakaraPostgreSQLAdapter' do
       establish_connection(custom_config)
 
       connection.execute('SELECT * FROM users')
-      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
     end
   end
 
