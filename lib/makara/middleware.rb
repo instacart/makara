@@ -30,7 +30,7 @@ module Makara
       Makara::Context.set_current new_context(env)
 
       status, headers, body = @app.call(env)
-
+      @cookie[:secure] = is_https_request(env) unless @cookie.keys.include?(:secure)
       store_context(status, headers)
 
       [status, headers, body]
@@ -103,6 +103,14 @@ module Makara
     def store_context(status, headers)
       cookie = @cookie.merge(:value => "#{Makara::Context.get_current}--#{status}")
       Rack::Utils.set_cookie_header! headers, IDENTIFIER, cookie
+    end
+
+    # determines if a request is HTTPS based on headers and env variabled
+    def is_https_request(env)
+      env['HTTPS'] == 'on' ||
+        env['HTTP_X_FORWARDED_SSL'] == 'on' ||
+        env['HTTP_X_FORWARDED_PROTO'].to_s.split(',').first == 'https' ||
+        env['rack.url_scheme'] == 'https'
     end
   end
 end
