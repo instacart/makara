@@ -1,6 +1,22 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## v0.3.9 - 2013-03-20
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.9...v0.3.10) 
+
+Fixed
+- Send nextval queries to master and show queries to replicas for Postgres [#173](https://github.com/taskrabbit/makara/pull/173) Andrew Kane
+- Fixes can't add a new key into hash during iteration error [#174](https://github.com/taskrabbit/makara/pull/174) Andrew Kane
+- Fix: an application freezes when a slave is down [#180](https://github.com/taskrabbit/makara/pull/180) Alexey P
+- Allow SELECTs that use common table expressions to go to replicas [#184](https://github.com/taskrabbit/makara/pull/184) Andrew Kane
+- Send advisory lock requests to the master [#198](https://github.com/taskrabbit/makara/pull/198) George Claghorn
+- Postgres exists query [#199](https://github.com/taskrabbit/makara/pull/199) Brian Leonard
+
+Documentation and Test
+- Clarify README's "What goes where" [#187](https://github.com/taskrabbit/makara/pull/187) Jan Sandbrink
+- Fix loading fixtures in Rails 5.2 [#192](https://github.com/taskrabbit/makara/pull/192) George Claghorn
+- Travis Upgrade [#199](https://github.com/taskrabbit/makara/pull/199) Brian Leonard
+
 ## v0.3.9 - 2017-08-14
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.8...v0.3.9) 
 
