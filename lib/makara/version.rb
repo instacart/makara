@@ -2,8 +2,8 @@ module Makara
   module VERSION
 
     MAJOR = 0
-    MINOR = 3
-    PATCH = 10
+    MINOR = 4
+    PATCH = 0
     PRE = nil
 
     def self.to_s
