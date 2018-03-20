@@ -1,7 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## v0.3.9 - 2013-03-20
+## v0.4.0 - 2018-04-01
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.10...v0.4.0)
+
+This release is a major change to how we remember state between requests. A redis store is no longer needed. Everything is in the cookies.
+ - Implement stickiness for the duration of `master_ttl` via cookies [#194](https://github.com/taskrabbit/makara/pull/194) Rosa Gutierrez
+
+
+## v0.3.9 - 2018-03-20
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.9...v0.3.10) 
 
 Fixed
