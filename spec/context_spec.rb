@@ -1,146 +1,209 @@
 require 'spec_helper'
+require 'rack'
+require 'time'
 
 describe Makara::Context do
+  let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
+  let(:context_data) { { "mysql" => now.to_f + 5, "redis" => now.to_f + 5 } }
 
-  describe 'get_current' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
+  before do
+    Timecop.freeze(now)
+  end
 
-      1.upto(3).map do |i|
-        threads << Thread.new do
-          current = Makara::Context.get_current
-          expect(current).to_not be_nil
-          expect(uniq_curret_contexts).to_not include(current)
-          uniq_curret_contexts << current
+  after do
+    Timecop.return
+  end
 
-          sleep(0.2)
-        end
-        sleep(0.1)
+  it 'does not share stickiness state across threads' do
+    contexts = {}
+    threads = []
+
+    [1, -1].each_with_index do |f, i|
+      threads << Thread.new do
+        context_data = { "mysql" => now.to_f + f*5 }
+        Makara::Context.set_current(context_data)
+
+        contexts["context_#{i}"] = Makara::Context.stuck?('mysql')
+
+        sleep(0.2)
       end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
+      sleep(0.1)
     end
+
+    threads.map(&:join)
+    expect(contexts).to eq({ 'context_0' => true, 'context_1' => false })
   end
 
   describe 'set_current' do
+    it 'sets stickiness information from given hash' do
+      Makara::Context.set_current(context_data)
 
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
-
-      1.upto(3).map do |i|
-        threads << Thread.new do
-
-          current = Makara::Context.set_current("val#{i}")
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          sleep(0.2)
-
-          current = Makara::Context.get_current
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          uniq_curret_contexts << current
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
-  end
-
-  describe 'get_previous' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
-
-      1.upto(3).map do |i|
-        threads << Thread.new do
-          current = Makara::Context.get_previous
-          expect(current).to_not be_nil
-          expect(uniq_curret_contexts).to_not include(current)
-          uniq_curret_contexts << current
-
-          sleep(0.2)
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
-  end
-
-  describe 'set_previous' do
-    it 'does not share context acorss threads' do
-      uniq_curret_contexts = []
-      threads = []
-
-      1.upto(3).map do |i|
-        threads << Thread.new do
-
-          current = Makara::Context.set_previous("val#{i}")
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          sleep(0.2)
-
-          current = Makara::Context.get_previous
-          expect(current).to_not be_nil
-          expect(current).to eq("val#{i}")
-
-          uniq_curret_contexts << current
-        end
-        sleep(0.1)
-      end
-
-      threads.map(&:join)
-      expect(uniq_curret_contexts.uniq.count).to eq(3)
-    end
-
-    it 'clears config sticky cache' do
-      Makara::Cache.store = :memory
-
-      Makara::Context.set_previous('a')
-      Makara::Context.stick('a', 1, 10)
-      expect(Makara::Context.previously_stuck?(1)).to be_truthy
-
-      Makara::Context.set_previous('b')
-      expect(Makara::Context.previously_stuck?(1)).to be_falsey
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+      expect(Makara::Context.stuck?('redis')).to be_truthy
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
     end
   end
 
   describe 'stick' do
-    it 'sticks a config to master for subsequent requests' do
-      Makara::Cache.store = :memory
+    before do
+      Makara::Context.set_current(context_data)
+    end
 
-      expect(Makara::Context.stuck?('context', 1)).to be_falsey
+    it 'sticks a proxy to master for the current request' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
-      Makara::Context.stick('context', 1, 10)
-      expect(Makara::Context.stuck?('context', 1)).to be_truthy
-      expect(Makara::Context.stuck?('context', 2)).to be_falsey
+      Makara::Context.stick('mariadb', 10)
+
+      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+      Timecop.travel(Time.now + 20)
+      # The ttl kicks off when the context is committed
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to be >= now.to_f + 30 # 10 ttl + 20 seconds that have passed
+
+      # It expires after going to the next request
+      Timecop.travel(Time.now + 20)
+      Makara::Context.next
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+    end
+
+    it "doesn't overwrite previously stuck proxies with current-request-only stickiness" do
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+
+      # ttl=0 to avoid persisting mysql for the next request
+      Makara::Context.stick('mysql', 0)
+
+      Makara::Context.next
+      # mysql proxy is still stuck in the next context
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+    end
+
+    it 'uses always the max ttl given' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
+      Makara::Context.stick('mariadb', 10)
+      expect(Makara::Context.stuck?('mariadb')).to be_truthy
+
+      Makara::Context.stick('mariadb', 5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
+    end
+
+    it 'supports floats as ttl' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
+      Makara::Context.stick('mariadb', 0.5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mariadb']).to eq((now + 0.5).to_f)
     end
   end
 
-  describe 'previously_stuck?' do
-    it 'checks whether a config was stuck to master in the previous context' do
-      Makara::Cache.store = :memory
-      Makara::Context.set_previous 'previous'
+  describe 'next' do
+    before do
+      Makara::Context.set_current(context_data)
+    end
 
-      # Emulate sticking the previous web request to master.
-      Makara::Context.stick 'previous', 1, 10
+    it 'returns nil if there is nothing new to stick' do
+      expect(Makara::Context.next).to be_nil
+    end
 
-      # Emulate handling the subsequent web request with a previous context
-      # cookie that is stuck to master.
-      expect(Makara::Context.previously_stuck?(1)).to be_truthy
+    it "doesn't store staged proxies with 0 stickiness duration" do
+      Makara::Context.stick('mariadb', 0)
 
-      # Other configs should not be stuck to master, though.
-      expect(Makara::Context.previously_stuck?(2)).to be_falsey
+      expect(Makara::Context.next).to be_nil
+    end
+
+    it 'returns hash with updated stickiness' do
+      Makara::Context.stick('mariadb', 10)
+
+      next_context = Makara::Context.next
+      expect(next_context['mysql']).to eq((now + 5).to_f)
+      expect(next_context['redis']).to eq((now + 5).to_f)
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
+    end
+
+    it "doesn't update previously stored proxies if the update will cause a sooner expiration" do
+      Makara::Context.stick('mariadb', 10)
+      Makara::Context.stick('mysql', 2.5)
+
+      next_context = Makara::Context.next
+      expect(next_context['mysql']).to eq((now + 5).to_f)
+      expect(next_context['mariadb']).to eq((now + 10).to_f)
+
+      Makara::Context.set_current(context_data)
+      Makara::Context.stick('mysql', 2.5)
+
+      expect(Makara::Context.next).to be_nil
+    end
+
+    it 'clears expired entries for proxies that are no longer stuck' do
+      Timecop.travel(now + 10)
+
+      expect(Makara::Context.next).to eq({})
+    end
+
+    it 'sets expiration time with ttl based on the invokation time' do
+      Makara::Context.stick('mariadb', 10)
+      request_ends_at = Time.now + 20
+      Timecop.travel(request_ends_at)
+
+      next_context = Makara::Context.next
+
+      # The previous stuck proxies would have expired
+      expect(next_context['mysql']).to be_nil
+      expect(next_context['redis']).to be_nil
+      # But the proxy stuck in that request would expire in ttl seconds from now
+      expect(next_context['mariadb']).to be >= (request_ends_at + 10).to_f
+    end
+  end
+
+  describe 'release' do
+    before do
+      Makara::Context.set_current(context_data)
+    end
+
+    it 'clears stickiness for the given proxy' do
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+
+      Makara::Context.release('mysql')
+
+      expect(Makara::Context.stuck?('mysql')).to be_falsey
+
+      next_context = Makara::Context.next
+      expect(next_context.key?('mysql')).to be_falsey
+      expect(next_context['redis']).to eq((now + 5).to_f)
+    end
+
+    it 'does nothing if the proxy given was not stuck' do
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+
+      Makara::Context.release('mariadb')
+
+      expect(Makara::Context.stuck?('mariadb')).to be_falsey
+      expect(Makara::Context.next).to be_nil
+    end
+  end
+
+  describe 'release_all' do
+    it 'clears stickiness for all stuck proxies' do
+      Makara::Context.set_current(context_data)
+      expect(Makara::Context.stuck?('mysql')).to be_truthy
+      expect(Makara::Context.stuck?('redis')).to be_truthy
+
+      Makara::Context.release_all
+
+      expect(Makara::Context.stuck?('mysql')).to be_falsey
+      expect(Makara::Context.stuck?('redis')).to be_falsey
+      expect(Makara::Context.next).to eq({})
+    end
+
+    it 'does nothing if there were no stuck proxies' do
+      Makara::Context.set_current({})
+
+      Makara::Context.release_all
+
+      expect(Makara::Context.next).to be_nil
     end
   end
 end
-

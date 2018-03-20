@@ -79,13 +79,33 @@ describe Makara::ConfigParser do
 
   end
 
-  it 'should provide an id based on the recursively sorted config' do
+  it 'should provide a default proxy id based on the recursively sorted config' do
     parsera = described_class.new(config)
     parserb = described_class.new(config.merge(:other => 'value'))
     parserc = described_class.new(config)
 
     expect(parsera.id).not_to eq(parserb.id)
     expect(parsera.id).to eq(parserc.id)
+  end
+
+  it 'should use provided proxy id instead of default' do
+    config_with_custom_id = config.dup
+    config_with_custom_id[:makara][:id] = 'my_proxy'
+
+    parser = described_class.new(config_with_custom_id)
+
+    expect(parser.id).to eq('my_proxy')
+  end
+
+  it 'should replace reserved characters and show a warning for provided proxy ids' do
+    config_with_custom_id = config.dup
+    config_with_custom_id[:makara][:id] = "my|proxy|id:with:reserved:characters"
+    warning = "Proxy id 'my|proxy|id:with:reserved:characters' changed to 'myproxyidwithreservedcharacters'"
+    expect(Makara::Logging::Logger).to receive(:log).with(warning, :warn)
+
+    parser = described_class.new(config_with_custom_id)
+
+    expect(parser.id).to eq('myproxyidwithreservedcharacters')
   end
 
   context 'master and slave configs' do

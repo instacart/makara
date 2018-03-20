@@ -15,7 +15,11 @@ module SpecHelpers
     slaves.times{ connections << {:role => 'slave'} }
     {
       :makara => {
-        :blacklist_duration => 30,
+        # Defaults:
+        # :master_ttl => 5,
+        # :blacklist_duration => 30,
+        # :sticky => true
+        :id => 'mock_mysql',
         :connections => connections
       }
     }

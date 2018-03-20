@@ -59,22 +59,21 @@ module Makara
     end
 
     def without_sticking
-      before_context = @master_context
-      @master_context = nil
       @skip_sticking = true
       yield
     ensure
       @skip_sticking = false
-      @master_context ||= before_context
     end
 
     def hijacked?
       @hijacked
     end
 
-    def stick_to_master!(write_to_cache = true)
-      @master_context = Makara::Context.get_current
-      Makara::Context.stick(@master_context, @id, @ttl) if write_to_cache
+    # If persist is true, we stick the proxy to master for subsequent requests
+    # up to master_ttl duration. Otherwise we just stick it for the current request
+    def stick_to_master!(persist = true)
+      stickiness_duration = persist ? @ttl : 0
+      Makara::Context.stick(@id, stickiness_duration)
     end
 
     def strategy_for(role)
@@ -201,15 +200,11 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      # in this context, we've already stuck to master
-      elsif Makara::Context.get_current == @master_context
-        @master_pool
+      elsif stuck_to_master?
 
-      elsif previously_stuck_to_master?
-
-        # we're only on master because of the previous context so
-        # behave like we're sticking to master but store the current context
-        stick_to_master(method_name, args, false)
+        # we're on master because we already stuck this proxy in this
+        # request or because we got stuck in previous requests and the
+        # stickiness is still valid
         @master_pool
 
       # all slaves are down (or empty)
@@ -247,28 +242,28 @@ module Makara
     end
 
 
-    def previously_stuck_to_master?
-      @sticky && Makara::Context.previously_stuck?(@id)
+    def stuck_to_master?
+      sticky? && Makara::Context.stuck?(@id)
     end
 
-
-    def stick_to_master(method_name, args, write_to_cache = true)
-      # if we're already stuck to master, don't bother doing it again
-      return if @master_context == Makara::Context.get_current
-
+    def stick_to_master(method_name, args)
       # check to see if we're configured, bypassed, or some custom implementation has input
       return unless should_stick?(method_name, args)
 
       # do the sticking
-      stick_to_master!(write_to_cache)
+      stick_to_master!
     end
 
-
-    # if we are configured to be sticky and we aren't bypassing stickiness
+    # For the generic proxy implementation, we stick if we are sticky,
+    # method and args don't matter
     def should_stick?(method_name, args)
+      sticky?
+    end
+
+    # If we are configured to be sticky and we aren't bypassing stickiness,
+    def sticky?
       @sticky && !@skip_sticking
     end
-
 
     # use the config parser to generate a master and slave pool
     def instantiate_connections

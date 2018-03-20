@@ -74,10 +74,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
       end
 
       proxy.execute(sql)
-
-      if should_send_to_all_connections
-        expect(proxy.master_context).to be_nil
-      end
     end
 
   end

@@ -82,7 +82,7 @@ describe 'MakaraMysql2Adapter' do
         ActiveRecord::Base.connection
 
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
-        Makara::Context.set_current Makara::Context.generate
+        change_context
 
         allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
           config[:username] = db_username

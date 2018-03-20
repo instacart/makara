@@ -6,6 +6,7 @@ module Makara
   autoload :ConfigParser,       'makara/config_parser'
   autoload :ConnectionWrapper,  'makara/connection_wrapper'
   autoload :Context,            'makara/context'
+  autoload :Cookie,             'makara/cookie'
   autoload :ErrorHandler,       'makara/error_handler'
   autoload :Middleware,         'makara/middleware'
   autoload :Pool,               'makara/pool'
