@@ -10,10 +10,7 @@ module Makara
       private
 
       def deprecation_warning
-        <<~WARN
-          Makara's context is no longer persisted in a backend cache, a cookie store is used by default.
-          Setting the Makara::Cache.store won't have any effects.
-        WARN
+        "Makara's context is no longer persisted in a backend cache, a cookie store is used by default.\nSetting the Makara::Cache.store won't have any effects."
       end
     end
   end
