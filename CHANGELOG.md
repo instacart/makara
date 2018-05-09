@@ -8,8 +8,8 @@ This release is a major change to how we remember state between requests. A redi
  - Implement stickiness for the duration of `master_ttl` via cookies [#194](https://github.com/taskrabbit/makara/pull/194) Rosa Gutierrez
 
 
-## v0.3.9 - 2018-03-20
-[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.9...v0.3.10) 
+## v0.3.10 - 2018-03-20
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.9...v0.3.10)
 
 Fixed
 - Send nextval queries to master and show queries to replicas for Postgres [#173](https://github.com/taskrabbit/makara/pull/173) Andrew Kane
@@ -25,14 +25,14 @@ Documentation and Test
 - Travis Upgrade [#199](https://github.com/taskrabbit/makara/pull/199) Brian Leonard
 
 ## v0.3.9 - 2017-08-14
-[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.8...v0.3.9) 
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.8...v0.3.9)
 
 Changed
 - Add postgis support [#118](https://github.com/taskrabbit/makara/pull/118) Kevin Bacha
 
 ## v0.3.8 - 2017-07-11
 
-[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.7...v0.3.8) 
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.7...v0.3.8)
 
 Changed
 - Rails 5.1 compatibility [#150](https://github.com/taskrabbit/makara/pull/150) Jeremy Daer
