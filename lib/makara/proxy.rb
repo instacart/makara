@@ -76,6 +76,19 @@ module Makara
       Makara::Context.stick(@id, stickiness_duration)
     end
 
+    def with_master
+      stick_to_master!
+      yield if block_given?
+    ensure
+      release_master!
+    end
+
+    def release_master!
+      if stuck_to_master?
+        Makara::Context.release(@id)
+      end
+    end
+
     def strategy_for(role)
       strategy_class_for(strategy_name_for(role)).new(self)
     end
