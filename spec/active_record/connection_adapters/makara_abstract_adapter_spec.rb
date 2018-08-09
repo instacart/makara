@@ -36,7 +36,10 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select get_lock(\'foo\', 0)' => true,
     'select release_lock(\'foo\')' => true,
     'select pg_advisory_lock(12345)' => true,
-    'select pg_advisory_unlock(12345)' => true
+    'select pg_advisory_unlock(12345)' => true,
+    'select pg_advisory_xact_lock(12345)' => true,
+    'select pg_try_advisory_lock(12345)' => true,
+    'select pg_try_advisory_xact_lock(12345)' => true
   }.each do |sql, should_go_to_master|
 
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
