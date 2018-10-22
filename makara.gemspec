@@ -7,6 +7,10 @@ Gem::Specification.new do |gem|
   gem.description   = %q{Read-write split your DB yo}
   gem.summary       = %q{Read-write split your DB yo}
   gem.homepage      = ""
+  gem.licenses      = ['MIT']
+  gem.metadata      = {
+                        source_code_uri: 'https://github.com/taskrabbit/makara'
+                      }
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
