@@ -1,4 +1,5 @@
 require 'active_record'
+require 'makara'
 
 module ActiveRecord
   module ConnectionAdapters
