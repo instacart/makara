@@ -1,6 +1,12 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## v0.4.1 - 2019-03-25
+[Full Changelog](https://github.com/taskrabbit/makara/compare/v0.4.0...v0.4.1)
+
+- Fix crash by requiring makara in the adapter [#54](https://github.com/taskrabbit/makara/pull/54) Eric Saxby
+- Add connection logging in non-Rails enviroments [#223](https://github.com/taskrabbit/makara/pull/223) Andrew Kane
+
 ## v0.4.0 - 2018-04-01
 [Full Changelog](https://github.com/taskrabbit/makara/compare/v0.3.10...v0.4.0)
 
