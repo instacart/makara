@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["mike@mikeonrails.com"]
   gem.description   = %q{Read-write split your DB yo}
   gem.summary       = %q{Read-write split your DB yo}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/taskrabbit/makara"
 
   gem.files         = `git ls-files`.split($\)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
