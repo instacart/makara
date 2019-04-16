@@ -99,6 +99,7 @@ module ActiveRecord
       SQL_PRIMARY_MATCHERS          = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
       SQL_REPLICA_MATCHERS          = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
       SQL_ALL_MATCHERS              = [/\A\s*set\s/i].map(&:freeze).freeze
+      SQL_SKIP_ALL_MATCHERS         = [/\A\s*set\s+local\s/i].map(&:freeze).freeze
       SQL_SKIP_STICKINESS_MATCHERS  = [/\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
 
       SQL_MASTER_MATCHERS = SQL_PRIMARY_MATCHERS
@@ -126,6 +127,10 @@ module ActiveRecord
 
       def sql_all_matchers
         SQL_ALL_MATCHERS
+      end
+
+      def sql_skip_all_matchers
+        SQL_SKIP_ALL_MATCHERS
       end
 
       def sql_skip_stickiness_matchers
@@ -163,6 +168,7 @@ module ActiveRecord
 
       def needed_by_all?(_method_name, args)
         sql = coerce_query_to_sql_string(args.first)
+        return false if sql_skip_all_matchers.any? { |m| sql =~ m }
         return true if sql_all_matchers.any? { |m| sql =~ m }
 
         false
