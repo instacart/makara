@@ -67,6 +67,12 @@ Makara handles stickiness by keeping track of which proxies are stuck at any giv
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_stck` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
 
+#### Stickiness Impact
+
+When `sticky:true`, once a query as been sent to master, all queries for the rest of the request will also be sent to master.  In addition, the cookie described above will be set client side with an expiration defined by time at end of original request + `master_ttl`.  As long as the cookie is valid, all requests will send queries to master.
+
+When `sticky:false`, only queries that need to go to master will go there.  Subsequent read queries in the same request will go to slaves.
+
 #### Releasing stuck connections (clearing context)
 
 If you need to clear the current context, releasing any stuck connections, all you have to do is:
