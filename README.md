@@ -6,14 +6,6 @@
 
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
-#### Warning:
-
-There is a potential performance issue when used alongside certain versions of
-[newrelic/rpm](https://github.com/newrelic/rpm), [Issue #59](https://github.com/taskrabbit/makara/issues/59).
-
-> Any newrelic_rpm `< 3.11.2` and `>= 3.7.2` will have the regression.
-> I'd recommend upgrading newrelic_rpm to avoid the problem.
-
 ## Installation
 
 Use the current version of the gem from [rubygems](https://rubygems.org/gems/makara) in your `Gemfile`.
