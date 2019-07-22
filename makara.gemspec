@@ -6,7 +6,7 @@ Gem::Specification.new do |gem|
   gem.email         = ["mike@mikeonrails.com"]
   gem.description   = %q{Read-write split your DB yo}
   gem.summary       = %q{Read-write split your DB yo}
-  gem.homepage      = ""
+  gem.homepage      = "https://github.com/taskrabbit/makara"
   gem.licenses      = ['MIT']
   gem.metadata      = {
                         source_code_uri: 'https://github.com/taskrabbit/makara'
