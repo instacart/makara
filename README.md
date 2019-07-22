@@ -6,14 +6,6 @@
 
 Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
-#### Warning:
-
-There is a potential performance issue when used alongside certain versions of
-[newrelic/rpm](https://github.com/newrelic/rpm), [Issue #59](https://github.com/taskrabbit/makara/issues/59).
-
-> Any newrelic_rpm `< 3.11.2` and `>= 3.7.2` will have the regression.
-> I'd recommend upgrading newrelic_rpm to avoid the problem.
-
 ## Installation
 
 Use the current version of the gem from [rubygems](https://rubygems.org/gems/makara) in your `Gemfile`.
@@ -66,6 +58,12 @@ Makara comes with a config parser which will handle providing subconfigs to the 
 Makara handles stickiness by keeping track of which proxies are stuck at any given moment. The context is basically a mapping of proxy ids to the timestamp until which they are stuck.
 
 To handle persistence of context across requests in a Rack app, makara provides a middleware. It lays a cookie named `_mkra_stck` which contains the current context. If the next request is executed before the cookie expires, that given context will be used. If something occurs which naturally requires master on the second request, the context is updated and stored again.
+
+#### Stickiness Impact
+
+When `sticky:true`, once a query as been sent to master, all queries for the rest of the request will also be sent to master.  In addition, the cookie described above will be set client side with an expiration defined by time at end of original request + `master_ttl`.  As long as the cookie is valid, all requests will send queries to master.
+
+When `sticky:false`, only queries that need to go to master will go there.  Subsequent read queries in the same request will go to slaves.
 
 #### Releasing stuck connections (clearing context)
 
