@@ -91,9 +91,13 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
-      provided_connection = self.next
+      if all_connections_blacklisted?
+        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+        @blacklist_errors = []
+        raise err
+      end
 
-      # nil implies that it's blacklisted
+      provided_connection = self.next
       if provided_connection
 
         value = @proxy.error_handler.handle(provided_connection) do
@@ -103,12 +107,6 @@ module Makara
         @blacklist_errors = []
 
         value
-
-      # if we've made any connections within this pool, we should report the blackout.
-      elsif connection_made?
-        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
-        @blacklist_errors = []
-        raise err
       else
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
@@ -120,16 +118,16 @@ module Makara
       retry
     end
 
-
-
     protected
-
 
     # have we connected to any of the underlying connections.
     def connection_made?
       @connections.any?(&:_makara_connected?)
     end
 
+    def all_connections_blacklisted?
+      @connections.all?(&:_makara_blacklisted?)
+    end
 
     # Get the next non-blacklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is

@@ -118,8 +118,8 @@ if RUBY_ENGINE == 'ruby' &&
         allow(ActiveRecord::Base).to receive(:postgis_connection).and_raise(StandardError.new('could not connect to server: Connection refused'))
 
         ActiveRecord::Base.establish_connection(config)
-        expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+        expect { connection.execute('SELECT * FROM users') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
       end
     end
 
@@ -148,7 +148,7 @@ if RUBY_ENGINE == 'ruby' &&
         ActiveRecord::Base.establish_connection(custom_config)
 
         connection.execute('SELECT * FROM users')
-        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+        expect { connection.execute('INSERT INTO users (name) VALUES (\'John\')') }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
       end
     end
   end
