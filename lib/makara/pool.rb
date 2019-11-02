@@ -117,7 +117,11 @@ module Makara
     rescue Makara::Errors::BlacklistConnection => e
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
-      retry
+      if provided_connection._makara_blacklisted?
+        retry
+      else
+        raise e.original_error
+      end
     end
 
 

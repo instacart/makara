@@ -98,6 +98,34 @@ describe Makara::Pool do
 
   end
 
+  shared_examples 'a pool that does not blacklist connections' do |config|
+    it "raises the original error without blacklisting any connection with #{config.inspect}" do
+
+      config.each{|key, value| pool_config[key] = value }
+
+      connection_a = FakeConnection.new(something: 'a')
+      connection_b = FakeConnection.new(something: 'b')
+
+      wrapper_a = pool.add(pool_config){ connection_a }
+      wrapper_b = pool.add(pool_config){ connection_b }
+
+      expect do
+        pool.provide do |connection|
+          if connection == wrapper_a
+            raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
+          end
+        end
+      end.to raise_error(StandardError)
+
+      expect(wrapper_a._makara_blacklisted?).to eq(false)
+      expect(wrapper_b._makara_blacklisted?).to eq(false)
+
+    end
+  end
+
+  include_examples 'a pool that does not blacklist connections', disable_blacklist: true
+  include_examples 'a pool that does not blacklist connections', blacklist_duration: 0
+
   it 'provides the same connection if the context has not changed and the proxy is sticky' do
     allow(proxy).to receive(:sticky){ true }
 
