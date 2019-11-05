@@ -132,7 +132,11 @@ There are some edge cases:
 
 ### Errors / blacklisting
 
-Whenever a node fails an operation due to a connection issue, it is blacklisted for the amount of time specified in your database.yml. After that amount of time has passed, the connection will begin receiving queries again. If all slave nodes are blacklisted, the master connection will begin receiving read queries as if it were a slave. Once all nodes are blacklisted the error is raised to the application and all nodes are whitelisted.
+Whenever a node fails an operation due to a connection issue, it is blacklisted for the amount of time specified by `blacklist_duration` in your `database.yml` (30 seconds by default). After that amount of time has passed, the connection will begin receiving queries again. If all slave nodes are blacklisted, the master connection will begin receiving read queries as if it were a slave. Once all nodes are blacklisted, the error is raised to the application, and all nodes are whitelisted.
+
+By default, only connection errors will blacklist nodes (e.g., timeouts or database going away). You can configure [additional custom errors using by setting `connection_error_matchers`](#custom-error-matchers).
+
+You can disable blacklisting by setting `disable_blacklist: true` in your in your `database.yml`. When blacklisting is disabled, if a connection error happens, it will just be raised to the application. Notice that this will be the implicit behavior if you set a `blacklist_duration` of 0.
 
 ### Database.yml
 
