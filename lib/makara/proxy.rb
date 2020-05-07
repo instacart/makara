@@ -110,6 +110,7 @@ module Makara
         end
       end
     end
+    ruby2_keywords(:method_missing) if respond_to?(:ruby2_keywords, true)
 
     class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
       def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
