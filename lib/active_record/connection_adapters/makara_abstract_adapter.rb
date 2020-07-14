@@ -105,9 +105,16 @@ module ActiveRecord
 
       end
 
+      def initialize(config)
+        @control = ActiveRecordPoolControl.new
+        super
+      end
 
       hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
       send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
+
+      control_method :pool, :pool=, :close, :steal!, :expire, :lease, :in_use?, :active?, :owner,
+        :lock, :schema_cache=, :_run_checkout_callbacks, :run_checkin_callbacks, :verify!
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
       SQL_SLAVE_MATCHERS            = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
@@ -206,7 +213,22 @@ module ActiveRecord
         raise NotImplementedError
       end
 
-
+      class ActiveRecordPoolControl
+        def close; end
+        def steal!; end
+        def expire; end
+        def lease; end
+        def in_use?; end
+        def active?; end
+        def owner; end
+        def pool; end
+        def pool=(p); end
+        def lock; end
+        def schema_cache=(cache); end
+        def _run_checkout_callbacks; end
+        def _run_checkin_callbacks; end
+        def verify!; end
+      end
     end
   end
 end
