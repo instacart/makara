@@ -76,6 +76,7 @@ module Makara
         rescue Makara::Errors::BlacklistConnection => e
           errors.insert(0, e)
           con._makara_blacklist!
+          record_master_blacklist(e, con)
         end
       end
 
@@ -90,17 +91,27 @@ module Makara
       ret
     end
 
+    def handle_master_blacklists
+      if @just_blacklisted_master[Thread.current.object_id]
+        e = @just_blacklisted_master[Thread.current.object_id]
+        @just_blacklisted_master[Thread.current.object_id] = false
+        raise Makara::Errors::BlacklistConnectionOnMaster.new(@last_blacklisted_conn[Thread.current.object_id], e)
+      end
+    end
+
+    def record_master_blacklist(error, connection)
+      if self.role == "master"
+        @just_blacklisted_master[Thread.current.object_id] = error
+        @last_blacklisted_conn[Thread.current.object_id] = connection
+      end
+    end
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
       provided_connection = self.next
       # nil implies that it's blacklisted
       if provided_connection
-        if @just_blacklisted_master[Thread.current.object_id]
-          e = @just_blacklisted_master[Thread.current.object_id]
-          @just_blacklisted_master[Thread.current.object_id] = false
-          raise Makara::Errors::BlacklistConnectionOnMaster.new(@last_blacklisted_conn[Thread.current.object_id], e)
-        end
+        handle_master_blacklists
         value = @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
@@ -122,10 +133,7 @@ module Makara
     rescue Makara::Errors::BlacklistConnection => e
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
-      if self.role == "master"
-        @just_blacklisted_master[Thread.current.object_id] = e
-        @last_blacklisted_conn[Thread.current.object_id] = provided_connection
-      end
+      record_master_blacklist(e, provided_connection)
       retry
     end
 
