@@ -94,7 +94,6 @@ module Makara
     # that may occur within the block.
     def provide
       provided_connection = self.next
-      # puts "Provide called"
       # nil implies that it's blacklisted
       if provided_connection
         $x = @proxy
