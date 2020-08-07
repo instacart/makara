@@ -21,7 +21,7 @@ module Makara
       @blacklist_errors = []
       @disabled         = false
       @strategy         = proxy.strategy_for(role)
-      @just_black_listed_master = Hash.new
+      @just_blacklisted_master = Hash.new
       @last_blacklisted_conn = Hash.new
     end
 
@@ -96,9 +96,9 @@ module Makara
       provided_connection = self.next
       # nil implies that it's blacklisted
       if provided_connection
-        if @just_black_listed_master[Thread.current.object_id]
-          e = @just_black_listed_master[Thread.current.object_id]
-          @just_black_listed_master[Thread.current.object_id] = false
+        if @just_blacklisted_master[Thread.current.object_id]
+          e = @just_blacklisted_master[Thread.current.object_id]
+          @just_blacklisted_master[Thread.current.object_id] = false
           raise Makara::Errors::BlacklistConnectionOnMaster.new(@last_blacklisted_conn[Thread.current.object_id], e)
         end
         value = @proxy.error_handler.handle(provided_connection) do
@@ -123,7 +123,7 @@ module Makara
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
       if self.role == "master"
-        @just_black_listed_master[Thread.current.object_id] = e
+        @just_blacklisted_master[Thread.current.object_id] = e
         @last_blacklisted_conn[Thread.current.object_id] = provided_connection
       end
       retry
