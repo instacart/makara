@@ -113,13 +113,15 @@ module Makara
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
-    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
+    # when a connection causes a blacklist error within the provided block, we blacklist it then retry unless we are using the master connection
     rescue Makara::Errors::BlacklistConnection => e
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
+      if self.role == "master"
+        raise e
+      end
       retry
     end
-
 
 
     protected
