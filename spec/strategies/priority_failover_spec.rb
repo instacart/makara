@@ -35,11 +35,14 @@ describe Makara::Strategies::PriorityFailover do
     wrapper_b = pool.add(pool_config){ FakeConnection.new(something: 'b') }
     wrapper_c = pool.add(pool_config){ FakeConnection.new(something: 'c') }
 
-    pool.provide do |connection|
-      if connection == wrapper_a
-        raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
+    # first query fails on master pool connection
+    expect do
+      pool.provide do |connection|
+        if connection == wrapper_a
+          raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
+        end
       end
-    end
+    end.to raise_error(Makara::Errors::BlacklistConnectionOnMaster)
 
     # skips a
     expect(strategy.current.something).to eql('b')
