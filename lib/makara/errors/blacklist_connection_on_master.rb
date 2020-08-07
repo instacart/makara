@@ -1,6 +1,6 @@
 module Makara
   module Errors
-    class BlacklistConnectionOnMaster < MakaraError
+    class BlacklistConnectionOnMaster < NoConnectionsAvailable
 
       attr_reader :original_error
 
