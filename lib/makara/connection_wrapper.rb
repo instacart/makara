@@ -1,7 +1,7 @@
 require 'active_support/core_ext/hash/keys'
 
 # Makara::ConnectionWrapper wraps the instance of an underlying connection.
-# The wrapper provides methods for tracking blacklisting and individual makara configurations.
+# The wrapper provides methods for tracking blocklisting and individual makara configurations.
 # Upon creation, the wrapper defines methods in the underlying object giving it access to the
 # Makara::Proxy.
 
@@ -19,7 +19,7 @@ module Makara
       @proxy  = proxy
 
       if connection.nil?
-        _makara_blacklist!
+        _makara_blocklist!
       else
         _makara_decorate_connection(connection)
       end
@@ -35,21 +35,21 @@ module Makara
       @config[:name]
     end
 
-    # has this node been blacklisted?
-    def _makara_blacklisted?
-      @blacklisted_until.present? && @blacklisted_until.to_i > Time.now.to_i
+    # has this node been blocklisted?
+    def _makara_blocklisted?
+      @blocklisted_until.present? && @blocklisted_until.to_i > Time.now.to_i
     end
 
-    # blacklist this node for @config[:blacklist_duration] seconds
-    def _makara_blacklist!
+    # blocklist this node for @config[:blocklist_duration] seconds
+    def _makara_blocklist!
       @connection.disconnect! if @connection
       @connection = nil
-      @blacklisted_until = Time.now.to_i + @config[:blacklist_duration] unless @config[:disable_blacklist]
+      @blocklisted_until = Time.now.to_i + @config[:blocklist_duration] unless @config[:disable_blocklist]
     end
 
-    # release the blacklist
-    def _makara_whitelist!
-      @blacklisted_until = nil
+    # release the blocklist
+    def _makara_unblock!
+      @blocklisted_until = nil
     end
 
     # custom error messages
@@ -59,7 +59,7 @@ module Makara
 
     def _makara_connected?
       _makara_connection.present?
-    rescue Makara::Errors::BlacklistConnection
+    rescue Makara::Errors::BlockConnection
       false
     end
 
@@ -68,13 +68,13 @@ module Makara
 
       if current
         current
-      else # blacklisted connection or initial error
+      else # blocklisted connection or initial error
         new_connection = @proxy.graceful_connection_for(@config)
 
         # Already wrapped because of initial failure
         if new_connection.is_a?(Makara::ConnectionWrapper)
-          _makara_blacklist!
-          raise Makara::Errors::BlacklistConnection.new(self, new_connection.initial_error)
+          _makara_blocklist!
+          raise Makara::Errors::BlockConnection.new(self, new_connection.initial_error)
         else
           @connection = new_connection
           _makara_decorate_connection(new_connection)

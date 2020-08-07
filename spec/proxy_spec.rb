@@ -161,23 +161,23 @@ describe Makara::Proxy do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
-    it 'should use master if all slaves are blacklisted' do
-      allow(proxy.slave_pool).to receive(:completely_blacklisted?){ true }
+    it 'should use master if all slaves are blocklisted' do
+      allow(proxy.slave_pool).to receive(:completely_blocklisted?){ true }
       expect(proxy.master_for?('select * from users')).to eq(true)
     end
 
-    it 'should use master if all slaves become blacklisted as part of the invocation' do
+    it 'should use master if all slaves become blocklisted as part of the invocation' do
       allow(proxy.slave_pool).to receive(:next).and_return(nil)
 
       test = double
-      expect(test).to receive(:blacklisting).once
+      expect(test).to receive(:blocklisting).once
       expect(test).to receive(:using_master).once
 
       proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
         if pool == proxy.slave_pool
-          test.blacklisting
-          pool.instance_variable_get('@blacklist_errors') << StandardError.new('some connection issue')
-          pool.connections.each(&:_makara_blacklist!)
+          test.blocklisting
+          pool.instance_variable_get('@blocklist_errors') << StandardError.new('some connection issue')
+          pool.connections.each(&:_makara_blocklist!)
           pool.provide
         else
           test.using_master
@@ -185,14 +185,14 @@ describe Makara::Proxy do
       end
     end
 
-    it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
+    it 'should raise the error and unblock all connections if everything is blocklisted (start over)' do
       proxy.ping
 
       # weird setup to allow for the correct
-      proxy.slave_pool.connections.each(&:_makara_blacklist!)
-      proxy.slave_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some slave connection issue')
-      proxy.master_pool.connections.each(&:_makara_blacklist!)
-      proxy.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some master connection issue')
+      proxy.slave_pool.connections.each(&:_makara_blocklist!)
+      proxy.slave_pool.instance_variable_get('@blocklist_errors') << StandardError.new('some slave connection issue')
+      proxy.master_pool.connections.each(&:_makara_blocklist!)
+      proxy.master_pool.instance_variable_get('@blocklist_errors') << StandardError.new('some master connection issue')
 
       allow(proxy).to receive(:_appropriate_pool).and_return(proxy.slave_pool, proxy.master_pool)
 
@@ -200,12 +200,12 @@ describe Makara::Proxy do
         proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
           pool.provide{|c| c }
         end
-      rescue Makara::Errors::AllConnectionsBlacklisted => e
-        expect(e.message).to eq('[Makara/master] All connections are blacklisted -> some master connection issue -> [Makara/slave] All connections are blacklisted -> some slave connection issue')
+      rescue Makara::Errors::AllConnectionsBlocked => e
+        expect(e.message).to eq('[Makara/master] All connections are blocklisted -> some master connection issue -> [Makara/slave] All connections are blocklisted -> some slave connection issue')
       end
 
-      proxy.slave_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
-      proxy.master_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
+      proxy.slave_pool.connections.each{|con| expect(con._makara_blocklisted?).to eq(false) }
+      proxy.master_pool.connections.each{|con| expect(con._makara_blocklisted?).to eq(false) }
     end
   end
 end

@@ -9,7 +9,7 @@ module Makara
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
     attr_accessor :disabled
-    attr_reader :blacklist_errors
+    attr_reader :blocklist_errors
     attr_reader :role
     attr_reader :connections
     attr_reader :strategy
@@ -18,17 +18,17 @@ module Makara
       @role             = role
       @proxy            = proxy
       @connections      = []
-      @blacklist_errors = []
+      @blocklist_errors = []
       @disabled         = false
       @strategy         = proxy.strategy_for(role)
-      @just_blacklisted_master = Hash.new
-      @last_blacklisted_conn = Hash.new
+      @just_blocklisted_master = Hash.new
+      @last_blocklisted_conn = Hash.new
     end
 
 
-    def completely_blacklisted?
+    def completely_blocklisted?
       @connections.each do |connection|
-        return false unless connection._makara_blacklisted?
+        return false unless connection._makara_blocklisted?
       end
       true
     end
@@ -62,7 +62,7 @@ module Makara
       errors = []
 
       @connections.each do |con|
-        next if con._makara_blacklisted?
+        next if con._makara_blocklisted?
         begin
           ret = @proxy.error_handler.handle(con) do
             if block
@@ -73,16 +73,16 @@ module Makara
           end
 
           one_worked = true
-        rescue Makara::Errors::BlacklistConnection => e
+        rescue Makara::Errors::BlockConnection => e
           errors.insert(0, e)
-          con._makara_blacklist!
-          record_master_blacklist(e, con)
+          con._makara_blocklist!
+          record_master_blocklist(e, con)
         end
       end
 
       if !one_worked
         if connection_made?
-          raise Makara::Errors::AllConnectionsBlacklisted.new(self, errors)
+          raise Makara::Errors::AllConnectionsBlocked.new(self, errors)
         else
           raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
         end
@@ -91,49 +91,49 @@ module Makara
       ret
     end
 
-    def handle_master_blacklists
-      if @just_blacklisted_master[Thread.current.object_id]
-        e = @just_blacklisted_master[Thread.current.object_id]
-        @just_blacklisted_master[Thread.current.object_id] = false
-        raise Makara::Errors::BlacklistConnectionOnMaster.new(@last_blacklisted_conn[Thread.current.object_id], e)
+    def handle_master_blocklists
+      if @just_blocklisted_master[Thread.current.object_id]
+        e = @just_blocklisted_master[Thread.current.object_id]
+        @just_blocklisted_master[Thread.current.object_id] = false
+        raise Makara::Errors::BlockedConnectionOnMaster.new(@last_blocklisted_conn[Thread.current.object_id], e)
       end
     end
 
-    def record_master_blacklist(error, connection)
+    def record_master_blocklist(error, connection)
       if self.role == "master"
-        @just_blacklisted_master[Thread.current.object_id] = error
-        @last_blacklisted_conn[Thread.current.object_id] = connection
+        @just_blocklisted_master[Thread.current.object_id] = error
+        @last_blocklisted_conn[Thread.current.object_id] = connection
       end
     end
-    # Provide a connection that is not blacklisted and connected. Handle any errors
+    # Provide a connection that is not blocklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
       provided_connection = self.next
-      # nil implies that it's blacklisted
+      # nil implies that it's blocklisted
       if provided_connection
-        handle_master_blacklists
+        handle_master_blocklists
         value = @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
 
-        @blacklist_errors = []
+        @blocklist_errors = []
 
         value
 
-      # if we've made any connections within this pool, we should report the blackout.
+      # if we've made any connections within this pool, we should report all connections blocked.
       elsif connection_made?
-        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
-        @blacklist_errors = []
+        err = Makara::Errors::AllConnectionsBlocked.new(self, @blocklist_errors)
+        @blocklist_errors = []
         raise err
       else
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
-    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
-    rescue Makara::Errors::BlacklistConnection => e
-      @blacklist_errors.insert(0, e)
-      provided_connection._makara_blacklist!
-      record_master_blacklist(e, provided_connection)
+    # when a connection causes a blocklist error within the provided block, we blocklist it then retry
+    rescue Makara::Errors::BlockConnection => e
+      @blocklist_errors.insert(0, e)
+      provided_connection._makara_blocklist!
+      record_master_blocklist(e, provided_connection)
       retry
     end
 
@@ -147,9 +147,9 @@ module Makara
     end
 
 
-    # Get the next non-blacklisted connection. If the proxy is setup
+    # Get the next non-blocklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is
-    # not blacklisted.
+    # not blocklisted.
     def next
       if @proxy.sticky && @strategy.current
         @strategy.current

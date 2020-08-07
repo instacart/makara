@@ -50,12 +50,12 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
       expect(handler).to be_connection_message(msg)
     end
 
-    it 'should blacklist the connection' do
+    it 'should blocklist the connection' do
       expect {
         handler.handle(connection) do
           raise msg
         end
-      }.to raise_error(Makara::Errors::BlacklistConnection)
+      }.to raise_error(Makara::Errors::BlockConnection)
     end
   end
 
@@ -78,12 +78,12 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
       expect(handler).to be_custom_error_message(connection, msg4)
     end
 
-    it "blacklists the connection" do
+    it "blocklists the connection" do
       expect {
         handler.handle(connection) do
           raise msg1
         end
-      }.to raise_error(Makara::Errors::BlacklistConnection)
+      }.to raise_error(Makara::Errors::BlockConnection)
     end
 
   end

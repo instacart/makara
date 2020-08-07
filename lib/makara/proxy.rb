@@ -125,14 +125,14 @@ module Makara
       @error_handler.handle(fake_wrapper) do
         connection_for(config)
       end
-    rescue Makara::Errors::BlacklistConnection => e
+    rescue Makara::Errors::BlockConnection => e
       fake_wrapper.initial_error = e.original_error
       fake_wrapper
     end
 
     def disconnect!
       send_to_all(:disconnect!)
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+    rescue ::Makara::Errors::AllConnectionsBlocked, ::Makara::Errors::NoConnectionsAvailable
       # all connections are already down, nothing to do here
     end
 
@@ -151,7 +151,7 @@ module Makara
       @master_pool.provide do |con|
         yield con
       end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+    rescue ::Makara::Errors::AllConnectionsBlocked, ::Makara::Errors::NoConnectionsAvailable
       begin
         @master_pool.disabled = true
         @slave_pool.provide do |con|
@@ -183,13 +183,13 @@ module Makara
       pool = _appropriate_pool(method_name, args)
       yield pool
 
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
+    rescue ::Makara::Errors::AllConnectionsBlocked, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @master_pool
-        @master_pool.connections.each(&:_makara_whitelist!)
-        @slave_pool.connections.each(&:_makara_whitelist!)
+        @master_pool.connections.each(&:_makara_unblock!)
+        @slave_pool.connections.each(&:_makara_unblock!)
         Kernel.raise e
       else
-        @master_pool.blacklist_errors << e
+        @master_pool.blocklist_errors << e
         retry
       end
     end
@@ -208,7 +208,7 @@ module Makara
         @master_pool
 
       # all slaves are down (or empty)
-      elsif @slave_pool.completely_blacklisted?
+      elsif @slave_pool.completely_blocklisted?
         stick_to_master(method_name, args)
         @master_pool
 

@@ -10,7 +10,7 @@ require 'active_support/core_ext/hash/except'
 #   another: 'top level variable'
 #   makara:
 #     master_ttl: 3
-#     blacklist_duration: 20
+#     blocklist_duration: 20
 #     connections:
 #       - role: 'master'
 #       - role: 'slave'
@@ -22,7 +22,7 @@ module Makara
 
     DEFAULTS = {
       :master_ttl => 5,
-      :blacklist_duration => 30,
+      :blocklist_duration => 30,
       :sticky => true
     }
 

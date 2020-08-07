@@ -12,7 +12,7 @@ module ActiveRecord
         HARSH_ERRORS = [
           'ActiveRecord::RecordNotUnique',
           'ActiveRecord::InvalidForeignKey',
-          'Makara::Errors::BlacklistConnection'
+          'Makara::Errors::BlockConnection'
         ].map(&:freeze).freeze
 
 

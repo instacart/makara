@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Makara::ConnectionWrapper do
 
-  let(:proxy){ FakeProxy.new({:makara => {:blacklist_duration => 5, :connections => [{:role => 'master'}, {:role => 'slave'}, {:role => 'slave'}]}}) }
+  let(:proxy){ FakeProxy.new({:makara => {:blocklist_duration => 5, :connections => [{:role => 'master'}, {:role => 'slave'}, {:role => 'slave'}]}}) }
   let(:connection){ subject._makara_connection }
 
   subject{ proxy.master_pool.connections.first }
@@ -25,18 +25,18 @@ describe Makara::ConnectionWrapper do
     expect(subject._makara_weight).to eq(1)
   end
 
-  context '#_makara_blacklisted?' do
-    it 'should store the blacklist status' do
-      expect(subject._makara_blacklisted?).to eq(false)
-      subject._makara_blacklist!
-      expect(subject._makara_blacklisted?).to eq(true)
-      subject._makara_whitelist!
-      expect(subject._makara_blacklisted?).to eq(false)
+  context '#_makara_blocklisted?' do
+    it 'should store the blocklist status' do
+      expect(subject._makara_blocklisted?).to eq(false)
+      subject._makara_blocklist!
+      expect(subject._makara_blocklisted?).to eq(true)
+      subject._makara_unblock!
+      expect(subject._makara_blocklisted?).to eq(false)
     end
 
     it 'should handle frozen pre-epoch dates' do
       Timecop.freeze(Date.new(1900)) do
-        expect(subject._makara_blacklisted?).to eq(false)
+        expect(subject._makara_blocklisted?).to eq(false)
       end
     end
   end

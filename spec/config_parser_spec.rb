@@ -26,7 +26,7 @@ describe Makara::ConfigParser do
     let(:config_without_url) do
       {
         :master_ttl => 5,
-        :blacklist_duration => 30,
+        :blocklist_duration => 30,
         :sticky => true,
         :adapter => 'mysql2_makara',
         :encoding => 'utf8',
@@ -41,7 +41,7 @@ describe Makara::ConfigParser do
     let(:config_with_url) do
       {
         :master_ttl => 5,
-        :blacklist_duration => 30,
+        :blocklist_duration => 30,
         :sticky => true,
         :adapter => 'mysql2_makara',
         :encoding => 'utf8',
@@ -116,7 +116,7 @@ describe Makara::ConfigParser do
           :name => 'themaster',
           :top_level => 'value',
           :sticky => true,
-          :blacklist_duration => 30,
+          :blocklist_duration => 30,
           :master_ttl => 5
         }
       ])
@@ -125,22 +125,22 @@ describe Makara::ConfigParser do
           :name => 'slave1',
           :top_level => 'value',
           :sticky => true,
-          :blacklist_duration => 30,
+          :blocklist_duration => 30,
           :master_ttl => 5
         },
         {
           :name => 'slave2',
           :top_level => 'value',
           :sticky => true,
-          :blacklist_duration => 30,
+          :blocklist_duration => 30,
           :master_ttl => 5
         }
       ])
     end
 
     it 'connection configuration should override makara config' do
-      config[:makara][:blacklist_duration] = 123
-      config[:makara][:connections][0][:blacklist_duration] = 456
+      config[:makara][:blocklist_duration] = 123
+      config[:makara][:connections][0][:blocklist_duration] = 456
       config[:makara][:connections][1][:top_level] = 'slave value'
 
       parser = described_class.new(config)
@@ -149,7 +149,7 @@ describe Makara::ConfigParser do
           :name => 'themaster',
           :top_level => 'value',
           :sticky => true,
-          :blacklist_duration => 456,
+          :blocklist_duration => 456,
           :master_ttl => 5
         }
       ])
@@ -158,14 +158,14 @@ describe Makara::ConfigParser do
           :name => 'slave1',
           :top_level => 'slave value',
           :sticky => true,
-          :blacklist_duration => 123,
+          :blocklist_duration => 123,
           :master_ttl => 5
         },
         {
           :name => 'slave2',
           :top_level => 'value',
           :sticky => true,
-          :blacklist_duration => 123,
+          :blocklist_duration => 123,
           :master_ttl => 5
         }
       ])
