@@ -96,8 +96,6 @@ module Makara
       provided_connection = self.next
       # nil implies that it's blacklisted
       if provided_connection
-        $x = @proxy
-        $y = self
         if @just_black_listed_master
           e = @just_black_listed_master
           @just_black_listed_master = false
