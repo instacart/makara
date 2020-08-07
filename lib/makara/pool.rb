@@ -21,8 +21,8 @@ module Makara
       @blacklist_errors = []
       @disabled         = false
       @strategy         = proxy.strategy_for(role)
-      @just_black_listed_master = Hash.new nil
-      @last_blacklisted_conn = Hash.new nil
+      @just_black_listed_master = Hash.new
+      @last_blacklisted_conn = Hash.new
     end
 
 
