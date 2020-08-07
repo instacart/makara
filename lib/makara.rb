@@ -14,11 +14,11 @@ module Makara
   autoload :Proxy,              'makara/proxy'
 
   module Errors
-    autoload :MakaraError,                'makara/errors/makara_error'
-    autoload :AllConnectionsBlacklisted,  'makara/errors/all_connections_blacklisted'
-    autoload :BlacklistConnection,        'makara/errors/blacklist_connection'
-    autoload :BlacklistConnectionOnMaster,     'makara/errors/blacklist_connection_on_master'
-    autoload :NoConnectionsAvailable,     'makara/errors/no_connections_available'
+    autoload :MakaraError,                  'makara/errors/makara_error'
+    autoload :AllConnectionsBlacklisted,    'makara/errors/all_connections_blacklisted'
+    autoload :BlacklistConnection,          'makara/errors/blacklist_connection'
+    autoload :BlacklistConnectionOnMaster,  'makara/errors/blacklist_connection_on_master'
+    autoload :NoConnectionsAvailable,       'makara/errors/no_connections_available'
   end
 
   module Logging
