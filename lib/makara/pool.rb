@@ -21,6 +21,8 @@ module Makara
       @blacklist_errors = []
       @disabled         = false
       @strategy         = proxy.strategy_for(role)
+      @just_black_listed_master = false
+      @last_blacklisted_conn = nil
     end
 
 
@@ -92,10 +94,16 @@ module Makara
     # that may occur within the block.
     def provide
       provided_connection = self.next
-
+      # puts "Provide called"
       # nil implies that it's blacklisted
       if provided_connection
-
+        $x = @proxy
+        $y = self
+        if @just_black_listed_master
+          e = @just_black_listed_master
+          @just_black_listed_master = false
+          raise Makara::Errors::BlacklistConnectionOnMaster.new(@last_blacklisted_conn, e)
+        end
         value = @proxy.error_handler.handle(provided_connection) do
           yield provided_connection
         end
@@ -113,12 +121,13 @@ module Makara
         raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
       end
 
-    # when a connection causes a blacklist error within the provided block, we blacklist it then retry unless we are using the master connection
+    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
     rescue Makara::Errors::BlacklistConnection => e
       @blacklist_errors.insert(0, e)
       provided_connection._makara_blacklist!
       if self.role == "master"
-        raise e
+        @just_black_listed_master = e
+        @last_blacklisted_conn = provided_connection
       end
       retry
     end
