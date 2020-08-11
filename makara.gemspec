@@ -9,7 +9,7 @@ Gem::Specification.new do |gem|
   gem.homepage      = "https://github.com/taskrabbit/makara"
   gem.licenses      = ['MIT']
   gem.metadata      = {
-                        source_code_uri: 'https://github.com/taskrabbit/makara'
+                        "source_code_uri" => 'https://github.com/taskrabbit/makara'
                       }
 
   gem.files         = `git ls-files`.split($\)

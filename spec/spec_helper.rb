@@ -1,3 +1,4 @@
+require 'uri'
 require 'active_record'
 require 'makara'
 require 'timecop'
