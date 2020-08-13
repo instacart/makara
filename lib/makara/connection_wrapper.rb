@@ -40,6 +40,10 @@ module Makara
       @blacklisted_until.present? && @blacklisted_until.to_i > Time.now.to_i
     end
 
+    def _makara_in_transaction?
+      @connection && @connection.open_transactions > 0 ? true : false
+    end
+
     # blacklist this node for @config[:blacklist_duration] seconds
     def _makara_blacklist!
       @connection.disconnect! if @connection

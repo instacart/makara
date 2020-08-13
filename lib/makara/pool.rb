@@ -116,7 +116,9 @@ module Makara
     # when a connection causes a blacklist error within the provided block, we blacklist it then retry
     rescue Makara::Errors::BlacklistConnection => e
       @blacklist_errors.insert(0, e)
+      in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
       provided_connection._makara_blacklist!
+      raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
       retry
     end
 
