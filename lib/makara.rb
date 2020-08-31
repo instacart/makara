@@ -19,6 +19,7 @@ module Makara
     autoload :BlacklistConnection,           'makara/errors/blacklist_connection'
     autoload :NoConnectionsAvailable,        'makara/errors/no_connections_available'
     autoload :BlacklistedWhileInTransaction, 'makara/errors/blacklisted_while_in_transaction'
+    autoload :InvalidShard,                  'makara/errors/invalid_shard'
   end
 
   module Logging
@@ -30,6 +31,7 @@ module Makara
     autoload :Abstract,         'makara/strategies/abstract'
     autoload :RoundRobin,       'makara/strategies/round_robin'
     autoload :PriorityFailover, 'makara/strategies/priority_failover'
+    autoload :ShardAware,       'makara/strategies/shard_aware'
   end
 
 end

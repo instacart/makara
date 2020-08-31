@@ -1,4 +1,5 @@
 require 'active_support/core_ext/hash/keys'
+require 'makara/strategies/shard_aware'
 
 # Wraps a collection of similar connections and chooses which one to use
 # Provides convenience methods for accessing underlying connections
@@ -13,6 +14,8 @@ module Makara
     attr_reader :role
     attr_reader :connections
     attr_reader :strategy
+    attr_reader :shard_strategy_class
+    attr_reader :default_shard
 
     def initialize(role, proxy)
       @role             = role
@@ -20,7 +23,13 @@ module Makara
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
-      @strategy         = proxy.strategy_for(role)
+      if proxy.shard_aware_for(role)
+        @strategy = Makara::Strategies::ShardAware.new(self)
+        @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
+        @default_shard = proxy.default_shard_for(role)
+      else
+        @strategy = proxy.strategy_for(role)
+      end
     end
 
 
@@ -149,8 +158,8 @@ module Makara
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
     def next
-      if @proxy.sticky && @strategy.current
-        @strategy.current
+      if @proxy.sticky && (curr = @strategy.current)
+        curr
       else
         @strategy.next
       end

@@ -97,6 +97,14 @@ module Makara
       @config_parser.makara_config["#{role}_strategy".to_sym]
     end
 
+    def shard_aware_for(role)
+      @config_parser.makara_config["#{role}_shard_aware".to_sym]
+    end
+
+    def default_shard_for(role)
+      @config_parser.makara_config["#{role}_default_shard".to_sym]
+    end
+
     def strategy_class_for(strategy_name)
       case strategy_name
       when 'round_robin', 'roundrobin', nil, ''

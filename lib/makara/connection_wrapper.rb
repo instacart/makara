@@ -35,6 +35,10 @@ module Makara
       @config[:name]
     end
 
+    def _makara_shard_id
+      @config[:shard_id]
+    end
+
     # has this node been blacklisted?
     def _makara_blacklisted?
       @blacklisted_until.present? && @blacklisted_until.to_i > Time.now.to_i
