@@ -91,35 +91,47 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
-      provided_connection = self.next
+      attempt = 0
+      begin
+        provided_connection = self.next
 
-      # nil implies that it's blacklisted
-      if provided_connection
+        # nil implies that it's blacklisted
+        if provided_connection
 
-        value = @proxy.error_handler.handle(provided_connection) do
-          yield provided_connection
+          value = @proxy.error_handler.handle(provided_connection) do
+            yield provided_connection
+          end
+
+          @blacklist_errors = []
+
+          value
+
+        # if we've made any connections within this pool, we should report the blackout.
+        elsif connection_made?
+          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          @blacklist_errors = []
+          raise err
+        else
+          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
         end
 
-        @blacklist_errors = []
-
-        value
-
-      # if we've made any connections within this pool, we should report the blackout.
-      elsif connection_made?
-        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
-        @blacklist_errors = []
-        raise err
-      else
-        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+      # when a connection causes a blacklist error within the provided block, we blacklist it then retry
+      rescue Makara::Errors::BlacklistConnection => e
+        @blacklist_errors.insert(0, e)
+        in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
+        provided_connection._makara_blacklist!
+        raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
+        attempt += 1
+        if attempt < @connections.length
+          retry
+        elsif connection_made?
+          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          @blacklist_errors = []
+          raise err
+        else
+          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+        end
       end
-
-    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
-    rescue Makara::Errors::BlacklistConnection => e
-      @blacklist_errors.insert(0, e)
-      in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
-      provided_connection._makara_blacklist!
-      raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
-      retry
     end
 
 

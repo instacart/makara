@@ -162,6 +162,22 @@ module Makara
         }
       end
 
+      # Control methods must always be passed to the
+      # Makara::Proxy control object for handling (typically
+      # related to ActiveRecord connection pool management)
+      @proxy.class.control_methods.each do |meth|
+        extension << %Q{
+          def #{meth}(*args, &block)
+            proxy = _makara
+            if proxy
+              proxy.control.#{meth}(*args=args, block)
+            else
+              super # Only if we are not wrapped any longer
+            end
+          end
+        }
+      end
+
       # extend the instance
       con.instance_eval(extension)
       # set the makara context

@@ -34,6 +34,7 @@ gemfile:
   - gemfiles/ar42.gemfile
   - gemfiles/ar50.gemfile
   - gemfiles/ar51.gemfile
+  - gemfiles/ar60.gemfile
   - gemfiles/ar-head.gemfile
 
 env:
@@ -88,6 +89,16 @@ matrix:
       rvm: 2.1
     - gemfile: gemfiles/ar51.gemfile
       rvm: 2.2
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.0
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.1
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.2
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.3
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.4
     - gemfile: gemfiles/ar-head.gemfile
       rvm: 2.0
     - gemfile: gemfiles/ar-head.gemfile

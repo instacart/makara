@@ -14,8 +14,9 @@ module Makara
 
     METHOD_MISSING_SKIP = [ :byebug, :puts ]
 
-    class_attribute :hijack_methods
+    class_attribute :hijack_methods, :control_methods
     self.hijack_methods = []
+    self.control_methods = []
 
     class << self
       def hijack_method(*method_names)
@@ -38,12 +39,24 @@ module Makara
           end
         end
       end
+
+      def control_method(*method_names)
+        self.control_methods = self.control_methods || []
+        self.control_methods |= method_names
+
+        method_names.each do |method_name|
+          define_method method_name do |*args, &block|
+            control&.send(method_name, *args, &block)
+          end
+        end
+      end
     end
 
 
     attr_reader :error_handler
     attr_reader :sticky
     attr_reader :config_parser
+    attr_reader :control
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -148,8 +161,14 @@ module Makara
     end
 
     def any_connection
-      @master_pool.provide do |con|
-        yield con
+      if @master_pool.disabled
+        @slave_pool.provide do |con|
+          yield con
+        end
+      else
+        @master_pool.provide do |con|
+          yield con
+        end
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
@@ -286,7 +305,8 @@ module Makara
       yield
     rescue ::Makara::Errors::NoConnectionsAvailable => e
       if e.role == 'master'
-        Kernel.raise ::Makara::Errors::NoConnectionsAvailable.new('master and slave')
+        # this means slave connections are good.
+        return
       end
       @slave_pool.disabled = true
       yield
