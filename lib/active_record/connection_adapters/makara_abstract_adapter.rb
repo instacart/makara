@@ -107,9 +107,9 @@ module ActiveRecord
 
 
       hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
-      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!, :pool=
+      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
 
-      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache,
+      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool,
          :schema_cache=, :_run_checkin_callbacks, :_run_checkout_callbacks, :lock, :seconds_idle
 
 
@@ -218,13 +218,14 @@ module ActiveRecord
         def initialize(proxy)
           @proxy = proxy
           @owner = nil
+          @pool = nil
           @schema_cache = ActiveRecord::ConnectionAdapters::SchemaCache.new @proxy
           @idle_since = Concurrent.monotonic_time
           @adapter = ActiveRecord::ConnectionAdapters::AbstractAdapter.new(@proxy)
         end
 
         def close(*args)
-          @proxy.pool.checkin @proxy
+          @pool.checkin @proxy
         end
 
         # this method must only be called while holding connection pool's mutex
@@ -269,7 +270,7 @@ module ActiveRecord
         def steal!(*args)
           if in_use?
             if @owner != Thread.current
-              @proxy.pool.send :remove_connection_from_thread_cache, @proxy, @owner
+              @pool.send :remove_connection_from_thread_cache, @proxy, @owner
               @owner = Thread.current
             end
           else
@@ -278,8 +279,8 @@ module ActiveRecord
         end
 
         def schema_cache(*args)
-          if @proxy.pool.respond_to?(:get_schema_cache) # AR6
-            @proxy.pool.get_schema_cache(@proxy)
+          if @pool.respond_to?(:get_schema_cache) # AR6
+            @pool.get_schema_cache(@proxy)
           else
             @schema_cache
           end
@@ -288,8 +289,8 @@ module ActiveRecord
         def schema_cache=(*args)
           cache = args[0]
           cache.connection = @proxy
-          if @proxy.pool.respond_to?(:set_schema_cache) # AR6
-            @proxy.pool.set_schema_cache(cache)
+          if @pool.respond_to?(:set_schema_cache) # AR6
+            @pool.set_schema_cache(cache)
           else
             @schema_cache = cache
           end
@@ -297,6 +298,14 @@ module ActiveRecord
 
         def lock(*args)
           @adapter.lock
+        end
+
+        def pool=(*args)
+          @pool = args[0]
+        end
+
+        def pool(*args)
+          @pool
         end
 
         def _run_checkout_callbacks(*args, &block)
