@@ -1,11 +1,17 @@
 sudo: false
 language: ruby
 cache: bundler
-dist: precise
+dist: xenial
 
 services:
   - mysql
   - postgresql
+
+addons:
+  postgresql: 10
+  apt:
+    packages:
+    - postgresql-10-postgis-2.4
 
 before_install:
   - gem install bundler
@@ -16,9 +22,9 @@ before_script:
   - psql -c 'create extension postgis;' -U postgres
 
 rvm:
-  - 2.0
-  - 2.1
-  - 2.2
+#  - 2.0
+#  - 2.1
+#  - 2.2
   - 2.3
   - 2.4
   - 2.5.0
@@ -26,14 +32,15 @@ rvm:
   - jruby
 
 gemfile:
-  - gemfiles/ar30.gemfile
-  - gemfiles/ar31.gemfile
-  - gemfiles/ar32.gemfile
-  - gemfiles/ar40.gemfile
-  - gemfiles/ar41.gemfile
-  - gemfiles/ar42.gemfile
+#  - gemfiles/ar30.gemfile
+#  - gemfiles/ar31.gemfile
+#  - gemfiles/ar32.gemfile
+#  - gemfiles/ar40.gemfile
+#  - gemfiles/ar41.gemfile
+#  - gemfiles/ar42.gemfile
   - gemfiles/ar50.gemfile
   - gemfiles/ar51.gemfile
+  - gemfiles/ar60.gemfile
   - gemfiles/ar-head.gemfile
 
 env:
@@ -88,6 +95,16 @@ matrix:
       rvm: 2.1
     - gemfile: gemfiles/ar51.gemfile
       rvm: 2.2
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.0
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.1
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.2
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.3
+    - gemfile: gemfiles/ar60.gemfile
+      rvm: 2.4
     - gemfile: gemfiles/ar-head.gemfile
       rvm: 2.0
     - gemfile: gemfiles/ar-head.gemfile

@@ -18,6 +18,10 @@ class FakeConnection < Struct.new(:config)
     true
   end
 
+  def open_transactions
+    (config || {}).fetch(:open_transactions, 0)
+  end
+
   def disconnect!
     true
   end
