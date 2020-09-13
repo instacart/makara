@@ -309,11 +309,11 @@ module ActiveRecord
         end
 
         def _run_checkout_callbacks(*args, &block)
-          block.call args.join(' ')
+          @proxy.run_callbacks :checkout, &block
         end
 
         def _run_checkin_callbacks(*args, &block)
-          block.call args.join(' ')
+          @proxy.run_callbacks :checkin, &block
         end
       end
     end
