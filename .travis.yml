@@ -40,7 +40,7 @@ gemfile:
 #  - gemfiles/ar40.gemfile
 #  - gemfiles/ar41.gemfile
 #  - gemfiles/ar42.gemfile
-#  - gemfiles/ar50.gemfile
+  - gemfiles/ar50.gemfile
   - gemfiles/ar51.gemfile
   - gemfiles/ar52.gemfile
   - gemfiles/ar60.gemfile
