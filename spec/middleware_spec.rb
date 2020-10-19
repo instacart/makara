@@ -49,7 +49,7 @@ describe Makara::Middleware do
 
     _, headers, body = middleware.call(env)
 
-    expect(headers['Set-Cookie']).to eq("#{key}=mock_mysql%3A#{(now + 5).to_f}; path=/; max-age=10; expires=#{(Time.now + 10).gmtime.rfc2822}; secure; HttpOnly")
+    expect(headers['Set-Cookie']).to eq("#{key}=mock_mysql%3A#{(now + 5).to_f}; path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; secure; HttpOnly")
     expect(body).to eq('master/1')
   end
 end

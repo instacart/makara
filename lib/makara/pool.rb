@@ -1,4 +1,5 @@
 require 'active_support/core_ext/hash/keys'
+require 'makara/strategies/shard_aware'
 
 # Wraps a collection of similar connections and chooses which one to use
 # Provides convenience methods for accessing underlying connections
@@ -13,6 +14,8 @@ module Makara
     attr_reader :role
     attr_reader :connections
     attr_reader :strategy
+    attr_reader :shard_strategy_class
+    attr_reader :default_shard
 
     def initialize(role, proxy)
       @role             = role
@@ -20,7 +23,13 @@ module Makara
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
-      @strategy         = proxy.strategy_for(role)
+      if proxy.shard_aware_for(role)
+        @strategy = Makara::Strategies::ShardAware.new(self)
+        @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
+        @default_shard = proxy.default_shard_for(role)
+      else
+        @strategy = proxy.strategy_for(role)
+      end
     end
 
 
@@ -91,33 +100,47 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
-      provided_connection = self.next
+      attempt = 0
+      begin
+        provided_connection = self.next
 
-      # nil implies that it's blacklisted
-      if provided_connection
+        # nil implies that it's blacklisted
+        if provided_connection
 
-        value = @proxy.error_handler.handle(provided_connection) do
-          yield provided_connection
+          value = @proxy.error_handler.handle(provided_connection) do
+            yield provided_connection
+          end
+
+          @blacklist_errors = []
+
+          value
+
+        # if we've made any connections within this pool, we should report the blackout.
+        elsif connection_made?
+          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          @blacklist_errors = []
+          raise err
+        else
+          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
         end
 
-        @blacklist_errors = []
-
-        value
-
-      # if we've made any connections within this pool, we should report the blackout.
-      elsif connection_made?
-        err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
-        @blacklist_errors = []
-        raise err
-      else
-        raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+      # when a connection causes a blacklist error within the provided block, we blacklist it then retry
+      rescue Makara::Errors::BlacklistConnection => e
+        @blacklist_errors.insert(0, e)
+        in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
+        provided_connection._makara_blacklist!
+        raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
+        attempt += 1
+        if attempt < @connections.length
+          retry
+        elsif connection_made?
+          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          @blacklist_errors = []
+          raise err
+        else
+          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+        end
       end
-
-    # when a connection causes a blacklist error within the provided block, we blacklist it then retry
-    rescue Makara::Errors::BlacklistConnection => e
-      @blacklist_errors.insert(0, e)
-      provided_connection._makara_blacklist!
-      retry
     end
 
 
@@ -135,8 +158,8 @@ module Makara
     # to be sticky, provide back the current connection assuming it is
     # not blacklisted.
     def next
-      if @proxy.sticky && @strategy.current
-        @strategy.current
+      if @proxy.sticky && (curr = @strategy.current)
+        curr
       else
         @strategy.next
       end

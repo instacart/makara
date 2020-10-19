@@ -5,6 +5,7 @@ describe Makara::Pool do
   let(:proxy){ FakeProxy.new({:makara => pool_config.merge(:connections => [])}) }
   let(:pool){ Makara::Pool.new('test', proxy) }
   let(:pool_config){ {:blacklist_duration => 5} }
+  let(:master_pool){ Makara::Pool.new('master', proxy) }
 
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
     expect(pool.connections).to be_empty
@@ -155,6 +156,29 @@ describe Makara::Pool do
 
     10.times{ pool.provide{|connection| expect(connection).not_to eq(wrapper_b) } }
 
+  end
+
+  it 'should error out while blacklisted in transaction' do
+    wrapper_a = master_pool.add(pool_config){ FakeConnection.new(open_transactions: 1) }
+    master_pool.add(pool_config){ FakeConnection.new }
+    expect {
+      master_pool.provide do |connection|
+        if connection == wrapper_a
+          raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
+        end
+      end
+    }.to raise_error(Makara::Errors::BlacklistedWhileInTransaction)
+  end
+
+  it 'skips blacklisted connections in master pool when not in transaction' do
+    wrapper_a = master_pool.add(pool_config){ FakeConnection.new(open_transactions: 0) }
+    master_pool.add(pool_config){ FakeConnection.new }
+    master_pool.provide do |connection|
+      if connection == wrapper_a
+        raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
+      end
+    end
+    10.times{ master_pool.provide{|connection| expect(connection).not_to eq(wrapper_a) } }
   end
 
 end

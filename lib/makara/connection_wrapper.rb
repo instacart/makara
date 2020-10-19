@@ -35,9 +35,17 @@ module Makara
       @config[:name]
     end
 
+    def _makara_shard_id
+      @config[:shard_id]
+    end
+
     # has this node been blacklisted?
     def _makara_blacklisted?
       @blacklisted_until.present? && @blacklisted_until.to_i > Time.now.to_i
+    end
+
+    def _makara_in_transaction?
+      @connection && @connection.open_transactions > 0 ? true : false
     end
 
     # blacklist this node for @config[:blacklist_duration] seconds
@@ -153,6 +161,22 @@ module Makara
               else
                 super
               end
+            end
+          end
+        }
+      end
+
+      # Control methods must always be passed to the
+      # Makara::Proxy control object for handling (typically
+      # related to ActiveRecord connection pool management)
+      @proxy.class.control_methods.each do |meth|
+        extension << %Q{
+          def #{meth}(*args, &block)
+            proxy = _makara
+            if proxy
+              proxy.control.#{meth}(*args=args, block)
+            else
+              super # Only if we are not wrapped any longer
             end
           end
         }
