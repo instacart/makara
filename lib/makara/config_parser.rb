@@ -1,6 +1,7 @@
 require 'digest/md5'
 require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/hash/except'
+require 'cgi'
 
 # Convenience methods to grab subconfigs out of the primary configuration.
 # Provides a way to generate a consistent ID based on a unique config.
@@ -63,7 +64,7 @@ module Makara
       # Converts the given URL to a full connection hash.
       def to_hash
         config = raw_config.reject { |_,value| value.blank? }
-        config.map { |key,value| config[key] = URI.unescape(value) if value.is_a? String }
+        config.map { |key,value| config[key] = CGI.unescape(value) if value.is_a? String }
         config
       end
 
