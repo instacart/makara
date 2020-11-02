@@ -116,7 +116,7 @@ module ActiveRecord
       SQL_MASTER_MATCHERS           = [/select.+txid_current\(\)\Z/i, /\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
       SQL_SLAVE_MATCHERS            = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
       SQL_ALL_MATCHERS              = [/\A\s*set\s/i].map(&:freeze).freeze
-      SQL_SKIP_STICKINESS_MATCHERS  = [/select.+txid_visible_in_snapshot\(/i, /\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
+      SQL_SKIP_STICKINESS_MATCHERS  = [/select.+txid_current\(\)\Z/i, /select.+txid_visible_in_snapshot\(/i, /\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
 
 
       def sql_master_matchers

@@ -101,6 +101,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'begin deferred transaction' => true,
     'commit transaction' => true,
     'rollback transaction' => true,
+    'select txid_current()' => false,
     'select txid_visible_in_snapshot(1, txid_current_snapshot())' => false,
     %Q{
       UPDATE
