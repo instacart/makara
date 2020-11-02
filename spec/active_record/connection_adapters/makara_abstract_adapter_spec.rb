@@ -102,7 +102,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'commit transaction' => true,
     'rollback transaction' => true,
     'select txid_current()' => false,
-    'select txid_visible_in_snapshot(1, txid_current_snapshot())' => false,
     %Q{
       UPDATE
         dogs
