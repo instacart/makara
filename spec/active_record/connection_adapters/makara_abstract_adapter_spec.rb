@@ -36,7 +36,9 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select get_lock(\'foo\', 0)' => true,
     'select release_lock(\'foo\')' => true,
     'select pg_advisory_lock(12345)' => true,
-    'select pg_advisory_unlock(12345)' => true
+    'select pg_advisory_unlock(12345)' => true,
+    'select txid_current()' => true,
+    'select txid_visible_in_snapshot(1, txid_current_snapshot())' => false,
   }.each do |sql, should_go_to_master|
 
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
@@ -99,6 +101,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'begin deferred transaction' => true,
     'commit transaction' => true,
     'rollback transaction' => true,
+    'select txid_current()' => false,
     %Q{
       UPDATE
         dogs
