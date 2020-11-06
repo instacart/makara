@@ -17,6 +17,8 @@ module Makara
 
     def store(context_data, headers, options = {})
       unless context_data.nil?
+        cookie = build_cookie(context_data, options)
+        Makara::Logging::Logger.log "Setting cookie #{cookie}", :info
         Rack::Utils.set_cookie_header! headers, IDENTIFIER, build_cookie(context_data, options)
       end
     end

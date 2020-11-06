@@ -101,6 +101,7 @@ module Makara
 
       # Called by `Proxy#stick_to_master!` to use master in subsequent requests
       def stick(proxy_id, ttl)
+        Makara::Logging::Logger.log "Sticking #{proxy_id} to master with ttl #{ttl}", :info
         current.stage(proxy_id, ttl)
       end
 
