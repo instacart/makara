@@ -169,23 +169,17 @@ module Makara
     end
 
     def any_connection
-      if @master_pool.disabled
-        @slave_pool.provide do |con|
-          yield con
-        end
+      if @slave_pool.disabled
+        @master_pool.provide { |con| yield con }
       else
-        @master_pool.provide do |con|
-          yield con
-        end
+        @slave_pool.provide { |con| yield con }
       end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       begin
-        @master_pool.disabled = true
-        @slave_pool.provide do |con|
-          yield con
-        end
+        @slave_pool.disabled = true
+        @master_pool.provide { |con| yield con }
       ensure
-        @master_pool.disabled = false
+        @slave_pool.disabled = false
       end
     end
 
@@ -292,20 +286,30 @@ module Makara
       @sticky && !@skip_sticking
     end
 
-    # use the config parser to generate a master and slave pool
-    def instantiate_connections
-      @master_pool = Makara::Pool.new('master', self)
+    def populate_master_pool
       @config_parser.master_configs.each do |master_config|
         @master_pool.add master_config do
           graceful_connection_for(master_config)
         end
       end
+    end
 
-      @slave_pool = Makara::Pool.new('slave', self)
+    def populate_slave_pool
       @config_parser.slave_configs.each do |slave_config|
         @slave_pool.add slave_config do
           graceful_connection_for(slave_config)
         end
+      end
+    end
+
+    # use the config parser to generate a master and slave pool
+    def instantiate_connections
+      @master_pool = Makara::Pool.new('master', self) { populate_master_pool }
+      @slave_pool = Makara::Pool.new('slave', self) { populate_slave_pool }
+
+      unless ENV["MAKARA_LAZY_CONNECT"] == "true"
+        @master_pool.populate
+        @slave_pool.populate
       end
     end
 

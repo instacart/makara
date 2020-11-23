@@ -17,7 +17,7 @@ module Makara
     attr_reader :shard_strategy_class
     attr_reader :default_shard
 
-    def initialize(role, proxy)
+    def initialize(role, proxy, &block)
       @role             = role
       @proxy            = proxy
       @connections      = []
@@ -30,8 +30,12 @@ module Makara
       else
         @strategy = proxy.strategy_for(role)
       end
+      @load_callback = block
     end
 
+    def populate
+      @load_callback.call if @load_callback
+    end
 
     def completely_blacklisted?
       @connections.each do |connection|
@@ -59,6 +63,10 @@ module Makara
       @strategy.connection_added(wrapper)
 
       wrapper
+    end
+
+    def queue_execute_for_all(args, &block)
+      @connections.each { |con| con._enqueue_query(args, &block) }
     end
 
     # send this method to all available nodes
@@ -100,6 +108,8 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
+      populate if @connections.empty? && ENV["MAKARA_LAZY_CONNECT"] == "true"
+
       attempt = 0
       begin
         provided_connection = self.next

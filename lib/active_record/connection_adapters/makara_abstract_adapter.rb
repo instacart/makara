@@ -107,7 +107,11 @@ module ActiveRecord
 
 
       hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
-      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
+      if ENV["MAKARA_LAZY_CONNECT"] == "true"
+        send_to_all :connect, :reconnect!, :clear_cache!, :reset!
+      else
+        send_to_all :connect, :reconnect!, :clear_cache!, :reset!, :verify!
+      end
 
       control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool,
          :schema_cache=, :lock, :seconds_idle, :==
@@ -151,12 +155,17 @@ module ActiveRecord
 
       def appropriate_connection(method_name, args, &block)
         if needed_by_all?(method_name, args)
-
-          handling_an_all_execution(method_name) do
-            hijacked do
-              # slave pool must run first.
-              @slave_pool.send_to_all(nil, &block)  # just yields to each con
-              @master_pool.send_to_all(nil, &block) # just yields to each con
+          if ENV["MAKARA_LAZY_CONNECT"] == "true" && method_name == :execute
+            puts "<ENQ> #{args}"
+            @slave_pool.queue_execute_for_all(args)
+            @master_pool.queue_execute_for_all(args)
+          else
+            handling_an_all_execution(method_name) do
+              hijacked do
+                # slave pool must run first.
+                @slave_pool.send_to_all(nil, &block)  # just yields to each con
+                @master_pool.send_to_all(nil, &block) # just yields to each con
+              end
             end
           end
 

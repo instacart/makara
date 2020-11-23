@@ -17,12 +17,17 @@ module Makara
       @config = config.symbolize_keys
       @connection = connection
       @proxy  = proxy
+      @queue = Queue.new
 
       if connection.nil?
         _makara_blacklist!
       else
         _makara_decorate_connection(connection)
       end
+    end
+
+    def _enqueue_query(args, &block)
+      @queue.push([args, block])
     end
 
     # the weight of the current node
@@ -97,12 +102,24 @@ module Makara
           args[0] = replace
         end
       end
+      run_queue if ENV["MAKARA_LAZY_CONNECT"] == "true"
 
       _makara_connection.execute(*args)
     end
 
+    def run_queue
+      $stdout.sync = true
+      while not @queue.empty?
+        item = @queue.pop
+        puts "<EXE #{_makara_connection._makara_name}> #{item[0][0]}"
+        @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
+      end
+    end
+
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
+      run_queue if m.to_s.start_with?("exec") && ENV["MAKARA_LAZY_CONNECT"] == "true"
+
       if _makara_connection.respond_to?(m)
         _makara_connection.public_send(m, *args, &block)
       else # probably private method
