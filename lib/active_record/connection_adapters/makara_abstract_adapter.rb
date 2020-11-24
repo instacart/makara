@@ -156,7 +156,6 @@ module ActiveRecord
       def appropriate_connection(method_name, args, &block)
         if needed_by_all?(method_name, args)
           if ENV["MAKARA_LAZY_CONNECT"] == "true" && method_name == :execute
-            puts "<ENQ> #{args}"
             @slave_pool.queue_execute_for_all(args)
             @master_pool.queue_execute_for_all(args)
           else

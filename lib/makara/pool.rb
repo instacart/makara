@@ -23,6 +23,7 @@ module Makara
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
+      @queued_queries   = []
       if proxy.shard_aware_for(role)
         @strategy = Makara::Strategies::ShardAware.new(self)
         @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
@@ -34,7 +35,13 @@ module Makara
     end
 
     def populate
-      @load_callback.call if @load_callback
+      return if @load_callback.nil?
+
+      @load_callback.call
+      @queued_queries.each do |args, block|
+        @connections.each { |con| con._enqueue_query(args, &block) }
+      end
+      @queued_queries = []
     end
 
     def completely_blacklisted?
@@ -66,7 +73,13 @@ module Makara
     end
 
     def queue_execute_for_all(args, &block)
-      @connections.each { |con| con._enqueue_query(args, &block) }
+      # TODO: consider thread-safety
+      if @connections.empty?
+        puts "<DEFENQ #{@role}> #{args}"
+        @queued_queries << [args, block]
+      else
+        @connections.each { |con| con._enqueue_query(args, &block) }
+      end
     end
 
     # send this method to all available nodes

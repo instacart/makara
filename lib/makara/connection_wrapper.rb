@@ -27,6 +27,7 @@ module Makara
     end
 
     def _enqueue_query(args, &block)
+      puts "<ENQ #{_makara_name} #{args}>"
       @queue.push([args, block])
     end
 
@@ -112,15 +113,12 @@ module Makara
       while not @queue.empty?
         item = @queue.pop
         puts "<EXE #{_makara_connection._makara_name}> #{item[0][0]}"
-        # TODO: We probably want to avoid dequeuing the item if the query fails
         @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
-        end
       end
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
-      # TODO: make sure this covers all query execution methods
       run_queue if m.to_s.start_with?("exec") && ENV["MAKARA_LAZY_CONNECT"] == "true"
 
       if _makara_connection.respond_to?(m)
