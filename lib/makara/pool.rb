@@ -24,6 +24,9 @@ module Makara
       @blacklist_errors = []
       @disabled         = false
       @queued_queries   = []
+      @populated        = false
+      @load_callback    = block
+      @lazy_lock        = Mutex.new
       if proxy.shard_aware_for(role)
         @strategy = Makara::Strategies::ShardAware.new(self)
         @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
@@ -31,17 +34,22 @@ module Makara
       else
         @strategy = proxy.strategy_for(role)
       end
-      @load_callback = block
     end
+
 
     def populate
       return if @load_callback.nil?
 
-      @load_callback.call
-      @queued_queries.each do |args, block|
-        @connections.each { |con| con._enqueue_query(args, &block) }
+      @lazy_lock.synchronize do
+        return if @populated
+
+        @load_callback.call
+        while @queued_queries.any? do
+          args, block = @queued_queries.shift
+          @connections.each { |con| con._enqueue_query(args, &block) }
+        end
+        @populated = true
       end
-      @queued_queries = []
     end
 
     def completely_blacklisted?
@@ -73,12 +81,13 @@ module Makara
     end
 
     def queue_execute_for_all(args, &block)
-      # TODO: consider thread-safety
-      if @connections.empty?
-        puts "<DEFENQ #{@role}> #{args}"
-        @queued_queries << [args, block]
-      else
-        @connections.each { |con| con._enqueue_query(args, &block) }
+      @lazy_lock.synchronize do
+        if @connections.empty?
+          puts "<DEFENQ #{@role}> #{args}"
+          @queued_queries << [args, block]
+        else
+          @connections.each { |con| con._enqueue_query(args, &block) }
+        end
       end
     end
 
@@ -121,7 +130,7 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
-      populate if @connections.empty? && ENV["MAKARA_LAZY_CONNECT"] == "true"
+      populate unless @populated
 
       attempt = 0
       begin
