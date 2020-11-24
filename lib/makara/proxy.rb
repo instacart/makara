@@ -233,7 +233,8 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      elsif in_transaction?
+      elsif @master_pool.populated? && @master_pool.in_transaction?
+
         @master_pool
 
       # yay! use a slave

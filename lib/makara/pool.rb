@@ -27,6 +27,7 @@ module Makara
       @populated        = false
       @load_callback    = block
       @lazy_lock        = Mutex.new
+      @in_a_transaction = false
       if proxy.shard_aware_for(role)
         @strategy = Makara::Strategies::ShardAware.new(self)
         @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
@@ -36,12 +37,21 @@ module Makara
       end
     end
 
+    def in_a_transaction?
+      return false if @role != 'master'
+
+      @in_a_transaction
+    end
+
+    def populated?
+      @populated
+    end
 
     def populate
       return if @load_callback.nil?
 
       @lazy_lock.synchronize do
-        return if @populated
+        return if populated?
 
         @load_callback.call
         while @queued_queries.any? do
@@ -130,7 +140,7 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
-      populate unless @populated
+      populate unless populated?
 
       attempt = 0
       begin
@@ -144,6 +154,8 @@ module Makara
           end
 
           @blacklist_errors = []
+
+          @in_a_transaction = provided_connection._makara_in_transaction?
 
           value
 
