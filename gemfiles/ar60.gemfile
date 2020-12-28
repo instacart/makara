@@ -5,13 +5,13 @@ gemspec :path => '../'
 
 
 gem 'rake'
-gem 'activerecord', :git => 'https://github.com/rails/rails'
+gem 'activerecord', '~> 6.0.0'
 gem 'rspec'
 gem 'rack'
 gem 'timecop'
-gem 'mysql2', :platform => :ruby
+gem 'mysql2', '~> 0.4.10', :platform => :ruby
 gem 'activerecord-jdbcmysql-adapter', :platform => :jruby
-gem 'pg', :platform => :ruby
+gem 'pg', '0.21.0', :platform => :ruby
 gem 'activerecord-jdbcpostgresql-adapter', :platform => :jruby
 
 

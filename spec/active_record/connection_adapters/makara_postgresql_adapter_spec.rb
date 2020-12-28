@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'active_record/connection_adapters/postgresql_adapter'
+require 'active_record/errors'
 
 describe 'MakaraPostgreSQLAdapter' do
 
@@ -189,6 +190,62 @@ describe 'MakaraPostgreSQLAdapter' do
       before { config['makara']['sticky'] = false }
 
       it_behaves_like 'a transaction supporter'
+    end
+  end
+
+  context 'with two activerecord connection pools' do
+
+    before :each do
+      class Model1 < ActiveRecord::Base
+      end
+
+      class Model2 < ActiveRecord::Base
+      end
+
+      Model1.establish_connection(config)
+      Model2.establish_connection(config)
+
+    end
+
+    it 'should not leak raw connection into activerecord pool' do
+      # checkout a connection from Model1 pool and remove from the pool
+      conn = Model1.connection_pool.checkout
+      Model1.connection_pool.remove(conn)
+
+      # assign the connection to Model2 pool
+      conn.pool=Model2.connection_pool
+
+      # now close the connection to return it back to the pool
+      conn.close
+
+      # checkout the connection and make sure it is still a makara proxy
+      expect(Model2.connection).to eq(conn)
+    end
+
+    it 'should be able to steal the connection from a different thread' do
+      conn = Model1.connection_pool.checkout
+      conn.steal!
+      expect(conn.owner).to eq(Thread.current)
+      # steal! is not thread safe. it should be done while holding connection pool's mutex
+      t = Thread.new { conn.steal! }
+      t.join
+      expect(conn.owner).to eq(t)
+    end
+
+    it 'should not be able to expire the connection from same thread' do
+      conn = Model2.connection_pool.checkout
+      # expire is not thread safe. it should be done while holding connection pool's mutex
+      expect {
+        t = Thread.new { conn.expire }
+        t.join
+      }.to raise_error(ActiveRecord::ActiveRecordError)
+    end
+
+    it 'should be able to checkin connection back into activerecord pool' do
+      conn = Model1.connection_pool.checkout
+      Model1.connection_pool.checkin(conn)
+      # checkout the connection again and make sure it is same connection
+      expect(Model1.connection).to eq(conn)
     end
   end
 end
