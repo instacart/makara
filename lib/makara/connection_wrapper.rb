@@ -85,8 +85,9 @@ module Makara
 
         # Already wrapped because of initial failure
         if new_connection.is_a?(Makara::ConnectionWrapper)
+          initial_error = new_connection.initial_error
           _makara_blacklist!
-          raise Makara::Errors::BlacklistConnection.new(self, new_connection.initial_error)
+          raise Makara::Errors::BlacklistConnection.new(self, initial_error)
         else
           @connection = new_connection
           _makara_decorate_connection(new_connection)
