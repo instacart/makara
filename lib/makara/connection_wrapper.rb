@@ -71,6 +71,10 @@ module Makara
     end
 
     def _makara_connection
+      if _makara_blacklisted? && initial_error
+        raise Makara::Errors::BlacklistConnection.new(self, initial_error)
+      end
+
       current = @connection
 
       if current
