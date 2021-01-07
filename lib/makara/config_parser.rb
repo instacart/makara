@@ -63,7 +63,7 @@ module Makara
       # Converts the given URL to a full connection hash.
       def to_hash
         config = raw_config.reject { |_,value| value.blank? }
-        config.map { |key,value| config[key] = URI.unescape(value) if value.is_a? String }
+        config.map { |key,value| config[key] = CGI.unescape(value) if value.is_a? String }
         config
       end
 
