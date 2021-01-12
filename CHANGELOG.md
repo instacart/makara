@@ -1,6 +1,9 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
+## Unreleased
+- Drop support for Ruby < 2.5 and ActiveRecord < 5.2 [#281](https://github.com/instacart/makara/pull/281) Matt Larraz
+
 ## v0.5.0 - 2021-01-08
 [Full Changelog](https://github.com/instacart/makara/compare/v0.4.1...v0.4.2)
 - Replace deprecated URI.unescape with CGI.unescape [#252](https://github.com/instacart/makara/pull/252) Kevin Robatel

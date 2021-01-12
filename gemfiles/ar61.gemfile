@@ -3,4 +3,6 @@ source "https://rubygems.org"
 # Specify your gem"s dependencies in makara.gemspec
 gemspec path: "../"
 
-gem "activerecord", github: "rails/rails"
+gem "activerecord", "~> 6.1.0"
+
+# gem "mysql2", "~> 0.4.10", platform: :ruby
