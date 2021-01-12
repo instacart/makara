@@ -5,12 +5,12 @@ All notable changes to this project will be documented in this file.
 [Full Changelog](https://github.com/instacart/makara/compare/v0.4.1...v0.4.2)
 - Replace deprecated URI.unescape with CGI.unescape [#252](https://github.com/instacart/makara/pull/252) Kevin Robatel
 - Override equality operator for ActiveRecord connection wrapper [#269](https://github.com/instacart/makara/pull/269) Praveen Burgu
-- Handle blacklisted connections in master pool while in transaction [#267] (https://github.com/instacart/makara/pull/267) Praveen Burgu
-- Handle ActiveRecord connection pools correctly [#267] (https://github.com/instacart/makara/pull/267) Praveen Burgu
-- Add preliminary support for sharded databases [#267] (https://github.com/instacart/makara/pull/267) Praveen Burgu
-- Fix ActiveRecord connection pool exhaustion [#268] (https://github.com/instacart/makara/pull/268) Praveen Burgu
-- Drop support for Ruby 2.0, 2.1 and 2.2 [#267] (https://github.com/instacart/makara/pull/267) Praveen Burgu
-- Drop support ActiveRecord 3.x and 4.x [#267] (https://github.com/instacart/makara/pull/267) Praveen Burgu
+- Handle blacklisted connections in master pool while in transaction [#267](https://github.com/instacart/makara/pull/267) Praveen Burgu
+- Handle ActiveRecord connection pools correctly [#267](https://github.com/instacart/makara/pull/267) Praveen Burgu
+- Add preliminary support for sharded databases [#267](https://github.com/instacart/makara/pull/267) Praveen Burgu
+- Fix ActiveRecord connection pool exhaustion [#268](https://github.com/instacart/makara/pull/268) Praveen Burgu
+- Drop support for Ruby 2.0, 2.1 and 2.2 [#267](https://github.com/instacart/makara/pull/267) Praveen Burgu
+- Drop support ActiveRecord 3.x and 4.x [#267](https://github.com/instacart/makara/pull/267) Praveen Burgu
 - Set up automatic publishing to Github and Rubygems [#275](https://github.com/instacart/makara/pull/275) Matt Larraz
 
 
