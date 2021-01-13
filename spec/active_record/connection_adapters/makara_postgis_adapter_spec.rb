@@ -18,12 +18,8 @@ if RUBY_ENGINE == 'ruby' &&
   require 'active_record/connection_adapters/postgis_adapter'
 
   describe 'MakaraPostgisAdapter' do
-    let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
-
     let(:config) do
-      base = YAML.load_file(File.expand_path('spec/support/postgis_database.yml'))['test']
-      base['username'] = db_username
-      base
+      YAML.load_file(File.expand_path('spec/support/postgis_database.yml'))['test']
     end
 
     let(:connection) { ActiveRecord::Base.connection }

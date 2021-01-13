@@ -2,12 +2,10 @@ require 'spec_helper'
 require 'active_record/connection_adapters/mysql2_adapter'
 
 describe 'MakaraMysql2Adapter' do
-
-  let(:db_username){ ENV['TRAVIS'] ? 'travis' : 'root' }
-
   let(:config){
-    base = YAML.load_file(File.expand_path('spec/support/mysql2_database.yml'))['test']
-    base
+    file = File.expand_path('spec/support/mysql2_database.yml')
+    hash = YAML.load(ERB.new(File.read(file)).result)
+    hash['test']
   }
 
   let(:connection) { ActiveRecord::Base.connection }
@@ -84,8 +82,7 @@ describe 'MakaraMysql2Adapter' do
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 
-        allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
-          config[:username] = db_username
+        allow(ActiveRecord::Base).to receive(:mysql2_connection) do
           original_method.call(config)
         end
 
@@ -163,7 +160,7 @@ describe 'MakaraMysql2Adapter' do
 
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
-      
+
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
         expect(con).to receive(:execute).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
