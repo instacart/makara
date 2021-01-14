@@ -110,13 +110,9 @@ module Makara
       end
     end
 
-
-    class_eval <<-RUBY_EVAL, __FILE__, __LINE__ + 1
-      def respond_to#{RUBY_VERSION.to_s =~ /^1.8/ ? nil : '_missing'}?(m, include_private = false)
-        _makara_connection.respond_to?(m, true)
-      end
-    RUBY_EVAL
-
+    def respond_to_missing?(m, include_private = false)
+      _makara_connection.respond_to?(m, true)
+    end
 
     protected
 
