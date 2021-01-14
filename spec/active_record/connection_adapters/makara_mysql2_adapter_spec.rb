@@ -156,17 +156,11 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send exists? to slave' do
-      next if ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR == 0 # query doesn't work?
-
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
 
       con = connection.slave_pool.connections.first
-      if (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
-        expect(con).to receive(:execute).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
-      else
-        expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
-      end
+      expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
       Test::User.exists?
     end
 
