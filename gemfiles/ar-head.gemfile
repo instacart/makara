@@ -3,4 +3,4 @@ source "https://rubygems.org"
 # Specify your gem"s dependencies in makara.gemspec
 gemspec path: "../"
 
-gem "activerecord", github: "rails/rails"
+gem "activerecord", github: "rails/rails", branch: "main"
