@@ -24,19 +24,23 @@ module Makara
         self.hijack_methods |= method_names
 
         method_names.each do |method_name|
-          define_method method_name do |*args, &block|
+          define_method(method_name) do |*args, &block|
             appropriate_connection(method_name, args) do |con|
               con.send(method_name, *args, &block)
             end
           end
+
+          ruby2_keywords method_name if Module.private_method_defined?(:ruby2_keywords)
         end
       end
 
       def send_to_all(*method_names)
         method_names.each do |method_name|
-          define_method method_name do |*args|
-            send_to_all method_name, *args
+          define_method(method_name) do |*args|
+            send_to_all(method_name, *args)
           end
+
+          ruby2_keywords method_name if Module.private_method_defined?(:ruby2_keywords)
         end
       end
 
@@ -45,9 +49,11 @@ module Makara
         self.control_methods |= method_names
 
         method_names.each do |method_name|
-          define_method method_name do |*args, &block|
+          define_method(method_name) do |*args, &block|
             control&.send(method_name, *args, &block)
           end
+
+          ruby2_keywords method_name if Module.private_method_defined?(:ruby2_keywords)
         end
       end
     end
@@ -118,19 +124,19 @@ module Makara
 
     def method_missing(m, *args, &block)
       if METHOD_MISSING_SKIP.include?(m)
-        return super(m, *args, &block)
+        return super
       end
 
       any_connection do |con|
-        if con.respond_to?(m)
-          con.public_send(m, *args, &block)
-        elsif con.respond_to?(m, true)
-          con.__send__(m, *args, &block)
+        if con.respond_to?(m, true)
+          con.send(m, *args, &block)
         else
-          super(m, *args, &block)
+          super
         end
       end
     end
+
+    ruby2_keywords :method_missing if Module.private_method_defined?(:ruby2_keywords)
 
     def respond_to_missing?(m, include_private = false)
       any_connection do |con|
@@ -157,14 +163,15 @@ module Makara
 
     protected
 
-
     def send_to_all(method_name, *args)
       # replica pool must run first to allow for replica --> master failover without running operations on master twice.
       handling_an_all_execution(method_name) do
-        @replica_pool.send_to_all method_name, *args
-        @master_pool.send_to_all method_name, *args
+        @replica_pool.send_to_all(method_name, *args)
+        @master_pool.send_to_all(method_name, *args)
       end
     end
+
+    ruby2_keywords :send_to_all if Module.private_method_defined?(:ruby2_keywords)
 
     def any_connection
       if @master_pool.disabled
