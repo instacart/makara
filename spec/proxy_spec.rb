@@ -5,22 +5,22 @@ describe Makara::Proxy do
   let(:klass){ FakeProxy }
 
 
-  it 'sets up a master and slave pool no matter the number of connections' do
+  it 'sets up a master and replica pool no matter the number of connections' do
     proxy = klass.new(config(0, 0))
     expect(proxy.master_pool).to be_a(Makara::Pool)
-    expect(proxy.slave_pool).to be_a(Makara::Pool)
+    expect(proxy.replica_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(2, 0))
     expect(proxy.master_pool).to be_a(Makara::Pool)
-    expect(proxy.slave_pool).to be_a(Makara::Pool)
+    expect(proxy.replica_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(0, 2))
     expect(proxy.master_pool).to be_a(Makara::Pool)
-    expect(proxy.slave_pool).to be_a(Makara::Pool)
+    expect(proxy.replica_pool).to be_a(Makara::Pool)
 
     proxy = klass.new(config(2, 2))
     expect(proxy.master_pool).to be_a(Makara::Pool)
-    expect(proxy.slave_pool).to be_a(Makara::Pool)
+    expect(proxy.replica_pool).to be_a(Makara::Pool)
   end
 
 
@@ -28,7 +28,7 @@ describe Makara::Proxy do
     proxy = klass.new(config(1, 2))
 
     expect(proxy.master_pool.connection_count).to eq(1)
-    expect(proxy.slave_pool.connection_count).to eq(2)
+    expect(proxy.replica_pool.connection_count).to eq(2)
   end
 
   it 'should delegate any unknown method to a connection in the master pool' do
@@ -97,7 +97,7 @@ describe Makara::Proxy do
       expect(proxy.sticky).to eq(true)
     end
 
-    it 'should provide the slave pool for a read' do
+    it 'should provide the replica pool for a read' do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
@@ -161,20 +161,20 @@ describe Makara::Proxy do
       expect(proxy.master_for?('select * from users')).to eq(false)
     end
 
-    it 'should use master if all slaves are blacklisted' do
-      allow(proxy.slave_pool).to receive(:completely_blacklisted?){ true }
+    it 'should use master if all replicas are blacklisted' do
+      allow(proxy.replica_pool).to receive(:completely_blacklisted?){ true }
       expect(proxy.master_for?('select * from users')).to eq(true)
     end
 
-    it 'should use master if all slaves become blacklisted as part of the invocation' do
-      allow(proxy.slave_pool).to receive(:next).and_return(nil)
+    it 'should use master if all replicas become blacklisted as part of the invocation' do
+      allow(proxy.replica_pool).to receive(:next).and_return(nil)
 
       test = double
       expect(test).to receive(:blacklisting).once
       expect(test).to receive(:using_master).once
 
       proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
-        if pool == proxy.slave_pool
+        if pool == proxy.replica_pool
           test.blacklisting
           pool.instance_variable_get('@blacklist_errors') << StandardError.new('some connection issue')
           pool.connections.each(&:_makara_blacklist!)
@@ -189,22 +189,22 @@ describe Makara::Proxy do
       proxy.ping
 
       # weird setup to allow for the correct
-      proxy.slave_pool.connections.each(&:_makara_blacklist!)
-      proxy.slave_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some slave connection issue')
+      proxy.replica_pool.connections.each(&:_makara_blacklist!)
+      proxy.replica_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some replica connection issue')
       proxy.master_pool.connections.each(&:_makara_blacklist!)
       proxy.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some master connection issue')
 
-      allow(proxy).to receive(:_appropriate_pool).and_return(proxy.slave_pool, proxy.master_pool)
+      allow(proxy).to receive(:_appropriate_pool).and_return(proxy.replica_pool, proxy.master_pool)
 
       begin
         proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
           pool.provide{|c| c }
         end
       rescue Makara::Errors::AllConnectionsBlacklisted => e
-        expect(e.message).to eq('[Makara/master] All connections are blacklisted -> some master connection issue -> [Makara/slave] All connections are blacklisted -> some slave connection issue')
+        expect(e.message).to eq('[Makara/master] All connections are blacklisted -> some master connection issue -> [Makara/replica] All connections are blacklisted -> some replica connection issue')
       end
 
-      proxy.slave_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
+      proxy.replica_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
       proxy.master_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
     end
   end

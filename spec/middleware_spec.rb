@@ -32,7 +32,7 @@ describe Makara::Middleware do
     _, headers, body = middleware.call(env)
 
     expect(headers).to eq({})
-    expect(body).to eq('slave/1')
+    expect(body).to eq('replica/1')
   end
 
   it 'should use the cookie-provided context if present' do

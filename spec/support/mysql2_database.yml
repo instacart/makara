@@ -14,5 +14,5 @@ test:
     master_ttl: 5
     connections:
       - role: master
-      - role: slave
-      - role: slave
+      - role: replica
+      - role: replica

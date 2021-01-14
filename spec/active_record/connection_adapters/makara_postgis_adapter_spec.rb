@@ -52,9 +52,9 @@ if RUBY_ENGINE == 'ruby' &&
         end
       end
 
-      it 'should have one master and two slaves' do
+      it 'should have one master and two replicas' do
         expect(connection.master_pool.connection_count).to eq(1)
-        expect(connection.slave_pool.connection_count).to eq(2)
+        expect(connection.replica_pool.connection_count).to eq(2)
       end
 
       it 'should allow real queries to work' do
@@ -75,17 +75,17 @@ if RUBY_ENGINE == 'ruby' &&
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
 
-        connection.slave_pool.connections.each do |con|
+        connection.replica_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
         connection.execute("SET TimeZone = 'UTC'")
       end
 
-      it 'should send reads to the slave' do
+      it 'should send reads to the replica' do
         # ensure the next connection will be the first one
         allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
-        con = connection.slave_pool.connections.first
+        con = connection.replica_pool.connections.first
         expect(con).to receive(:execute).with('SELECT * FROM users').once
 
         connection.execute('SELECT * FROM users')
@@ -118,7 +118,7 @@ if RUBY_ENGINE == 'ruby' &&
     context 'with only master connection' do
       it 'should not raise errors on read and write' do
         custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+        custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
 
         ActiveRecord::Base.establish_connection(custom_config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -128,7 +128,7 @@ if RUBY_ENGINE == 'ruby' &&
       end
     end
 
-    context 'with only slave connection' do
+    context 'with only replica connection' do
       it 'should raise error only on write' do
         ActiveRecord::Base.establish_connection(config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')

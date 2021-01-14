@@ -3,7 +3,7 @@ require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/string/inflections'
 
-# The entry point of Makara. It contains a master and slave pool which are chosen based on the invocation
+# The entry point of Makara. It contains a master and replica pool which are chosen based on the invocation
 # being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
 # `hijack_method` class method.
 # While debugging this class use prepend debug calls with Kernel. (Kernel.byebug for example)
@@ -159,16 +159,16 @@ module Makara
 
 
     def send_to_all(method_name, *args)
-      # slave pool must run first to allow for slave-->master failover without running operations on master twice.
+      # replica pool must run first to allow for replica --> master failover without running operations on master twice.
       handling_an_all_execution(method_name) do
-        @slave_pool.send_to_all method_name, *args
+        @replica_pool.send_to_all method_name, *args
         @master_pool.send_to_all method_name, *args
       end
     end
 
     def any_connection
       if @master_pool.disabled
-        @slave_pool.provide do |con|
+        @replica_pool.provide do |con|
           yield con
         end
       else
@@ -179,7 +179,7 @@ module Makara
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
         @master_pool.disabled = true
-        @slave_pool.provide do |con|
+        @replica_pool.provide do |con|
           yield con
         end
       ensure
@@ -201,9 +201,8 @@ module Makara
     end
 
 
-    # master or slave
+    # master or replica
     def appropriate_pool(method_name, args)
-
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
       yield pool
@@ -211,7 +210,7 @@ module Makara
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @master_pool
         @master_pool.connections.each(&:_makara_whitelist!)
-        @slave_pool.connections.each(&:_makara_whitelist!)
+        @replica_pool.connections.each(&:_makara_whitelist!)
         Kernel.raise e
       else
         @master_pool.blacklist_errors << e
@@ -232,17 +231,17 @@ module Makara
         # stickiness is still valid
         @master_pool
 
-      # all slaves are down (or empty)
-      elsif @slave_pool.completely_blacklisted?
+      # all replicas are down (or empty)
+      elsif @replica_pool.completely_blacklisted?
         stick_to_master(method_name, args)
         @master_pool
 
       elsif in_transaction?
         @master_pool
 
-      # yay! use a slave
+      # yay! use a replica
       else
-        @slave_pool
+        @replica_pool
       end
     end
 
@@ -290,7 +289,7 @@ module Makara
       @sticky && !@skip_sticking
     end
 
-    # use the config parser to generate a master and slave pool
+    # use the config parser to generate a master and replica pool
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self)
       @config_parser.master_configs.each do |master_config|
@@ -299,10 +298,10 @@ module Makara
         end
       end
 
-      @slave_pool = Makara::Pool.new('slave', self)
-      @config_parser.slave_configs.each do |slave_config|
-        @slave_pool.add slave_config do
-          graceful_connection_for(slave_config)
+      @replica_pool = Makara::Pool.new('replica', self)
+      @config_parser.replica_configs.each do |replica_config|
+        @replica_pool.add replica_config do
+          graceful_connection_for(replica_config)
         end
       end
     end
@@ -311,13 +310,13 @@ module Makara
       yield
     rescue ::Makara::Errors::NoConnectionsAvailable => e
       if e.role == 'master'
-        # this means slave connections are good.
+        # this means replica connections are good.
         return
       end
-      @slave_pool.disabled = true
+      @replica_pool.disabled = true
       yield
     ensure
-      @slave_pool.disabled = false
+      @replica_pool.disabled = false
     end
 
 

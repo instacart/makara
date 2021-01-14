@@ -114,30 +114,33 @@ module ActiveRecord
 
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
-      SQL_SLAVE_MATCHERS            = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
+      SQL_REPLICA_MATCHERS          = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
       SQL_ALL_MATCHERS              = [/\A\s*set\s/i].map(&:freeze).freeze
       SQL_SKIP_STICKINESS_MATCHERS  = [/\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
 
+      SQL_SLAVE_MATCHERS = SQL_REPLICA_MATCHERS
+      deprecate_constant :SQL_SLAVE_MATCHERS
 
       def sql_master_matchers
         SQL_MASTER_MATCHERS
       end
 
-
-      def sql_slave_matchers
-        SQL_SLAVE_MATCHERS
+      def sql_replica_matchers
+        SQL_REPLICA_MATCHERS
       end
 
+      def sql_slave_matchers
+        warn "sql_slave_matchers is deprecated. Use sql_replica_matchers"
+        sql_replica_matchers
+      end
 
       def sql_all_matchers
         SQL_ALL_MATCHERS
       end
 
-
       def sql_skip_stickiness_matchers
         SQL_SKIP_STICKINESS_MATCHERS
       end
-
 
       def initialize(config)
         @error_handler = ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler.new
@@ -154,8 +157,8 @@ module ActiveRecord
 
           handling_an_all_execution(method_name) do
             hijacked do
-              # slave pool must run first.
-              @slave_pool.send_to_all(nil, &block)  # just yields to each con
+              # replica pool must run first.
+              @replica_pool.send_to_all(nil, &block)  # just yields to each con
               @master_pool.send_to_all(nil, &block) # just yields to each con
             end
           end
@@ -187,7 +190,7 @@ module ActiveRecord
       def needs_master?(method_name, args)
         sql = coerce_query_to_sql_string(args.first)
         return true if sql_master_matchers.any?{|m| sql =~ m }
-        return false if sql_slave_matchers.any?{|m| sql =~ m }
+        return false if sql_replica_matchers.any?{|m| sql =~ m }
         true
       end
 

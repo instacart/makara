@@ -4,7 +4,7 @@
 [![Code Climate](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/badges/7905f7a000492a1078f7/gpa.png)](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/feed)
 
 
-Makara is generic master/slave proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
+Makara is generic master/replica proxy. It handles the heavy lifting of managing, choosing, blacklisting, and cycling through connections. It comes with an ActiveRecord database adapter implementation.
 
 ## Installation
 
@@ -36,7 +36,7 @@ Next, you need to decide which methods are proxied and which methods should be s
   send_to_all :connect, :reconnect, :disconnect, :clear_cache
 ```
 
-Assuming you don't need to split requests between a master and a slave, you're done. If you do need to, implement the `needs_master?` method:
+Assuming you don't need to split requests between a master and a replica, you're done. If you do need to, implement the `needs_master?` method:
 
 ```ruby
   # within MyAwesomeSqlProxy
@@ -63,7 +63,7 @@ To handle persistence of context across requests in a Rack app, makara provides 
 
 When `sticky:true`, once a query as been sent to master, all queries for the rest of the request will also be sent to master.  In addition, the cookie described above will be set client side with an expiration defined by time at end of original request + `master_ttl`.  As long as the cookie is valid, all requests will send queries to master.
 
-When `sticky:false`, only queries that need to go to master will go there.  Subsequent read queries in the same request will go to slaves.
+When `sticky:false`, only queries that need to go to master will go there.  Subsequent read queries in the same request will go to replicas.
 
 #### Releasing stuck connections (clearing context)
 
@@ -116,13 +116,13 @@ Makara::Logging::Logger.logger = ::Logger.new(STDOUT)
 
 ## ActiveRecord Database Adapter
 
-So you've found yourself with an ActiveRecord-based project which is starting to get some traffic and you realize 95% of you DB load is from reads. Well you've come to the right spot. Makara is a great solution to break up that load not only between master and slave but potentially multiple masters and/or multiple slaves.
+So you've found yourself with an ActiveRecord-based project which is starting to get some traffic and you realize 95% of you DB load is from reads. Well you've come to the right spot. Makara is a great solution to break up that load not only between master and replica but potentially multiple masters and/or multiple replicas.
 
 By creating a makara database adapter which simply acts as a proxy we avoid any major complexity surrounding specific database implementations. The makara adapter doesn't care if the underlying connection is mysql, postgresql, etc it simply cares about the sql string being executed.
 
 ### What goes where?
 
-In general: Any `SELECT` statements will execute against your slave(s), anything else will go to master.
+In general: Any `SELECT` statements will execute against your replica(s), anything else will go to master.
 
 There are some edge cases:
 * `SET` operations will be sent to all connections
@@ -132,7 +132,7 @@ There are some edge cases:
 
 ### Errors / blacklisting
 
-Whenever a node fails an operation due to a connection issue, it is blacklisted for the amount of time specified in your database.yml. After that amount of time has passed, the connection will begin receiving queries again. If all slave nodes are blacklisted, the master connection will begin receiving read queries as if it were a slave. Once all nodes are blacklisted the error is raised to the application and all nodes are whitelisted.
+Whenever a node fails an operation due to a connection issue, it is blacklisted for the amount of time specified in your database.yml. After that amount of time has passed, the connection will begin receiving queries again. If all replica nodes are blacklisted, the master connection will begin receiving read queries as if it were a replica. Once all nodes are blacklisted the error is raised to the application and all nodes are whitelisted.
 
 ### Database.yml
 
@@ -156,14 +156,14 @@ production:
     sticky: true
 
     # list your connections with the override values (they're merged into the top-level config)
-    # be sure to provide the role if master, role is assumed to be a slave if not provided
+    # be sure to provide the role if master, role is assumed to be a replica if not provided
     connections:
       - role: master
         host: master.sql.host
-      - role: slave
-        host: slave1.sql.host
-      - role: slave
-        host: slave2.sql.host
+      - role: replica
+        host: replica1.sql.host
+      - role: replica
+        host: replica2.sql.host
 ```
 
 Let's break this down a little bit. At the top level of your config you have the standard `adapter` choice. Currently the available adapters are listed in [lib/active_record/connection_adapters/](lib/active_record/connection_adapters/). They are in the form of `#{db_type}_makara` where db_type is mysql, postgresql, etc.
@@ -177,7 +177,7 @@ The makara subconfig sets up the proxy with a few of its own options, then provi
 * sticky - if a node should be stuck to once it's used during a specific context
 * master_ttl - how long the master context is persisted. generally, this needs to be longer than any replication lag
 * master_strategy - use a different strategy for picking the "current" master node: `failover` will try to keep the same one until it is blacklisted. The default is `round_robin` which will cycle through available ones.
-* slave_strategy - use a different strategy for picking the "current" slave node: `failover` will try to keep the same one until it is blacklisted. The default is `round_robin` which will cycle through available ones.
+* replica_strategy - use a different strategy for picking the "current" replica node: `failover` will try to keep the same one until it is blacklisted. The default is `round_robin` which will cycle through available ones.
 * connection_error_matchers - array of custom error matchers you want to be handled gracefully by Makara (as in, errors matching these regexes will result in blacklisting the connection as opposed to raising directly).
 
 Connection definitions contain any extra node-specific configurations. If the node should behave as a master you must provide `role: master`. Any previous configurations can be overridden within a specific node's config. Nodes can also contain weights if you'd like to balance usage based on hardware specifications. Optionally, you can provide a name attribute which will be used in sql logging.
@@ -188,16 +188,16 @@ connections:
     host: mymaster.sql.host
     blacklist_duration: 0
 
-  # implicit role: slave
-  - host: mybigslave.sql.host
+  # implicit role: replica
+  - host: mybigreplica.sql.host
     weight: 8
-    name: Big Slave
-  - host: mysmallslave.sql.host
+    name: Big Replica
+  - host: mysmallreplica.sql.host
     weight: 2
-    name: Small Slave
+    name: Small Replica
 ```
 
-In the previous config the "Big Slave" would receive ~80% of traffic.
+In the previous config the "Big Replica" would receive ~80% of traffic.
 
 #### DATABASE_URL
 
@@ -217,8 +217,8 @@ connections:
   - role: master
     blacklist_duration: 0
     url: <%= ENV['DATABASE_URL_MASTER'] %>
-  - role: slave
-    url: <%= ENV['DATABASE_URL_SLAVE'] %>
+  - role: replica
+    url: <%= ENV['DATABASE_URL_REPLICA'] %>
 ```
 
 **Important**: *Do NOT use `ENV['DATABASE_URL']`*, as it inteferes with the the database configuration
@@ -271,7 +271,7 @@ You can provide strings or regexes.  In the case of strings, if they start with 
 On occasion your app may deal with a situation where makara is not present during a write but a read should use master. In the generic proxy details above you are encouraged to use `stick_to_master!` to accomplish this. Here's an example:
 
 ```ruby
-# some third party creates a resource in your db, slave replication may not have completed yet
+# some third party creates a resource in your db, replication may not have completed yet
 # ...
 # then your app is told to read the resource.
 def handle_request_after_third_party_record_creation

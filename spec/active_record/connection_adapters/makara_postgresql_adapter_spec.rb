@@ -29,9 +29,9 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
 
-    it 'should have one master and two slaves' do
+    it 'should have one master and two replicas' do
       expect(connection.master_pool.connection_count).to eq(1)
-      expect(connection.slave_pool.connection_count).to eq(2)
+      expect(connection.replica_pool.connection_count).to eq(2)
     end
 
     it 'should allow real queries to work' do
@@ -52,27 +52,27 @@ describe 'MakaraPostgreSQLAdapter' do
         expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
       end
 
-      connection.slave_pool.connections.each do |con|
+      connection.replica_pool.connections.each do |con|
         expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
       end
       connection.execute("SET TimeZone = 'UTC'")
     end
 
-    it 'should send reads to the slave' do
+    it 'should send reads to the replica' do
       # ensure the next connection will be the first one
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
-      con = connection.slave_pool.connections.first
+      con = connection.replica_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
 
       connection.execute('SELECT * FROM users')
     end
 
-    it 'should send exists? to slave' do
+    it 'should send exists? to replica' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
 
-      con = connection.slave_pool.connections.first
+      con = connection.replica_pool.connections.first
       expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
       Test::User.exists?
     end
@@ -97,7 +97,7 @@ describe 'MakaraPostgreSQLAdapter' do
   context 'with only master connection' do
     it 'should not raise errors on read and write' do
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
 
       establish_connection(custom_config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -107,7 +107,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
   end
 
-  context 'with only slave connection' do
+  context 'with only replica connection' do
     it 'should raise error only on write' do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -130,13 +130,13 @@ describe 'MakaraPostgreSQLAdapter' do
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 
-        # Pre-loads the attributes so that schema queries don't hit slave
+        # Pre-loads the attributes so that schema queries don't hit replica
         # user = User.create(name: 'hello')
-        connection.slave_pool.connections.each do |slave|
+        connection.replica_pool.connections.each do |replica|
           # Using method missing to help with back trace, literally
-          # no query should be executed on slave once a transaction is opened
-          expect(slave).to receive(:method_missing).never
-          expect(slave).to receive(:execute).never
+          # no query should be executed on replica once a transaction is opened
+          expect(replica).to receive(:method_missing).never
+          expect(replica).to receive(:execute).never
         end
       end
 
