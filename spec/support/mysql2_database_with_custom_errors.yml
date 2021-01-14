@@ -1,9 +1,9 @@
 test:
   adapter: 'mysql2_makara'
   database: 'makara_test'
-  username: 'root'
+  host: <%= ENV["MYSQL_HOST"] %>
+  username: root
   password: ''
-
   timeout: 5000
   connect_timeout: 1
   read_timeout: 1

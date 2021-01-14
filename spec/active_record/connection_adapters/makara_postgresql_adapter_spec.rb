@@ -3,13 +3,8 @@ require 'active_record/connection_adapters/postgresql_adapter'
 require 'active_record/errors'
 
 describe 'MakaraPostgreSQLAdapter' do
-
-  let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
-
   let(:config) do
-    base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
-    base['username'] = db_username
-    base
+    YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
   end
 
   let(:connection) { ActiveRecord::Base.connection }
@@ -78,7 +73,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
-      
+
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2) ||
          (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
