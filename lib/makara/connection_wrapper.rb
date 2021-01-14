@@ -6,7 +6,7 @@ require 'active_support/core_ext/hash/keys'
 # Makara::Proxy.
 
 module Makara
-  class ConnectionWrapper
+  class ConnectionWrapper < SimpleDelegator
 
     attr_accessor :initial_error, :config
 
@@ -91,6 +91,8 @@ module Makara
       end
     end
 
+    alias_method :__getobj__, :_makara_connection
+
     def execute(*args)
       SQL_REPLACE.each do |find, replace|
         if args[0] == find
@@ -99,19 +101,6 @@ module Makara
       end
 
       _makara_connection.execute(*args)
-    end
-
-    # we want to forward all private methods, since we could have kicked out from a private scenario
-    def method_missing(m, *args, &block)
-      if _makara_connection.respond_to?(m)
-        _makara_connection.public_send(m, *args, &block)
-      else # probably private method
-        _makara_connection.__send__(m, *args, &block)
-      end
-    end
-
-    def respond_to_missing?(m, include_private = false)
-      _makara_connection.respond_to?(m, true)
     end
 
     protected
