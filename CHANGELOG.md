@@ -2,6 +2,7 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+- Deprecated the term `master` in favor of `primary` [#290](https://github.com/instacart/makara/pull/290) Matt Larraz
 - Deprecated the term `slave` in favor of `replica` [#286](https://github.com/instacart/makara/pull/286) Matt Larraz
 - Drop support for Ruby < 2.5 and ActiveRecord < 5.2 [#281](https://github.com/instacart/makara/pull/281) Matt Larraz
 

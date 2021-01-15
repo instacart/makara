@@ -17,7 +17,7 @@ module Makara
     attr_reader :default_shard
 
     def initialize(role, proxy)
-      @role             = role
+      @role             = role == "master" ? "primary" : role
       @proxy            = proxy
       @connections      = []
       @blacklist_errors = []
@@ -125,7 +125,7 @@ module Makara
       # when a connection causes a blacklist error within the provided block, we blacklist it then retry
       rescue Makara::Errors::BlacklistConnection => e
         @blacklist_errors.insert(0, e)
-        in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
+        in_transaction = self.role == "primary" && provided_connection._makara_in_transaction?
         provided_connection._makara_blacklist!
         raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
 

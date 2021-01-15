@@ -10,10 +10,11 @@ require 'cgi'
 #   top_level: 'variable'
 #   another: 'top level variable'
 #   makara:
-#     master_ttl: 3
+#     primary_ttl: 3
 #     blacklist_duration: 20
 #     connections:
-#       - role: 'master'
+#       - role: 'master' # Deprecated in favor of 'primary'
+#       - role: 'primary'
 #       - role: 'slave' # Deprecated in favor of 'replica'
 #       - role: 'replica'
 #         name: 'replica2'
@@ -21,10 +22,20 @@ require 'cgi'
 module Makara
   class ConfigParser
     DEFAULTS = {
-      master_ttl: 5,
+      primary_ttl: 5,
       blacklist_duration: 30,
       sticky: true
     }
+
+    DEPRECATED_KEYS = {
+      slave_strategy:       :replica_strategy,
+      slave_shard_aware:    :replica_shard_aware,
+      slave_default_shard:  :replica_default_shard,
+      master_strategy:      :primary_strategy,
+      master_shard_aware:   :primary_shard_aware,
+      master_default_shard: :primary_default_shard,
+      master_ttl:           :primary_ttl
+    }.freeze
 
     # ConnectionUrlResolver is borrowed from Rails 4-2 since its location and implementation
     # vary slightly among Rails versions, but the behavior is the same.  Thus, borrowing the
@@ -146,7 +157,7 @@ module Makara
       @makara_config = DEFAULTS.merge(@config[:makara] || {})
       @makara_config = @makara_config.symbolize_keys
 
-      deprecate_keys(:slave_strategy, :slave_shard_aware, :slave_default_shard)
+      replace_deprecated_keys!
 
       @id = sanitize_id(@makara_config[:id])
     end
@@ -158,29 +169,45 @@ module Makara
       end
     end
 
-    def master_configs
+    def primary_configs
       all_configs
-        .select { |config| config[:role] == 'master' }
+        .select { |config| config[:role] == 'primary' }
         .map { |config| config.except(:role) }
+    end
+
+    def master_configs
+      warn "#{self.class}#master_configs is deprecated. Switch to #primary_configs"
+      primary_configs
     end
 
     def replica_configs
       all_configs
-        .reject { |config| config[:role] == 'master' }
+        .reject { |config| config[:role] == 'primary' }
         .map { |config| config.except(:role) }
     end
 
     def slave_configs
-      warn "#slave_configs is deprecated. Switch to #replica_configs"
+      warn "#{self.class}#slave_configs is deprecated. Switch to #replica_configs"
       replica_configs
     end
 
     protected
 
     def all_configs
-      @makara_config[:connections].map do |connection|
-        base_config.merge(makara_config.except(:connections))
-                   .merge(connection.symbolize_keys)
+      @all_configs ||= @makara_config[:connections].map do |connection|
+        config = base_config.merge(makara_config.except(:connections)).merge(connection.symbolize_keys)
+
+        if config[:role] == "master"
+          warn "Makara role 'master' is deprecated. Use 'primary' instead"
+          config[:role] = "primary"
+        end
+
+        if config[:role] == "slave"
+          warn "Makara role 'slave' is deprecated. Use 'replica' instead"
+          config[:role] = "primary"
+        end
+
+        config
       end
     end
 
@@ -208,14 +235,13 @@ module Makara
       end
     end
 
-    def deprecate_keys(*keys)
-      keys.each do |key|
+    def replace_deprecated_keys!
+      DEPRECATED_KEYS.each do |key, replacement|
         next unless @makara_config[key]
 
-        new_key = key.to_s.gsub("slave", "replica").to_sym
-        warn "Config key #{key} is deprecated, use #{new_key} instead"
+        warn "Makara config key #{key.inspect} is deprecated, use #{replacement.inspect} instead"
 
-        @makara_config[new_key] = @makara_config[key]
+        @makara_config[replacement] = @makara_config.delete(key)
       end
     end
   end

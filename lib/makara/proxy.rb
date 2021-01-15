@@ -3,7 +3,7 @@ require 'active_support/core_ext/class/attribute'
 require 'active_support/core_ext/hash/keys'
 require 'active_support/core_ext/string/inflections'
 
-# The entry point of Makara. It contains a master and replica pool which are chosen based on the invocation
+# The entry point of Makara. It contains a primary and replica pool which are chosen based on the invocation
 # being proxied. Makara::Proxy implementations should declare which methods they are hijacking via the
 # `hijack_method` class method.
 # While debugging this class use prepend debug calls with Kernel. (Kernel.byebug for example)
@@ -66,7 +66,7 @@ module Makara
       @config         = config.symbolize_keys
       @config_parser  = Makara::ConfigParser.new(@config)
       @id             = @config_parser.id
-      @ttl            = @config_parser.makara_config[:master_ttl]
+      @ttl            = @config_parser.makara_config[:primary_ttl]
       @sticky         = @config_parser.makara_config[:sticky]
       @hijacked       = false
       @error_handler  ||= ::Makara::ErrorHandler.new
@@ -86,11 +86,16 @@ module Makara
       @hijacked
     end
 
-    # If persist is true, we stick the proxy to master for subsequent requests
-    # up to master_ttl duration. Otherwise we just stick it for the current request
-    def stick_to_master!(persist = true)
+    # If persist is true, we stick the proxy to primary for subsequent requests
+    # up to primary_ttl duration. Otherwise we just stick it for the current request
+    def stick_to_primary!(persist = true)
       stickiness_duration = persist ? @ttl : 0
       Makara::Context.stick(@id, stickiness_duration)
+    end
+
+    def stick_to_master!(persist = true)
+      warn "#{self.class}.stick_to_master! is deprecated. Switch to #stick_to_primary!"
+      stick_to_primary!(persist)
     end
 
     def strategy_for(role)
@@ -162,33 +167,33 @@ module Makara
     protected
 
     def send_to_all(method_name, *args)
-      # replica pool must run first to allow for replica --> master failover without running operations on master twice.
+      # replica pool must run first to allow for replica --> primary failover without running operations on the primary twice.
       handling_an_all_execution(method_name) do
         @replica_pool.send_to_all(method_name, *args)
-        @master_pool.send_to_all(method_name, *args)
+        @primary_pool.send_to_all(method_name, *args)
       end
     end
 
     ruby2_keywords :send_to_all if Module.private_method_defined?(:ruby2_keywords)
 
     def any_connection
-      if @master_pool.disabled
+      if @primary_pool.disabled
         @replica_pool.provide do |con|
           yield con
         end
       else
-        @master_pool.provide do |con|
+        @primary_pool.provide do |con|
           yield con
         end
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
-        @master_pool.disabled = true
+        @primary_pool.disabled = true
         @replica_pool.provide do |con|
           yield con
         end
       ensure
-        @master_pool.disabled = false
+        @primary_pool.disabled = false
       end
     end
 
@@ -205,42 +210,42 @@ module Makara
       end
     end
 
-    # master or replica
+    # primary or replica
     def appropriate_pool(method_name, args)
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
       yield pool
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
-      if pool == @master_pool
-        @master_pool.connections.each(&:_makara_whitelist!)
+      if pool == @primary_pool
+        @primary_pool.connections.each(&:_makara_whitelist!)
         @replica_pool.connections.each(&:_makara_whitelist!)
         Kernel.raise e
       else
-        @master_pool.blacklist_errors << e
+        @primary_pool.blacklist_errors << e
         retry
       end
     end
 
     def _appropriate_pool(method_name, args)
-      # the args provided absolutely need master
-      if needs_master?(method_name, args)
-        stick_to_master(method_name, args)
-        @master_pool
+      # the args provided absolutely need primary
+      if needs_primary?(method_name, args)
+        stick_to_primary(method_name, args)
+        @primary_pool
 
-      elsif stuck_to_master?
+      elsif stuck_to_primary?
 
-        # we're on master because we already stuck this proxy in this
+        # we're on primary because we already stuck this proxy in this
         # request or because we got stuck in previous requests and the
         # stickiness is still valid
-        @master_pool
+        @primary_pool
 
       # all replicas are down (or empty)
       elsif @replica_pool.completely_blacklisted?
-        stick_to_master(method_name, args)
-        @master_pool
+        stick_to_primary(method_name, args)
+        @primary_pool
 
       elsif in_transaction?
-        @master_pool
+        @primary_pool
 
       # yay! use a replica
       else
@@ -248,9 +253,14 @@ module Makara
       end
     end
 
-    # do these args require a master connection
-    def needs_master?(method_name, args)
-      true
+    # Do these args require a primary connection
+    def needs_primary?(method_name, args)
+      if respond_to?(:needs_master?)
+        warn "#{self.class}#needs_master? is deprecated. Switch to #needs_primary?"
+        needs_master?(method_name, args)
+      else
+        true
+      end
     end
 
     def in_transaction?
@@ -268,16 +278,21 @@ module Makara
       @hijacked = false
     end
 
-    def stuck_to_master?
+    def stuck_to_primary?
       sticky? && Makara::Context.stuck?(@id)
     end
 
-    def stick_to_master(method_name, args)
+    def stick_to_primary(method_name, args)
       # check to see if we're configured, bypassed, or some custom implementation has input
       return unless should_stick?(method_name, args)
 
       # do the sticking
-      stick_to_master!
+      stick_to_primary!
+    end
+
+    def stick_to_master(method_names, args)
+      warn "#{self.class}#stick_to_master is deprecated. Switch to #stick_to_primary"
+      stick_to_primary(method_names, args)
     end
 
     # For the generic proxy implementation, we stick if we are sticky,
@@ -291,12 +306,12 @@ module Makara
       @sticky && !@skip_sticking
     end
 
-    # use the config parser to generate a master and replica pool
+    # use the config parser to generate a primary and replica pool
     def instantiate_connections
-      @master_pool = Makara::Pool.new('master', self)
-      @config_parser.master_configs.each do |master_config|
-        @master_pool.add master_config do
-          graceful_connection_for(master_config)
+      @primary_pool = Makara::Pool.new('primary', self)
+      @config_parser.primary_configs.each do |primary_config|
+        @primary_pool.add primary_config do
+          graceful_connection_for(primary_config)
         end
       end
 
@@ -311,7 +326,7 @@ module Makara
     def handling_an_all_execution(method_name)
       yield
     rescue ::Makara::Errors::NoConnectionsAvailable => e
-      if e.role == 'master'
+      if e.role == 'primary'
         # this means replica connections are good.
         return
       end

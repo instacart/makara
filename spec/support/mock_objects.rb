@@ -56,7 +56,7 @@ class FakeProxy < Makara::Proxy
     FakeConnection.new(config)
   end
 
-  def needs_master?(method_name, args)
+  def needs_primary?(method_name, args)
     return false if args.first =~ /^select/
 
     true

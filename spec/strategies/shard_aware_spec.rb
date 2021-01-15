@@ -12,12 +12,12 @@ describe Makara::Strategies::ShardAware do
 
   describe "failover strategy with shard awareness," do
     let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('master', proxy) }
+    let(:pool){ Makara::Pool.new('primary', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
-        master_strategy: 'failover',
-        master_shard_aware: true,
-        master_default_shard: 'shard2'
+        primary_strategy: 'failover',
+        primary_shard_aware: true,
+        primary_default_shard: 'shard2'
       } }
     let(:strategy) { pool.strategy }
 
@@ -109,12 +109,12 @@ describe Makara::Strategies::ShardAware do
 
   describe "round_robin strategy with shard awareness," do
     let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('master', proxy) }
+    let(:pool){ Makara::Pool.new('primary', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
-        master_strategy: 'round_robin',
-        master_shard_aware: true,
-        master_default_shard: 'shard2'
+        primary_strategy: 'round_robin',
+        primary_shard_aware: true,
+        primary_default_shard: 'shard2'
       } }
     let(:strategy) { pool.strategy }
 
@@ -186,12 +186,12 @@ describe Makara::Strategies::ShardAware do
 
   describe "uses the configured failover strategy when shard_aware set to false," do
     let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('master', proxy) }
+    let(:pool){ Makara::Pool.new('primary', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
-        master_strategy: 'failover',
-        master_shard_aware: false,
-        master_default_shard: 'shard2'
+        primary_strategy: 'failover',
+        primary_shard_aware: false,
+        primary_default_shard: 'shard2'
       } }
     let(:strategy) { pool.strategy }
 
@@ -202,12 +202,12 @@ describe Makara::Strategies::ShardAware do
 
   describe "uses the configured roundrobin strategy when shard_aware set to false," do
     let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('master', proxy) }
+    let(:pool){ Makara::Pool.new('primary', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
-        master_strategy: 'round_robin',
-        master_shard_aware: false,
-        master_default_shard: 'shard2'
+        primary_strategy: 'round_robin',
+        primary_shard_aware: false,
+        primary_default_shard: 'shard2'
       } }
     let(:strategy) { pool.strategy }
 
