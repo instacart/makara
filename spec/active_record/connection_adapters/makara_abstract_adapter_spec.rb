@@ -65,7 +65,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
       proxy = klass.new(config(1,1))
       proxy.master_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
-      proxy.slave_pool.connections.each do |con|
+      proxy.replica_pool.connections.each do |con|
         if should_send_to_all_connections
           expect(con).to receive(:execute).with(sql).once
         else

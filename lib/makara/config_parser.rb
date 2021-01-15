@@ -14,9 +14,9 @@ require 'cgi'
 #     blacklist_duration: 20
 #     connections:
 #       - role: 'master'
-#       - role: 'slave'
-#       - role: 'slave'
-#         name: 'slave2'
+#       - role: 'slave' # Deprecated in favor of 'replica'
+#       - role: 'replica'
+#         name: 'replica2'
 
 module Makara
   class ConfigParser
@@ -145,6 +145,9 @@ module Makara
       @config = config.symbolize_keys
       @makara_config = DEFAULTS.merge(@config[:makara] || {})
       @makara_config = @makara_config.symbolize_keys
+
+      deprecate_keys(:slave_strategy, :slave_shard_aware, :slave_default_shard)
+
       @id = sanitize_id(@makara_config[:id])
     end
 
@@ -164,10 +167,15 @@ module Makara
     end
 
 
-    def slave_configs
+    def replica_configs
       all_configs
         .reject { |config| config[:role] == 'master' }
         .map { |config| config.except(:role) }
+    end
+
+    def slave_configs
+      warn "#slave_configs is deprecated. Switch to #replica_configs"
+      replica_configs
     end
 
 
@@ -206,6 +214,17 @@ module Makara
         if sanitized_id.size != id.size
           Makara::Logging::Logger.log "Proxy id '#{id}' changed to '#{sanitized_id}'", :warn
         end
+      end
+    end
+
+    def deprecate_keys(*keys)
+      keys.each do |key|
+        next unless @makara_config[key]
+
+        new_key = key.to_s.gsub("slave", "replica").to_sym
+        warn "Config key #{key} is deprecated, use #{new_key} instead"
+
+        @makara_config[new_key] = @makara_config[key]
       end
     end
   end

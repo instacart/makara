@@ -14,8 +14,8 @@ test:
     master_ttl: 5
     connections:
       - role: master
-      - role: slave
-      - role: slave
+      - role: replica
+      - role: replica
     connection_error_matchers:
       - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command1:/'
       - "/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command2:/i"
