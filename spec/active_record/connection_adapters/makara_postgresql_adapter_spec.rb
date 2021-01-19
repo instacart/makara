@@ -73,7 +73,13 @@ describe 'MakaraPostgreSQLAdapter' do
       Test::User.exists? # flush other (schema) things that need to happen
 
       con = connection.replica_pool.connections.first
-      expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+
+      expect(con).to receive(:exec_query) do |query|
+        expect(query).to match(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/)
+      end.once.
+        # and_call_original # Switch back to this once https://github.com/rspec/rspec-mocks/pull/1385 is released
+        and_wrap_original { |m, *args| m.call(*args.first(3)) }
+
       Test::User.exists?
     end
 
