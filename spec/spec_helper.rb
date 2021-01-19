@@ -6,7 +6,7 @@ require 'yaml'
 require 'rack'
 
 begin
-  require 'byebug'
+  require 'pry'
 rescue LoadError
 end
 

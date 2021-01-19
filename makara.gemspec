@@ -34,7 +34,7 @@ Gem::Specification.new do |gem|
     gem.add_development_dependency "ruby-debug"
   else
     gem.add_development_dependency "activerecord-postgis-adapter"
-    gem.add_development_dependency "byebug"
+    gem.add_development_dependency "pry-byebug"
     gem.add_development_dependency "mysql2"
     gem.add_development_dependency "pg"
     gem.add_development_dependency "rgeo"
