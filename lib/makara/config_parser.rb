@@ -22,9 +22,9 @@ module Makara
   class ConfigParser
 
     DEFAULTS = {
-      :master_ttl => 5,
-      :blacklist_duration => 30,
-      :sticky => true
+      master_ttl: 5,
+      blacklist_duration: 30,
+      sticky: true
     }
 
     # ConnectionUrlResolver is borrowed from Rails 4-2 since its location and implementation

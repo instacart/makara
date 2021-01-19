@@ -11,16 +11,16 @@ module SpecHelpers
 
   def config(masters = 1, replicas = 2)
     connections = []
-    masters.times{ connections << {:role => 'master'} }
-    replicas.times{ connections << {:role => 'replica'} }
+    masters.times{ connections << {role: 'master'} }
+    replicas.times{ connections << {role: 'replica'} }
     {
-      :makara => {
+      makara: {
         # Defaults:
         # :master_ttl => 5,
         # :blacklist_duration => 30,
         # :sticky => true
-        :id => 'mock_mysql',
-        :connections => connections
+        id: 'mock_mysql',
+        connections: connections
       }
     }
   end

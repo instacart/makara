@@ -2,9 +2,9 @@ require 'spec_helper'
 
 describe Makara::Pool do
 
-  let(:proxy){ FakeProxy.new({:makara => pool_config.merge(:connections => [])}) }
+  let(:proxy){ FakeProxy.new({makara: pool_config.merge(connections: [])}) }
   let(:pool){ Makara::Pool.new('test', proxy) }
-  let(:pool_config){ {:blacklist_duration => 5} }
+  let(:pool_config){ {blacklist_duration: 5} }
   let(:master_pool){ Makara::Pool.new('master', proxy) }
 
   it 'should wrap connections with a ConnectionWrapper as theyre added to the pool' do
@@ -13,7 +13,7 @@ describe Makara::Pool do
     connection_a = FakeConnection.new(something: 'a')
 
     wrapper_a = pool.add(pool_config){ connection_a }
-    wrapper_b = pool.add(pool_config.merge(:weight => 2)){ FakeConnection.new }
+    wrapper_b = pool.add(pool_config.merge(weight: 2)){ FakeConnection.new }
 
     connections = pool.connections
     weighted_connections = pool.strategy.instance_variable_get("@weighted_connections")

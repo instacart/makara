@@ -1,9 +1,9 @@
 require 'spec_helper'
 
 describe Makara::Strategies::RoundRobin do
-  let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+  let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
   let(:pool){ Makara::Pool.new('test', proxy) }
-  let(:pool_config){ {:blacklist_duration => 5} }
+  let(:pool_config){ {blacklist_duration: 5} }
   let(:makara_config) { {} }
   let(:strategy) { pool.strategy }
 
@@ -14,7 +14,7 @@ describe Makara::Strategies::RoundRobin do
   end
 
   context 'bad config' do
-    let(:makara_config) { { :test_strategy => 'SomethingElse::Here' } }
+    let(:makara_config) { { test_strategy: 'SomethingElse::Here' } }
     it 'should raise name error' do
       expect {
         pool
@@ -23,7 +23,7 @@ describe Makara::Strategies::RoundRobin do
   end
 
   context 'given in config' do
-    let(:makara_config) { { :test_strategy => 'round_robin' } }
+    let(:makara_config) { { test_strategy: 'round_robin' } }
     it 'should use the strategy' do
       expect(pool.strategy).to be_instance_of(Makara::Strategies::RoundRobin)
     end
