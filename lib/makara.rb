@@ -32,7 +32,6 @@ module Makara
     autoload :PriorityFailover, 'makara/strategies/priority_failover'
     autoload :ShardAware,       'makara/strategies/shard_aware'
   end
-
 end
 
 ActiveSupport.on_load(:active_record) do

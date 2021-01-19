@@ -29,7 +29,6 @@ describe Makara::Strategies::RoundRobin do
     end
   end
 
-
   it 'should loop through with weights' do
     wrapper_a = pool.add(pool_config){ FakeConnection.new(something: 'a') }
     wrapper_b = pool.add(pool_config){ FakeConnection.new(something: 'b') }
@@ -61,7 +60,4 @@ describe Makara::Strategies::RoundRobin do
     expect(strategy.next.something).to eql('c')
     expect(strategy.next.something).to eql('b')
   end
-
-
-
 end

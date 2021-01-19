@@ -27,6 +27,7 @@ module Makara
         @weighted_connections.each_with_index do |con, index|
           check = safe_value(index)
           next unless check
+
           @current_idx = index
           return check
         end
@@ -41,6 +42,7 @@ module Makara
         con = @weighted_connections[idx]
         return nil unless con
         return nil if con._makara_blacklisted?
+
         con
       end
     end

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe Makara::ConfigParser do
-
   let(:config){
     {
       top_level: 'value',
@@ -76,7 +75,6 @@ describe Makara::ConfigParser do
         ENV['DATABASE_URL'] = database_url
       end
     end
-
   end
 
   it 'should provide a default proxy id based on the recursively sorted config' do

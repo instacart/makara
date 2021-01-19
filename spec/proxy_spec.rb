@@ -1,9 +1,7 @@
 require 'spec_helper'
 
 describe Makara::Proxy do
-
   let(:klass){ FakeProxy }
-
 
   it 'sets up a master and replica pool no matter the number of connections' do
     proxy = klass.new(config(0, 0))
@@ -22,7 +20,6 @@ describe Makara::Proxy do
     expect(proxy.master_pool).to be_a(Makara::Pool)
     expect(proxy.replica_pool).to be_a(Makara::Pool)
   end
-
 
   it 'instantiates N connections within each pool' do
     proxy = klass.new(config(1, 2))
@@ -88,7 +85,6 @@ describe Makara::Proxy do
       expect(next_context[proxy.id]).to be < (now + 1).to_f
     end
   end
-
 
   describe '#appropriate_pool' do
     let(:proxy) { klass.new(config(1,1)) }

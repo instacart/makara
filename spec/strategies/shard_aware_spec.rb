@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe Makara::Strategies::ShardAware do
-
   def with_shard(shard_id)
     begin
       Thread.current['makara_shard_id'] = shard_id

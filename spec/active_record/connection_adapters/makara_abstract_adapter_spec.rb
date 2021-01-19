@@ -2,7 +2,6 @@ require 'spec_helper'
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
 describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
-
   let(:klass){ FakeAdapter }
 
   {
@@ -38,14 +37,11 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select pg_advisory_lock(12345)' => true,
     'select pg_advisory_unlock(12345)' => true
   }.each do |sql, should_go_to_master|
-
     it "determines that \"#{sql}\" #{should_go_to_master ? 'requires' : 'does not require'} master" do
       proxy = klass.new(config(1,1))
       expect(proxy.master_for?(sql)).to eq(should_go_to_master)
     end
-
   end
-
 
   {
     "SET @@things" => true,
@@ -61,7 +57,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
         max_treats IS NULL
     } => false
   }.each do |sql, should_send_to_all_connections|
-
     it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
       proxy = klass.new(config(1,1))
       proxy.master_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
@@ -75,7 +70,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
 
       proxy.execute(sql)
     end
-
   end
 
   {
@@ -108,12 +102,9 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
         max_treats IS NULL
     } => true
   }.each do |sql,should_stick|
-
     it "should #{should_stick ? 'stick' : 'not stick'} to master if handling sql like \"#{sql}\"" do
       proxy = klass.new(config(0,0))
       expect(proxy.would_stick?(sql)).to eq(should_stick)
     end
-
   end
-
 end

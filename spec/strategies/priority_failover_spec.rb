@@ -45,5 +45,4 @@ describe Makara::Strategies::PriorityFailover do
     expect(strategy.current.something).to eql('b')
     expect(strategy.next.something).to eql('b')
   end
-
 end
