@@ -2,6 +2,7 @@ module Makara
   module Strategies
     class Abstract
       attr_reader :pool
+
       def initialize(pool)
         @pool = pool
         init

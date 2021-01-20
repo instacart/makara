@@ -12,7 +12,7 @@ describe Makara::Middleware do
 
   let(:env){ {} }
   let(:proxy){ FakeProxy.new(config(1,2)) }
-  let(:middleware){ described_class.new(app, :secure => true) }
+  let(:middleware){ described_class.new(app, secure: true) }
 
   let(:key){ Makara::Cookie::IDENTIFIER }
 

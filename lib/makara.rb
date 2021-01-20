@@ -2,7 +2,6 @@ require 'active_support'
 require 'makara/version'
 require 'makara/railtie' if defined?(Rails)
 module Makara
-
   autoload :Cache,              'makara/cache'
   autoload :ConfigParser,       'makara/config_parser'
   autoload :ConnectionWrapper,  'makara/connection_wrapper'
@@ -33,7 +32,6 @@ module Makara
     autoload :PriorityFailover, 'makara/strategies/priority_failover'
     autoload :ShardAware,       'makara/strategies/shard_aware'
   end
-
 end
 
 ActiveSupport.on_load(:active_record) do

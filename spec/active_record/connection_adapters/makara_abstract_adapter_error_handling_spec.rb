@@ -2,7 +2,6 @@ require 'spec_helper'
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
 describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler do
-
   let(:handler){ described_class.new }
   let(:proxy) { FakeAdapter.new(config(1,1)) }
   let(:connection){ proxy.master_pool.connections.first }
@@ -60,7 +59,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
   end
 
   describe 'custom errors' do
-
     let(:config_path) { File.join(File.expand_path('../../../', __FILE__), 'support', 'mysql2_database_with_custom_errors.yml') }
     let(:config) { YAML.load(ERB.new(File.read(config_path)).result)['test'] }
     let(:handler){ described_class.new }
@@ -85,8 +83,5 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
         end
       }.to raise_error(Makara::Errors::BlacklistConnection)
     end
-
   end
-
-
 end

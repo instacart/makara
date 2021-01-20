@@ -123,6 +123,7 @@ module Makara
       end
 
       protected
+
       def current
         fetch(:makara_current_context) { new({}) }
       end

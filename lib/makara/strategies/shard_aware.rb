@@ -3,7 +3,6 @@ require 'makara/errors/invalid_shard'
 module Makara
   module Strategies
     class ShardAware < ::Makara::Strategies::Abstract
-
       def init
         @shards = {}
         @default_shard = pool.default_shard
@@ -41,7 +40,6 @@ module Makara
       def shard_id
         Thread.current['makara_shard_id'] || pool.default_shard
       end
-
     end
   end
 end

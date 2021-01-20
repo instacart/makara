@@ -63,7 +63,7 @@ describe Makara::Cookie do
     end
 
     it 'allows custom cookie options to be provided' do
-      Makara::Cookie.store(context_data, headers, { :secure => true })
+      Makara::Cookie.store(context_data, headers, { secure: true })
 
       expect(headers['Set-Cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f};")
       expect(headers['Set-Cookie']).to include("path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; secure; HttpOnly")

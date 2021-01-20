@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 describe Makara::Strategies::ShardAware do
-
   def with_shard(shard_id)
     begin
       Thread.current['makara_shard_id'] = shard_id
@@ -12,7 +11,7 @@ describe Makara::Strategies::ShardAware do
   end
 
   describe "failover strategy with shard awareness," do
-    let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
     let(:pool){ Makara::Pool.new('master', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
@@ -109,7 +108,7 @@ describe Makara::Strategies::ShardAware do
   end
 
   describe "round_robin strategy with shard awareness," do
-    let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
     let(:pool){ Makara::Pool.new('master', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
@@ -186,7 +185,7 @@ describe Makara::Strategies::ShardAware do
   end
 
   describe "uses the configured failover strategy when shard_aware set to false," do
-    let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
     let(:pool){ Makara::Pool.new('master', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {
@@ -202,7 +201,7 @@ describe Makara::Strategies::ShardAware do
   end
 
   describe "uses the configured roundrobin strategy when shard_aware set to false," do
-    let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
     let(:pool){ Makara::Pool.new('master', proxy) }
     let(:pool_config){ { blacklist_duration: 5} }
     let(:makara_config) { {

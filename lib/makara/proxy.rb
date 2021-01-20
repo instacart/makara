@@ -11,7 +11,6 @@ require 'active_support/core_ext/string/inflections'
 
 module Makara
   class Proxy < ::SimpleDelegator
-
     METHOD_MISSING_SKIP = [ :byebug, :puts ]
 
     class_attribute :hijack_methods, :control_methods
@@ -57,7 +56,6 @@ module Makara
         end
       end
     end
-
 
     attr_reader :error_handler
     attr_reader :sticky
@@ -207,14 +205,11 @@ module Makara
       end
     end
 
-
     # master or slave
     def appropriate_pool(method_name, args)
-
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
       yield pool
-
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @master_pool
         @master_pool.connections.each(&:_makara_whitelist!)
@@ -273,7 +268,6 @@ module Makara
       @hijacked = false
     end
 
-
     def stuck_to_master?
       sticky? && Makara::Context.stuck?(@id)
     end
@@ -321,16 +315,15 @@ module Makara
         # this means slave connections are good.
         return
       end
+
       @slave_pool.disabled = true
       yield
     ensure
       @slave_pool.disabled = false
     end
 
-
     def connection_for(config)
       Kernel.raise NotImplementedError
     end
-
   end
 end

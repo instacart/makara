@@ -1,9 +1,7 @@
 module Makara
   module Logging
     class Logger
-
       class << self
-
         def log(msg, format = :error)
           logger.send(format, "[Makara] #{msg}") if logger
         end
@@ -15,9 +13,7 @@ module Makara
         def logger=(l)
           @logger = l
         end
-
       end
-
     end
   end
 end

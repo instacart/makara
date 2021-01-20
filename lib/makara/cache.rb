@@ -1,8 +1,6 @@
 module Makara
   module Cache
-
     class << self
-
       def store=(store)
         Makara::Logging::Logger.log deprecation_warning, :warn
       end

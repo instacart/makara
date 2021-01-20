@@ -1,7 +1,6 @@
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
 class FakeConnection < Struct.new(:config)
-
   def ping
     'ping!'
   end
@@ -32,7 +31,6 @@ class FakeConnection < Struct.new(:config)
 end
 
 class FakeDatabaseAdapter < Struct.new(:config)
-
   def execute(sql, name = nil)
     []
   end
@@ -48,11 +46,9 @@ class FakeDatabaseAdapter < Struct.new(:config)
   def active?
     true
   end
-
 end
 
 class FakeProxy < Makara::Proxy
-
   send_to_all :ping
   hijack_method :execute
 
@@ -62,6 +58,7 @@ class FakeProxy < Makara::Proxy
 
   def needs_master?(method_name, args)
     return false if args.first =~ /^select/
+
     true
   end
 end
