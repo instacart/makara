@@ -1,6 +1,7 @@
 # Makara
 
-[![Build Status](https://travis-ci.org/taskrabbit/makara.png?branch=master)](https://travis-ci.org/taskrabbit/makara)
+![Build Status](https://github.com/instacart/makara/workflows/CI/badge.svg)
+[![Gem Version](https://badge.fury.io/rb/makara.svg)](https://badge.fury.io/rb/makara)
 [![Code Climate](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/badges/7905f7a000492a1078f7/gpa.png)](https://codeclimate.com/repos/526886a7f3ea00679b00cae6/feed)
 
 
