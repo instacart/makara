@@ -1,6 +1,9 @@
 require 'active_support'
 require 'makara/version'
-require 'makara/railtie' if defined?(Rails)
+if defined?(Rails)
+  require 'makara/railtie'
+  require 'makara/sidekiq/railtie' if defined?(Sidekiq)
+end
 module Makara
   autoload :Cache,              'makara/cache'
   autoload :ConfigParser,       'makara/config_parser'
@@ -31,6 +34,10 @@ module Makara
     autoload :RoundRobin,       'makara/strategies/round_robin'
     autoload :PriorityFailover, 'makara/strategies/priority_failover'
     autoload :ShardAware,       'makara/strategies/shard_aware'
+  end
+
+  module Sidekiq
+    autoload :Middleware, 'makara/sidekiq/middleware'
   end
 
 end
