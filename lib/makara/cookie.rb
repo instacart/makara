@@ -22,6 +22,7 @@ module Makara
     end
 
     private
+
     # Pairs of {proxy_id}:{timestamp}, separated by "|"
     # proxy_id1:1518270031.3132212|proxy_id2:1518270030.313232 ..
     def parse(cookie_string)

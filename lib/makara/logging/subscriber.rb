@@ -1,6 +1,5 @@
 module Makara
   module Logging
-
     module Subscriber
       IGNORE_PAYLOAD_NAMES = ["SCHEMA", "EXPLAIN"]
 
@@ -33,6 +32,5 @@ module Makara
         "[#{adapter._makara_name}]"
       end
     end
-
   end
 end

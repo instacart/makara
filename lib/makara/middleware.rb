@@ -3,7 +3,6 @@ require 'rack'
 # Persists the Makara::Context across requests ensuring the same master pool is used on subsequent requests.
 module Makara
   class Middleware
-
     def initialize(app, cookie_options = {})
       @app = app
       @cookie_options = cookie_options
@@ -11,6 +10,7 @@ module Makara
 
     def call(env)
       return @app.call(env) if ignore_request?(env)
+
       set_current_context(env)
 
       status, headers, body = @app.call(env)
@@ -18,7 +18,6 @@ module Makara
 
       [status, headers, body]
     end
-
 
     protected
 

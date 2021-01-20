@@ -20,11 +20,10 @@ require 'cgi'
 
 module Makara
   class ConfigParser
-
     DEFAULTS = {
-      :master_ttl => 5,
-      :blacklist_duration => 30,
-      :sticky => true
+      master_ttl: 5,
+      blacklist_duration: 30,
+      sticky: true
     }
 
     # ConnectionUrlResolver is borrowed from Rails 4-2 since its location and implementation
@@ -33,7 +32,6 @@ module Makara
     #
     # Expands a connection string into a hash.
     class ConnectionUrlResolver # :nodoc:
-
       # == Example
       #
       #   url = "postgresql://foo:bar@localhost:9000/foo_test?pool=5&timeout=3000"
@@ -50,6 +48,7 @@ module Makara
       #   }
       def initialize(url)
         raise "Database URL cannot be empty" if url.blank?
+
         @uri     = URI.parse(url)
         @adapter = @uri.scheme.tr('-', '_')
         @adapter = "postgresql" if @adapter == "postgres"
@@ -131,6 +130,7 @@ module Makara
         Makara::Logging::Logger.log "Please rename DATABASE_URL to use in the database.yml", :warn
       end
       return config unless config.key?(:url)
+
       url = config[:url]
       url_config = ConnectionUrlResolver.new(url).to_hash
       url_config = url_config.symbolize_keys
@@ -151,7 +151,6 @@ module Makara
       @id = sanitize_id(@makara_config[:id])
     end
 
-
     def id
       @id ||= begin
         sorted = recursive_sort(@config)
@@ -159,13 +158,11 @@ module Makara
       end
     end
 
-
     def master_configs
       all_configs
         .select { |config| config[:role] == 'master' }
         .map { |config| config.except(:role) }
     end
-
 
     def replica_configs
       all_configs
@@ -178,9 +175,7 @@ module Makara
       replica_configs
     end
 
-
     protected
-
 
     def all_configs
       @makara_config[:connections].map do |connection|
@@ -189,11 +184,9 @@ module Makara
       end
     end
 
-
     def base_config
       @base_config ||= DEFAULTS.merge(@config).except(:makara)
     end
-
 
     def recursive_sort(thing)
       return thing.to_s unless thing.include?(Enumerable)
@@ -203,9 +196,7 @@ module Makara
       end
 
       thing.sort_by(&:to_s)
-
     end
-
 
     def sanitize_id(id)
       return if id.nil? || id.empty?

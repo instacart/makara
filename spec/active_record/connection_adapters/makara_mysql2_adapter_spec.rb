@@ -16,7 +16,6 @@ describe 'MakaraMysql2Adapter' do
   end
 
   context "unconnected" do
-
     it 'should allow a connection to be established' do
       establish_connection(config)
       expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
@@ -54,7 +53,6 @@ describe 'MakaraMysql2Adapter' do
       expect{
         connection.execute('SET @t1 = 1')
       }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-
     end
 
     context "unconnect afterwards" do
@@ -99,17 +97,14 @@ describe 'MakaraMysql2Adapter' do
         ActiveRecord::Base.remove_connection
       end
     end
-
   end
 
   context 'with the connection established and schema loaded' do
-
     before do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
-
 
     it 'should have one master and two replicas' do
       expect(connection.master_pool.connection_count).to eq(1)
@@ -194,7 +189,6 @@ describe 'MakaraMysql2Adapter' do
         }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
       end
     end
-
   end
 
   describe 'transaction support' do
@@ -252,5 +246,4 @@ describe 'MakaraMysql2Adapter' do
       it_behaves_like 'a transaction supporter'
     end
   end
-
 end

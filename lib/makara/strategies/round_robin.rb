@@ -26,8 +26,8 @@ module Makara
         return safe_value(0, true) if single_one?
 
         idx = @current_idx
-        begin
 
+        begin
           idx = next_index(idx)
 
           # if we've looped all the way around, return our safe value
@@ -48,7 +48,6 @@ module Makara
         idx
       end
 
-
       # return the connection if it's not blacklisted
       # otherwise return nil
       # optionally, store the position and context we're returning
@@ -63,7 +62,6 @@ module Makara
 
         con
       end
-
 
       # stub in test mode to ensure consistency
       def should_shuffle?

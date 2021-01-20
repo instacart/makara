@@ -7,7 +7,6 @@ require 'active_support/core_ext/hash/keys'
 
 module Makara
   class ConnectionWrapper
-
     attr_accessor :initial_error, :config
 
     # invalid queries caused by connections switching that needs to be replaced
@@ -16,7 +15,7 @@ module Makara
     def initialize(proxy, connection, config)
       @config = config.symbolize_keys
       @connection = connection
-      @proxy  = proxy
+      @proxy = proxy
 
       if connection.nil?
         _makara_blacklist!
@@ -117,7 +116,6 @@ module Makara
     # once the underlying connection is present we must evaluate extra functionality into it.
     # all extra functionality is in the format of _makara*
     def _makara_decorate_connection(con)
-
       extension = <<~RUBY
         # the proxy object controlling this connection
         def _makara
@@ -189,6 +187,5 @@ module Makara
 
       con._makara
     end
-
   end
 end

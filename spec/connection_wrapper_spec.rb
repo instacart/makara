@@ -1,8 +1,7 @@
 require 'spec_helper'
 
 describe Makara::ConnectionWrapper do
-
-  let(:proxy){ FakeProxy.new({:makara => {:blacklist_duration => 5, :connections => [{:role => 'master'}, {:role => 'replica'}, {:role => 'replica'}]}}) }
+  let(:proxy){ FakeProxy.new({makara: {blacklist_duration: 5, connections: [{role: 'master'}, {role: 'replica'}, {role: 'replica'}]}}) }
   let(:connection){ subject._makara_connection }
 
   subject{ proxy.master_pool.connections.first }

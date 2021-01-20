@@ -1,21 +1,20 @@
 require 'spec_helper'
 
 describe Makara::ConfigParser do
-
   let(:config){
     {
-      :top_level => 'value',
-      :makara => {
-        :connections => [
+      top_level: 'value',
+      makara: {
+        connections: [
           {
-            :role => 'master',
-            :name => 'themaster'
+            role: 'master',
+            name: 'themaster'
           },
           {
-            :name => 'replica1'
+            name: 'replica1'
           },
           {
-            :name => 'replica2'
+            name: 'replica2'
           }
         ]
       }
@@ -25,27 +24,27 @@ describe Makara::ConfigParser do
   context '::merge_and_resolve_default_url_config' do
     let(:config_without_url) do
       {
-        :master_ttl => 5,
-        :blacklist_duration => 30,
-        :sticky => true,
-        :adapter => 'mysql2_makara',
-        :encoding => 'utf8',
-        :host => 'localhost',
-        :database => 'db_name',
-        :username => 'db_username',
-        :password => 'db_password',
-        :port =>     3306
+        master_ttl: 5,
+        blacklist_duration: 30,
+        sticky: true,
+        adapter: 'mysql2_makara',
+        encoding: 'utf8',
+        host: 'localhost',
+        database: 'db_name',
+        username: 'db_username',
+        password: 'db_password',
+        port: 3306
       }
     end
 
     let(:config_with_url) do
       {
-        :master_ttl => 5,
-        :blacklist_duration => 30,
-        :sticky => true,
-        :adapter => 'mysql2_makara',
-        :encoding => 'utf8',
-        :url => 'mysql2://db_username:db_password@localhost:3306/db_name'
+        master_ttl: 5,
+        blacklist_duration: 30,
+        sticky: true,
+        adapter: 'mysql2_makara',
+        encoding: 'utf8',
+        url: 'mysql2://db_username:db_password@localhost:3306/db_name'
       }
     end
 
@@ -76,12 +75,11 @@ describe Makara::ConfigParser do
         ENV['DATABASE_URL'] = database_url
       end
     end
-
   end
 
   it 'should provide a default proxy id based on the recursively sorted config' do
     parsera = described_class.new(config)
-    parserb = described_class.new(config.merge(:other => 'value'))
+    parserb = described_class.new(config.merge(other: 'value'))
     parserc = described_class.new(config)
 
     expect(parsera.id).not_to eq(parserb.id)
@@ -113,27 +111,27 @@ describe Makara::ConfigParser do
       parser = described_class.new(config)
       expect(parser.master_configs).to eq([
         {
-          :name => 'themaster',
-          :top_level => 'value',
-          :sticky => true,
-          :blacklist_duration => 30,
-          :master_ttl => 5
+          name: 'themaster',
+          top_level: 'value',
+          sticky: true,
+          blacklist_duration: 30,
+          master_ttl: 5
         }
       ])
       expect(parser.replica_configs).to eq([
         {
-          :name => 'replica1',
-          :top_level => 'value',
-          :sticky => true,
-          :blacklist_duration => 30,
-          :master_ttl => 5
+          name: 'replica1',
+          top_level: 'value',
+          sticky: true,
+          blacklist_duration: 30,
+          master_ttl: 5
         },
         {
-          :name => 'replica2',
-          :top_level => 'value',
-          :sticky => true,
-          :blacklist_duration => 30,
-          :master_ttl => 5
+          name: 'replica2',
+          top_level: 'value',
+          sticky: true,
+          blacklist_duration: 30,
+          master_ttl: 5
         }
       ])
     end
@@ -146,27 +144,27 @@ describe Makara::ConfigParser do
       parser = described_class.new(config)
       expect(parser.master_configs).to eq([
         {
-          :name => 'themaster',
-          :top_level => 'value',
-          :sticky => true,
-          :blacklist_duration => 456,
-          :master_ttl => 5
+          name: 'themaster',
+          top_level: 'value',
+          sticky: true,
+          blacklist_duration: 456,
+          master_ttl: 5
         }
       ])
       expect(parser.replica_configs).to eq([
         {
-          :name => 'replica1',
-          :top_level => 'replica value',
-          :sticky => true,
-          :blacklist_duration => 123,
-          :master_ttl => 5
+          name: 'replica1',
+          top_level: 'replica value',
+          sticky: true,
+          blacklist_duration: 123,
+          master_ttl: 5
         },
         {
-          :name => 'replica2',
-          :top_level => 'value',
-          :sticky => true,
-          :blacklist_duration => 123,
-          :master_ttl => 5
+          name: 'replica2',
+          top_level: 'value',
+          sticky: true,
+          blacklist_duration: 123,
+          master_ttl: 5
         }
       ])
     end

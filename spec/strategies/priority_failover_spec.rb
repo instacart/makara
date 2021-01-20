@@ -1,10 +1,10 @@
 require 'spec_helper'
 
 describe Makara::Strategies::PriorityFailover do
-  let(:proxy){ FakeProxy.new({:makara => pool_config.merge(makara_config).merge(:connections => [])}) }
+  let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
   let(:pool){ Makara::Pool.new('master', proxy) }
-  let(:pool_config){ {:blacklist_duration => 5} }
-  let(:makara_config) { { :master_strategy => 'failover' } }
+  let(:pool_config){ {blacklist_duration: 5} }
+  let(:makara_config) { { master_strategy: 'failover' } }
   let(:strategy) { pool.strategy }
 
   it 'should use the strategy' do
@@ -45,5 +45,4 @@ describe Makara::Strategies::PriorityFailover do
     expect(strategy.current.something).to eql('b')
     expect(strategy.next.something).to eql('b')
   end
-
 end

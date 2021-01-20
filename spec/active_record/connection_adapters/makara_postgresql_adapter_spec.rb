@@ -14,20 +14,17 @@ describe 'MakaraPostgreSQLAdapter' do
     change_context
   end
 
-
   it 'should allow a connection to be established' do
     establish_connection(config)
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter)
   end
 
   context 'with the connection established and schema loaded' do
-
     before do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
-
 
     it 'should have one master and two replicas' do
       expect(connection.master_pool.connection_count).to eq(1)
@@ -188,7 +185,6 @@ describe 'MakaraPostgreSQLAdapter' do
   end
 
   context 'with two activerecord connection pools' do
-
     before :each do
       class Model1 < ActiveRecord::Base
       end
@@ -198,7 +194,6 @@ describe 'MakaraPostgreSQLAdapter' do
 
       Model1.establish_connection(config)
       Model2.establish_connection(config)
-
     end
 
     it 'should not leak raw connection into activerecord pool' do

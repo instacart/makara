@@ -6,7 +6,6 @@ require 'makara/strategies/shard_aware'
 
 module Makara
   class Pool
-
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
     attr_accessor :disabled
@@ -32,14 +31,12 @@ module Makara
       end
     end
 
-
     def completely_blacklisted?
       @connections.each do |connection|
         return false unless connection._makara_blacklisted?
       end
       true
     end
-
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(config)
@@ -70,6 +67,7 @@ module Makara
 
       @connections.each do |con|
         next if con._makara_blacklisted?
+
         begin
           ret = @proxy.error_handler.handle(con) do
             if block
@@ -130,6 +128,7 @@ module Makara
         in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
         provided_connection._makara_blacklist!
         raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
+
         attempt += 1
         if attempt < @connections.length
           retry
@@ -143,16 +142,12 @@ module Makara
       end
     end
 
-
-
     protected
-
 
     # have we connected to any of the underlying connections.
     def connection_made?
       @connections.any?(&:_makara_connected?)
     end
-
 
     # Get the next non-blacklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is
