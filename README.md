@@ -154,6 +154,7 @@ production:
     blacklist_duration: 5
     master_ttl: 5
     master_strategy: round_robin
+    slave_strategy: round_robin
     sticky: true
 
     # list your connections with the override values (they're merged into the top-level config)
