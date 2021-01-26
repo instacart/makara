@@ -49,7 +49,7 @@ describe Makara::Context do
       Makara::Context.set_current(context_data)
     end
 
-    it 'sticks a proxy to master for the current request' do
+    it 'sticks a proxy to primary for the current request' do
       expect(Makara::Context.stuck?('mariadb')).to be_falsey
 
       Makara::Context.stick('mariadb', 10)

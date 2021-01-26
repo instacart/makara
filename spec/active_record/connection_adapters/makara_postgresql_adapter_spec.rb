@@ -26,16 +26,16 @@ describe 'MakaraPostgreSQLAdapter' do
       change_context
     end
 
-    it 'should have one master and two replicas' do
-      expect(connection.master_pool.connection_count).to eq(1)
+    it 'should have one primary and two replicas' do
+      expect(connection.primary_pool.connection_count).to eq(1)
       expect(connection.replica_pool.connection_count).to eq(2)
     end
 
     it 'should allow real queries to work' do
       connection.execute('INSERT INTO users (name) VALUES (\'John\')')
 
-      connection.master_pool.connections.each do |master|
-        expect(master).to receive(:execute).never
+      connection.primary_pool.connections.each do |primary|
+        expect(primary).to receive(:execute).never
       end
 
       change_context
@@ -45,7 +45,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send SET operations to each connection' do
-      connection.master_pool.connections.each do |con|
+      connection.primary_pool.connections.each do |con|
         expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
       end
 
@@ -80,8 +80,8 @@ describe 'MakaraPostgreSQLAdapter' do
       Test::User.exists?
     end
 
-    it 'should send writes to master' do
-      con = connection.master_pool.connections.first
+    it 'should send writes to primary' do
+      con = connection.primary_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end
@@ -97,7 +97,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
   end
 
-  context 'with only master connection' do
+  context 'with only primary connection' do
     it 'should not raise errors on read and write' do
       custom_config = config.deep_dup
       custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
@@ -117,7 +117,7 @@ describe 'MakaraPostgreSQLAdapter' do
       ActiveRecord::Base.clear_all_connections!
 
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select{|h| h['role'] == 'primary' }.each{|h| h['port'] = '1'}
 
       establish_connection(custom_config)
 

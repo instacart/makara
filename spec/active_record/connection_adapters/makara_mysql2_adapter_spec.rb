@@ -21,7 +21,7 @@ describe 'MakaraMysql2Adapter' do
       expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
     end
 
-    it 'should execute a send_to_all against master even if no replicas are connected' do
+    it 'should execute a send_to_all against primary even if no replicas are connected' do
       establish_connection(config)
       connection = ActiveRecord::Base.connection
 
@@ -31,7 +31,7 @@ describe 'MakaraMysql2Adapter' do
         expect(c).to receive(:execute).with('SET @t1 = 1').never
       end
 
-      connection.master_pool.connections.each do |c|
+      connection.primary_pool.connections.each do |c|
         expect(c).to receive(:execute).with('SET @t1 = 1')
       end
 
@@ -44,7 +44,7 @@ describe 'MakaraMysql2Adapter' do
       establish_connection(config)
       connection = ActiveRecord::Base.connection
 
-      (connection.replica_pool.connections | connection.master_pool.connections).each do |c|
+      (connection.replica_pool.connections | connection.primary_pool.connections).each do |c|
         allow(c).to receive(:_makara_blacklisted?){ true }
         allow(c).to receive(:_makara_connected?){ false }
         expect(c).to receive(:execute).with('SET @t1 = 1').never
@@ -106,16 +106,16 @@ describe 'MakaraMysql2Adapter' do
       change_context
     end
 
-    it 'should have one master and two replicas' do
-      expect(connection.master_pool.connection_count).to eq(1)
+    it 'should have one primary and two replicas' do
+      expect(connection.primary_pool.connection_count).to eq(1)
       expect(connection.replica_pool.connection_count).to eq(2)
     end
 
     it 'should allow real queries to work' do
       connection.execute("INSERT INTO users (name) VALUES ('John')")
 
-      connection.master_pool.connections.each do |master|
-        expect(master).to receive(:execute).never
+      connection.primary_pool.connections.each do |primary|
+        expect(primary).to receive(:execute).never
       end
 
       change_context
@@ -130,7 +130,7 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send SET operations to each connection' do
-      connection.master_pool.connections.each do |con|
+      connection.primary_pool.connections.each do |con|
         expect(con).to receive(:execute).with('SET @t1 = 1').once
       end
 
@@ -164,8 +164,8 @@ describe 'MakaraMysql2Adapter' do
       Test::User.exists?
     end
 
-    it 'should send writes to master' do
-      con = connection.master_pool.connections.first
+    it 'should send writes to primary' do
+      con = connection.primary_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end

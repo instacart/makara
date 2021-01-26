@@ -1,6 +1,6 @@
 require 'rack'
 
-# Persists the Makara::Context across requests ensuring the same master pool is used on subsequent requests.
+# Persists the Makara::Context across requests ensuring the same primary pool is used on subsequent requests.
 module Makara
   class Middleware
     def initialize(app, cookie_options = {})

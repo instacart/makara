@@ -18,7 +18,7 @@ module Makara
       # uses the adapter's connection proxy to modify the name of the event
       # the name of the used connection will be prepended to the sql log
       ###
-      ### [Master|Replica] User Load (1.3ms) SELECT * FROM `users`;
+      ### [Primary|Replica] User Load (1.3ms) SELECT * FROM `users`;
       ###
       def current_wrapper_name(event)
         connection_object_id = event.payload[:connection_id]
