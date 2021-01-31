@@ -1,8 +1,8 @@
 test:
   adapter: 'postgresql_makara'
   database: 'makara_test'
-  username: 'root'
-  password: ''
+  port: 5432
+  host: '127.0.0.1'
 
   timeout: 5000
 
@@ -11,5 +11,11 @@ test:
     master_ttl: 5
     connections:
       - role: master
+        username: 'root'
+        password: ''
       - role: slave
+        username: 'root'
+        password: ''
       - role: slave
+        username: 'root'
+        password: ''

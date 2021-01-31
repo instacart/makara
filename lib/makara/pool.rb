@@ -12,7 +12,6 @@ module Makara
     attr_accessor :disabled
     attr_reader :blacklist_errors
     attr_reader :role
-    attr_reader :connections
     attr_reader :strategy
     attr_reader :shard_strategy_class
     attr_reader :default_shard
@@ -27,7 +26,7 @@ module Makara
       @populated        = false
       @load_callback    = block
       @lazy_lock        = Mutex.new
-      @in_a_transaction = false
+
       if proxy.shard_aware_for(role)
         @strategy = Makara::Strategies::ShardAware.new(self)
         @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
@@ -39,12 +38,19 @@ module Makara
 
     def in_a_transaction?
       return false if @role != 'master'
+      return false unless populated?
 
-      @in_a_transaction
+      @connections.any?(&:_makara_in_transaction?)
+    end
+
+    def connections
+      populate if Makara.lazy? && !populated?
+
+      @connections
     end
 
     def populated?
-      @populated
+      @connections.any?
     end
 
     def populate
@@ -54,15 +60,18 @@ module Makara
         return if populated?
 
         @load_callback.call
-        while @queued_queries.any? do
+        return unless Makara.lazy?
+
+        while @queued_queries.any?
           args, block = @queued_queries.shift
           @connections.each { |con| con._enqueue_query(args, &block) }
         end
-        @populated = true
       end
     end
 
     def completely_blacklisted?
+      return false unless populated?
+
       @connections.each do |connection|
         return false unless connection._makara_blacklisted?
       end
@@ -92,11 +101,11 @@ module Makara
 
     def queue_execute_for_all(args, &block)
       @lazy_lock.synchronize do
-        if @connections.empty?
+        if populated?
+          @connections.each { |con| con._enqueue_query(args, &block) }
+        else
           puts "<DEFENQ #{@role}> #{args}"
           @queued_queries << [args, block]
-        else
-          @connections.each { |con| con._enqueue_query(args, &block) }
         end
       end
     end
@@ -154,8 +163,6 @@ module Makara
           end
 
           @blacklist_errors = []
-
-          @in_a_transaction = provided_connection._makara_in_transaction?
 
           value
 

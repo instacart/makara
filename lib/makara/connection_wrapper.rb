@@ -14,10 +14,10 @@ module Makara
     SQL_REPLACE = {"SET client_min_messages TO ''".freeze => "SET client_min_messages TO 'warning'".freeze}.freeze
 
     def initialize(proxy, connection, config)
-      @config = config.symbolize_keys
+      @config     = config.symbolize_keys
       @connection = connection
-      @proxy  = proxy
-      @queue = Queue.new
+      @proxy      = proxy
+      @queue      = Queue.new
 
       if connection.nil?
         _makara_blacklist!
@@ -27,7 +27,7 @@ module Makara
     end
 
     def _enqueue_query(args, &block)
-      puts "<ENQ #{_makara_name} #{args}>"
+      puts "<ENQ #{_makara_name} #{args} #{object_id}>"
       @queue.push([args, block])
     end
 
@@ -103,14 +103,15 @@ module Makara
           args[0] = replace
         end
       end
-      run_queue if ENV["MAKARA_LAZY_CONNECT"] == "true"
+      run_queue if Makara.lazy?
 
       _makara_connection.execute(*args)
     end
 
     def run_queue
       $stdout.sync = true
-      while not @queue.empty?
+      puts "Run QUEUE #{object_id}"
+      until @queue.empty?
         item = @queue.pop
         puts "<EXE #{_makara_connection._makara_name}> #{item[0][0]}"
         @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
@@ -119,7 +120,7 @@ module Makara
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
-      run_queue if m.to_s.start_with?("exec") && ENV["MAKARA_LAZY_CONNECT"] == "true"
+      run_queue if m.to_s.start_with?("exec") && Makara.lazy?
 
       if _makara_connection.respond_to?(m)
         _makara_connection.public_send(m, *args, &block)

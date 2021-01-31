@@ -34,13 +34,18 @@ describe 'MakaraMysql2Adapter' do
         expect(c).to receive(:execute).with('SET @t1 = 1').never
       end
 
-      connection.master_pool.connections.each do |c|
-        expect(c).to receive(:execute).with('SET @t1 = 1')
-      end
+      tracker = SpecQuerySequenceTracker.new(connection, self)
 
-      expect{
+      expect do
         connection.execute('SET @t1 = 1')
-      }.not_to raise_error
+        connection.execute('SELECT 1 FOR UPDATE') if Makara.lazy? # trigger a query on primary to flush the lazy queue
+      end.not_to raise_error
+
+      if Makara.lazy?
+        tracker.expect_primary_seq('SET @t1 = 1', 'SELECT 1 FOR UPDATE')
+      else
+        tracker.expect_primary_seq('SET @t1 = 1')
+      end
     end
 
     it 'should execute a send_to_all and raise a NoConnectionsAvailable error' do
@@ -55,8 +60,8 @@ describe 'MakaraMysql2Adapter' do
 
       expect{
         connection.execute('SET @t1 = 1')
+        connection.execute('SELECT 1 FOR UPDATE') if Makara.lazy?
       }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-
     end
 
     context "unconnect afterwards" do
@@ -138,6 +143,8 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send SET operations to each connection' do
+      next if Makara.lazy?
+
       connection.master_pool.connections.each do |con|
         expect(con).to receive(:execute).with('SET @t1 = 1').once
       end
@@ -146,6 +153,39 @@ describe 'MakaraMysql2Adapter' do
         expect(con).to receive(:execute).with('SET @t1 = 1').once
       end
       connection.execute("SET @t1 = 1")
+    end
+
+    it 'should queue SET operations on each connection unless Makara is lazy' do
+      next unless Makara.lazy?
+
+      connection.master_pool.connections.each do |con|
+        expect(con).not_to receive(:execute).with('SET @t1 = 1')
+      end
+
+      connection.slave_pool.connections.each do |con|
+        expect(con).not_to receive(:execute).with('SET @t1 = 1')
+      end
+
+      connection.execute('SET @t1 = 1')
+    end
+
+    it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
+      next unless Makara.lazy?
+
+      tracker = SpecQuerySequenceTracker.new(connection, self)
+
+      connection.execute('SET @t1 = 1')
+      connection.execute('SELECT 2')
+      connection.execute('SET @t1 = 2')
+      connection.execute('SELECT 3')
+      connection.execute('SELECT 4')
+
+      tracker.expect_primary_seq(nil)
+      tracker.expect_replica_seq('SET @t1 = 1', 'SELECT 2', 'SET @t1 = 2', 'SELECT 3', 'SELECT 4')
+
+      connection.execute('SELECT 5 FOR UPDATE')
+      tracker.expect_primary_seq('SET @t1 = 1', 'SET @t1 = 2', 'SELECT 5 FOR UPDATE')
+      tracker.expect_replica_seq('SET @t1 = 1', 'SELECT 2', 'SET @t1 = 2', 'SELECT 3', 'SELECT 4')
     end
 
     it 'should send reads to the slave' do
@@ -163,7 +203,7 @@ describe 'MakaraMysql2Adapter' do
 
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
-      
+
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
         expect(con).to receive(:execute).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original

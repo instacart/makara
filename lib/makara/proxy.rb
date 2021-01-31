@@ -53,10 +53,11 @@ module Makara
     end
 
 
-    attr_reader :error_handler
-    attr_reader :sticky
-    attr_reader :config_parser
-    attr_reader :control
+    attr_reader   :error_handler
+    attr_reader   :sticky
+    attr_reader   :config_parser
+    attr_reader   :control
+    attr_accessor :in_a_transaction
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -169,17 +170,20 @@ module Makara
     end
 
     def any_connection
-      if @slave_pool.disabled
-        @master_pool.provide { |con| yield con }
+      first_choice_pool = Makara.lazy? ? @slave_pool  : @master_pool
+      fallback_pool     = Makara.lazy? ? @master_pool : @slave_pool
+
+      if first_choice_pool.disabled
+        fallback_pool.provide { |con| yield con }
       else
-        @slave_pool.provide { |con| yield con }
+        first_choice_pool.provide { |con| yield con }
       end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
+    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
-        @slave_pool.disabled = true
-        @master_pool.provide { |con| yield con }
+        first_choice_pool.disabled = true
+        fallback_pool.provide { |con| yield con }
       ensure
-        @slave_pool.disabled = false
+        first_choice_pool.disabled = false
       end
     end
 
@@ -306,12 +310,12 @@ module Makara
     # use the config parser to generate a master and slave pool
     def instantiate_connections
       @master_pool = Makara::Pool.new('master', self) { populate_master_pool }
-      @slave_pool = Makara::Pool.new('slave', self) { populate_slave_pool }
+      @slave_pool  = Makara::Pool.new('slave', self)  { populate_slave_pool  }
 
-      unless ENV["MAKARA_LAZY_CONNECT"] == "true"
-        @master_pool.populate
-        @slave_pool.populate
-      end
+      return if Makara.lazy?
+
+      @master_pool.populate
+      @slave_pool.populate
     end
 
     def handling_an_all_execution(method_name)

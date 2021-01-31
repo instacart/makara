@@ -47,35 +47,32 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
   end
 
 
-  {
-    "SET @@things" => true,
-    "INSERT INTO wisdom ('The truth will set you free.')" => false,
-    "INSERT INTO wisdom ('The truth will\nset you free.')" => false,
-    "UPDATE dogs SET max_treats = 10 WHERE max_treats IS NULL" => false,
-    %Q{
-      UPDATE
-        dogs
-      SET
-        max_treats = 10
-      WHERE
-        max_treats IS NULL
-    } => false
-  }.each do |sql, should_send_to_all_connections|
-
-    it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
-      proxy = klass.new(config(1,1))
-      proxy.master_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
-      proxy.slave_pool.connections.each do |con|
-        if should_send_to_all_connections
-          expect(con).to receive(:execute).with(sql).once
-        else
-          expect(con).to receive(:execute).with(sql).never
-        end
-      end
-
-      proxy.execute(sql)
+  context "" do
+    let(:query_sequence) do
+      [
+        'SET @@things',
+        'SELECT 1',
+        'INSERT INTO wisdom (\'The truth will set you free.\')',
+        'INSERT INTO wisdom (\'The truth will\nset you free.\')',
+        'UPDATE dogs SET max_treats = 10 WHERE max_treats IS NULL',
+        %Q{
+          UPDATE
+            dogs
+          SET
+            max_treats = 10
+          WHERE
+            max_treats IS NULL
+        }
+      ]
     end
 
+    it "" do
+      proxy = klass.new(config(1, 1))
+      tracker = SpecQuerySequenceTracker.new(proxy, self)
+      query_sequence.each { |sql| proxy.execute(sql) }
+      tracker.expect_primary_seq(query_sequence[0], query_sequence[2], query_sequence[3], query_sequence[4], query_sequence[5])
+      tracker.expect_replica_seq(query_sequence[0], query_sequence[1])
+    end
   end
 
   {

@@ -53,14 +53,50 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send SET operations to each connection' do
-      connection.master_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
-      end
+      unless Makara.lazy?
+        connection.master_pool.connections.each do |con|
+          expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        end
 
-      connection.slave_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        connection.slave_pool.connections.each do |con|
+          expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        end
       end
       connection.execute("SET TimeZone = 'UTC'")
+    end
+
+    it 'should queue SET operations to each connection if Makara is lazy' do
+      if Makara.lazy?
+        connection.master_pool.connections.each do |con|
+          expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
+        end
+
+        connection.slave_pool.connections.each do |con|
+          expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
+        end
+      end
+
+      connection.execute("SET TimeZone = 'UTC'")
+    end
+
+    it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
+      next unless Makara.lazy?
+
+      tracker = SpecQuerySequenceTracker.new(connection, self)
+
+      connection.execute('SET TimeZone = \'UTC\'')
+      connection.execute('SELECT 2')
+      connection.execute('SET TimeZone = \'UTC\'')
+      connection.execute('SELECT 3')
+      connection.execute('SELECT 4')
+
+      tracker.expect_primary_seq(nil)
+      tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 2', 'SET TimeZone = \'UTC\'', 'SELECT 3', 'SELECT 4')
+
+      connection.execute('SELECT 5 FOR UPDATE')
+
+      tracker.expect_primary_seq('SET TimeZone = \'UTC\'', 'SET TimeZone = \'UTC\'', 'SELECT 5 FOR UPDATE')
+      tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 2', 'SET TimeZone = \'UTC\'', 'SELECT 3', 'SELECT 4')
     end
 
     it 'should send reads to the slave' do
@@ -78,7 +114,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
-      
+
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2) ||
          (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
