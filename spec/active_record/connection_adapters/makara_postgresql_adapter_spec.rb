@@ -19,7 +19,6 @@ describe 'MakaraPostgreSQLAdapter' do
     change_context
   end
 
-
   it 'should allow a connection to be established' do
     establish_connection(config)
     expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter)
@@ -33,6 +32,29 @@ describe 'MakaraPostgreSQLAdapter' do
       change_context
     end
 
+    context 'In the event of a primary outage' do
+      it 'should not block replica-bound queries if Makara is lazy' do
+        connection.slave_pool.populate
+        connection.master_pool.populate
+
+        tracker = SpecQuerySequenceTracker.new(connection, self)
+
+        # Simulate a primary outage
+        connection.master_pool.connections.each(&:_makara_blacklist!)
+        connection.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some master connection issue')
+
+        if Makara.lazy?
+          connection.execute('SET TimeZone = \'UTC\'')
+          connection.execute('SELECT 1')
+          tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 1')
+        else
+          expect do
+            connection.execute('SET TimeZone = \'UTC\'')
+            connection.execute('SELECT 1')
+          end.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        end
+      end
+    end
 
     it 'should have one master and two slaves' do
       expect(connection.master_pool.connection_count).to eq(1)

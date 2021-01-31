@@ -27,7 +27,6 @@ module Makara
     end
 
     def _enqueue_query(args, &block)
-      puts "<ENQ #{_makara_name} #{args} #{object_id}>"
       @queue.push([args, block])
     end
 
@@ -110,10 +109,8 @@ module Makara
 
     def run_queue
       $stdout.sync = true
-      puts "Run QUEUE #{object_id}"
       until @queue.empty?
         item = @queue.pop
-        puts "<EXE #{_makara_connection._makara_name}> #{item[0][0]}"
         @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
       end
     end
