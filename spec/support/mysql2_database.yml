@@ -4,12 +4,6 @@ test:
   host: <%= ENV["MYSQL_HOST"] %>
   username: root
   password: ''
-<<<<<<< HEAD
-  port: 3306
-  host: '127.0.0.1'
-
-=======
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
   timeout: 5000
   connect_timeout: 1
   read_timeout: 1
@@ -19,18 +13,6 @@ test:
     blacklist_duration: 2
     primary_ttl: 5
     connections:
-<<<<<<< HEAD
-      - role: master
-        username: 'root'
-        password: ''
-      - role: slave
-        username: 'root'
-        password: ''
-      - role: slave
-        username: 'root'
-        password: ''
-=======
       - role: primary
       - role: replica
       - role: replica
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
