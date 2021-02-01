@@ -35,7 +35,7 @@ describe Makara::Proxy do
 
   it 'should delegate any unknown method to a connection in the primary pool' do
     proxy = klass.new(config(1, 2))
-    preferred_pool = Makara.lazy? ? proxy.replica_pool : proxy.master_pool
+    preferred_pool = Makara.lazy? ? proxy.replica_pool : proxy.primary_pool
 
     con = preferred_pool.connections.first
     allow(con).to receive(:irespondtothis){ 'hello!' }
@@ -189,8 +189,8 @@ describe Makara::Proxy do
 
     it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
       if Makara.lazy?
-        proxy.slave_pool.populate
-        proxy.master_pool.populate
+        proxy.replica_pool.populate
+        proxy.primary_pool.populate
       end
 
       proxy.ping

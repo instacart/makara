@@ -15,7 +15,7 @@ module Makara
     attr_reader :shard_strategy_class
     attr_reader :default_shard
 
-    def initialize(role, proxy)
+    def initialize(role, proxy, &block)
       @role             = role == "master" ? "primary" : role
       @proxy            = proxy
       @connections      = []

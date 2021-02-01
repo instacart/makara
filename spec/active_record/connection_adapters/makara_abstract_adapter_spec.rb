@@ -43,7 +43,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     end
   end
 
-<<<<<<< HEAD
 
   context "" do
     let(:query_sequence) do
@@ -71,35 +70,6 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
       tracker.expect_primary_seq(query_sequence[0], query_sequence[2], query_sequence[3], query_sequence[4], query_sequence[5])
       tracker.expect_replica_seq(query_sequence[0], query_sequence[1])
     end
-=======
-  {
-    "SET @@things" => true,
-    "INSERT INTO wisdom ('The truth will set you free.')" => false,
-    "INSERT INTO wisdom ('The truth will\nset you free.')" => false,
-    "UPDATE dogs SET max_treats = 10 WHERE max_treats IS NULL" => false,
-    %Q{
-      UPDATE
-        dogs
-      SET
-        max_treats = 10
-      WHERE
-        max_treats IS NULL
-    } => false
-  }.each do |sql, should_send_to_all_connections|
-    it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
-      proxy = klass.new(config(1,1))
-      proxy.primary_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
-      proxy.replica_pool.connections.each do |con|
-        if should_send_to_all_connections
-          expect(con).to receive(:execute).with(sql).once
-        else
-          expect(con).to receive(:execute).with(sql).never
-        end
-      end
-
-      proxy.execute(sql)
-    end
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
   end
 
   {

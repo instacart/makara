@@ -179,7 +179,7 @@ module Makara
     ruby2_keywords :send_to_all if Module.private_method_defined?(:ruby2_keywords)
 
     def any_connection
-      first_choice_pool = Makara.lazy? ? @replica_pool  : @primary_pool
+      first_choice_pool = Makara.lazy? ? @replica_pool : @primary_pool
       fallback_pool     = Makara.lazy? ? @primary_pool : @replica_pool
 
       if first_choice_pool.disabled
