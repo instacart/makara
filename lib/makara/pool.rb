@@ -102,7 +102,6 @@ module Makara
         if populated?
           @connections.each { |con| con._enqueue_query(args, &block) }
         else
-          puts "<DEFENQ #{@role}> #{args}"
           @queued_queries << [args, block]
         end
       end

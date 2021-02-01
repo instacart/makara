@@ -57,19 +57,12 @@ module Makara
       end
     end
 
-<<<<<<< HEAD
 
     attr_reader   :error_handler
     attr_reader   :sticky
     attr_reader   :config_parser
     attr_reader   :control
     attr_accessor :in_a_transaction
-=======
-    attr_reader :error_handler
-    attr_reader :sticky
-    attr_reader :config_parser
-    attr_reader :control
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -186,9 +179,8 @@ module Makara
     ruby2_keywords :send_to_all if Module.private_method_defined?(:ruby2_keywords)
 
     def any_connection
-<<<<<<< HEAD
-      first_choice_pool = Makara.lazy? ? @slave_pool  : @master_pool
-      fallback_pool     = Makara.lazy? ? @master_pool : @slave_pool
+      first_choice_pool = Makara.lazy? ? @replica_pool  : @primary_pool
+      fallback_pool     = Makara.lazy? ? @primary_pool : @replica_pool
 
       if first_choice_pool.disabled
         fallback_pool.provide { |con| yield con }
@@ -201,25 +193,6 @@ module Makara
         fallback_pool.provide { |con| yield con }
       ensure
         first_choice_pool.disabled = false
-=======
-      if @primary_pool.disabled
-        @replica_pool.provide do |con|
-          yield con
-        end
-      else
-        @primary_pool.provide do |con|
-          yield con
-        end
-      end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
-      begin
-        @primary_pool.disabled = true
-        @replica_pool.provide do |con|
-          yield con
-        end
-      ensure
-        @primary_pool.disabled = false
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       end
     end
 
@@ -270,14 +243,9 @@ module Makara
         stick_to_primary(method_name, args)
         @primary_pool
 
-<<<<<<< HEAD
-      elsif @master_pool.populated? && @master_pool.in_a_transaction?
+      elsif @primary_pool.populated? && @primary_pool.in_a_transaction?
 
-        @master_pool
-=======
-      elsif in_transaction?
         @primary_pool
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
 
       # yay! use a replica
       else
@@ -338,47 +306,31 @@ module Makara
       @sticky && !@skip_sticking
     end
 
-<<<<<<< HEAD
-    def populate_master_pool
-      @config_parser.master_configs.each do |master_config|
-        @master_pool.add master_config do
-          graceful_connection_for(master_config)
-=======
-    # use the config parser to generate a primary and replica pool
-    def instantiate_connections
-      @primary_pool = Makara::Pool.new('primary', self)
+    def populate_primary_pool
       @config_parser.primary_configs.each do |primary_config|
         @primary_pool.add primary_config do
           graceful_connection_for(primary_config)
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
         end
       end
     end
 
-<<<<<<< HEAD
-    def populate_slave_pool
-      @config_parser.slave_configs.each do |slave_config|
-        @slave_pool.add slave_config do
-          graceful_connection_for(slave_config)
-=======
-      @replica_pool = Makara::Pool.new('replica', self)
+    def populate_replica_pool
       @config_parser.replica_configs.each do |replica_config|
         @replica_pool.add replica_config do
           graceful_connection_for(replica_config)
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
         end
       end
     end
 
-    # use the config parser to generate a master and slave pool
+    # use the config parser to generate a primary and replica pool
     def instantiate_connections
-      @master_pool = Makara::Pool.new('master', self) { populate_master_pool }
-      @slave_pool  = Makara::Pool.new('slave', self)  { populate_slave_pool  }
+      @primary_pool = Makara::Pool.new('primary', self) { populate_primary_pool }
+      @replica_pool  = Makara::Pool.new('replica', self)  { populate_replica_pool  }
 
       return if Makara.lazy?
 
-      @master_pool.populate
-      @slave_pool.populate
+      @primary_pool.populate
+      @replica_pool.populate
     end
 
     def handling_an_all_execution(method_name)
