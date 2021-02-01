@@ -26,17 +26,16 @@ describe 'MakaraPostgreSQLAdapter' do
       change_context
     end
 
-<<<<<<< HEAD
     context 'In the event of a primary outage' do
       it 'should not block replica-bound queries if Makara is lazy' do
-        connection.slave_pool.populate
-        connection.master_pool.populate
+        connection.primary_pool.populate
+        connection.replica_pool.populate
 
         tracker = SpecQuerySequenceTracker.new(connection, self)
 
         # Simulate a primary outage
-        connection.master_pool.connections.each(&:_makara_blacklist!)
-        connection.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some master connection issue')
+        connection.primary_pool.connections.each(&:_makara_blacklist!)
+        connection.primary_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some primary connection issue')
 
         if Makara.lazy?
           connection.execute('SET TimeZone = \'UTC\'')
@@ -51,14 +50,9 @@ describe 'MakaraPostgreSQLAdapter' do
       end
     end
 
-    it 'should have one master and two slaves' do
-      expect(connection.master_pool.connection_count).to eq(1)
-      expect(connection.slave_pool.connection_count).to eq(2)
-=======
     it 'should have one primary and two replicas' do
       expect(connection.primary_pool.connection_count).to eq(1)
       expect(connection.replica_pool.connection_count).to eq(2)
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
     end
 
     it 'should allow real queries to work' do
@@ -75,43 +69,32 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send SET operations to each connection' do
-<<<<<<< HEAD
       unless Makara.lazy?
-        connection.master_pool.connections.each do |con|
+        connection.primary_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
 
-        connection.slave_pool.connections.each do |con|
+        connection.replica_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
-=======
-      connection.primary_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       end
       connection.execute("SET TimeZone = 'UTC'")
     end
 
     it 'should queue SET operations to each connection if Makara is lazy' do
       if Makara.lazy?
-        connection.master_pool.connections.each do |con|
+        connection.replica_pool.connections.each do |con|
           expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
         end
 
-<<<<<<< HEAD
-        connection.slave_pool.connections.each do |con|
+        connection.replica_pool.connections.each do |con|
           expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
         end
-=======
-      connection.replica_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       end
 
       connection.execute("SET TimeZone = 'UTC'")
     end
 
-<<<<<<< HEAD
     it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
       next unless Makara.lazy?
 
@@ -133,9 +116,6 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send reads to the slave' do
-=======
-    it 'should send reads to the replica' do
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       # ensure the next connection will be the first one
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
@@ -149,15 +129,6 @@ describe 'MakaraPostgreSQLAdapter' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
 
-<<<<<<< HEAD
-      con = connection.slave_pool.connections.first
-      if (ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2) ||
-         (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
-        expect(con).to receive(:exec_no_cache).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
-      else
-        expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
-      end
-=======
       con = connection.replica_pool.connections.first
 
       expect(con).to receive(:exec_query) do |query|
@@ -166,7 +137,6 @@ describe 'MakaraPostgreSQLAdapter' do
         # and_call_original # Switch back to this once https://github.com/rspec/rspec-mocks/pull/1385 is released
         and_wrap_original { |m, *args| m.call(*args.first(3)) }
 
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       Test::User.exists?
     end
 
