@@ -24,29 +24,20 @@ describe Makara::Proxy do
   it 'instantiates N connections within each pool' do
     proxy = klass.new(config(1, 2))
 
-<<<<<<< HEAD
     if Makara.lazy?
-      proxy.master_pool.populate
-      proxy.slave_pool.populate
+      proxy.primary_pool.populate
+      proxy.replica_pool.populate
     end
 
-    expect(proxy.master_pool.connection_count).to eq(1)
-    expect(proxy.slave_pool.connection_count).to eq(2)
-=======
     expect(proxy.primary_pool.connection_count).to eq(1)
     expect(proxy.replica_pool.connection_count).to eq(2)
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
   end
 
   it 'should delegate any unknown method to a connection in the primary pool' do
     proxy = klass.new(config(1, 2))
-    preferred_pool = Makara.lazy? ? proxy.slave_pool : proxy.master_pool
+    preferred_pool = Makara.lazy? ? proxy.replica_pool : proxy.master_pool
 
-<<<<<<< HEAD
     con = preferred_pool.connections.first
-=======
-    con = proxy.primary_pool.connections.first
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
     allow(con).to receive(:irespondtothis){ 'hello!' }
 
     expect(proxy).to respond_to(:irespondtothis)
@@ -220,13 +211,8 @@ describe Makara::Proxy do
         expect(e.message).to eq('[Makara/primary] All connections are blacklisted -> some primary connection issue -> [Makara/replica] All connections are blacklisted -> some replica connection issue')
       end
 
-<<<<<<< HEAD
-      proxy.slave_pool.connections.each { |con| expect(con._makara_blacklisted?).to eq(false) }
-      proxy.master_pool.connections.each { |con| expect(con._makara_blacklisted?).to eq(false) }
-=======
       proxy.replica_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
       proxy.primary_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
->>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
     end
   end
 end
