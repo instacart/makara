@@ -107,7 +107,6 @@ module Makara
     end
 
     def run_queue
-      $stdout.sync = true
       until @queue.empty?
         item = @queue.pop
         @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
