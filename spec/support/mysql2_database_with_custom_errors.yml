@@ -1,9 +1,9 @@
 test:
   adapter: 'mysql2_makara'
   database: 'makara_test'
-  username: 'root'
+  host: <%= ENV["MYSQL_HOST"] %>
+  username: root
   password: ''
-
   timeout: 5000
   connect_timeout: 1
   read_timeout: 1
@@ -11,11 +11,11 @@ test:
 
   makara:
     blacklist_duration: 2
-    master_ttl: 5
+    primary_ttl: 5
     connections:
-      - role: master
-      - role: slave
-      - role: slave
+      - role: primary
+      - role: replica
+      - role: replica
     connection_error_matchers:
       - !ruby/regexp '/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command1:/'
       - "/^ActiveRecord::StatementInvalid: Mysql2::Error: Unknown command2:/i"

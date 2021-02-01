@@ -1,21 +1,13 @@
 test:
   adapter: 'postgresql_makara'
   database: 'makara_test'
-  port: 5432
-  host: '127.0.0.1'
 
   timeout: 5000
 
   makara:
     blacklist_duration: 2
-    master_ttl: 5
+    primary_ttl: 5
     connections:
-      - role: master
-        username: 'root'
-        password: ''
-      - role: slave
-        username: 'root'
-        password: ''
-      - role: slave
-        username: 'root'
-        password: ''
+      - role: primary
+      - role: replica
+      - role: replica

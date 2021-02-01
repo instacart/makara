@@ -6,7 +6,6 @@ require 'makara/strategies/shard_aware'
 
 module Makara
   class Pool
-
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
     attr_accessor :disabled
@@ -16,8 +15,8 @@ module Makara
     attr_reader :shard_strategy_class
     attr_reader :default_shard
 
-    def initialize(role, proxy, &block)
-      @role             = role
+    def initialize(role, proxy)
+      @role             = role == "master" ? "primary" : role
       @proxy            = proxy
       @connections      = []
       @blacklist_errors = []
@@ -37,7 +36,7 @@ module Makara
     end
 
     def in_a_transaction?
-      return false if @role != 'master'
+      return false if @role != 'primary'
       return false unless populated?
 
       @connections.any?(&:_makara_in_transaction?)
@@ -77,7 +76,6 @@ module Makara
       end
       true
     end
-
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(config)
@@ -119,6 +117,7 @@ module Makara
 
       @connections.each do |con|
         next if con._makara_blacklisted?
+
         begin
           ret = @proxy.error_handler.handle(con) do
             if block
@@ -178,9 +177,10 @@ module Makara
       # when a connection causes a blacklist error within the provided block, we blacklist it then retry
       rescue Makara::Errors::BlacklistConnection => e
         @blacklist_errors.insert(0, e)
-        in_transaction = self.role == "master" && provided_connection._makara_in_transaction?
+        in_transaction = self.role == "primary" && provided_connection._makara_in_transaction?
         provided_connection._makara_blacklist!
         raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
+
         attempt += 1
         if attempt < @connections.length
           retry
@@ -194,16 +194,12 @@ module Makara
       end
     end
 
-
-
     protected
-
 
     # have we connected to any of the underlying connections.
     def connection_made?
       @connections.any?(&:_makara_connected?)
     end
-
 
     # Get the next non-blacklisted connection. If the proxy is setup
     # to be sticky, provide back the current connection assuming it is

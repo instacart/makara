@@ -99,7 +99,7 @@ module Makara
         set(:makara_current_context, new(context_data))
       end
 
-      # Called by `Proxy#stick_to_master!` to use master in subsequent requests
+      # Called by `Proxy#stick_to_primary!` to use primary in subsequent requests
       def stick(proxy_id, ttl)
         current.stage(proxy_id, ttl)
       end
@@ -123,6 +123,7 @@ module Makara
       end
 
       protected
+
       def current
         fetch(:makara_current_context) { new({}) }
       end

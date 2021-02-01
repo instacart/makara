@@ -8,8 +8,8 @@ test:
 
   makara:
     blacklist_duration: 2
-    master_ttl: 5
+    primary_ttl: 5
     connections:
-      - role: master
-      - role: slave
-      - role: slave
+      - role: primary
+      - role: replica
+      - role: replica

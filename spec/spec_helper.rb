@@ -6,13 +6,24 @@ require 'yaml'
 require 'rack'
 
 begin
-  require 'byebug'
+  require 'pry'
 rescue LoadError
 end
 
 begin
   require 'ruby-debug'
 rescue LoadError
+end
+
+if RUBY_VERSION >= "2.7.0"
+  Warning[:deprecated] = true
+end
+
+# Delete once Timecop fixes Ruby 3.1 support
+Time.class_eval do
+  class << self
+    ruby2_keywords :new if Module.private_method_defined?(:ruby2_keywords)
+  end
 end
 
 RSpec.configure do |config|

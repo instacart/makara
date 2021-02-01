@@ -3,13 +3,8 @@ require 'active_record/connection_adapters/postgresql_adapter'
 require 'active_record/errors'
 
 describe 'MakaraPostgreSQLAdapter' do
-
-  let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
-
   let(:config) do
-    base = YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
-    base['username'] = db_username
-    base
+    YAML.load_file(File.expand_path('spec/support/postgresql_database.yml'))['test']
   end
 
   let(:connection) { ActiveRecord::Base.connection }
@@ -25,13 +20,13 @@ describe 'MakaraPostgreSQLAdapter' do
   end
 
   context 'with the connection established and schema loaded' do
-
     before do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
 
+<<<<<<< HEAD
     context 'In the event of a primary outage' do
       it 'should not block replica-bound queries if Makara is lazy' do
         connection.slave_pool.populate
@@ -59,13 +54,18 @@ describe 'MakaraPostgreSQLAdapter' do
     it 'should have one master and two slaves' do
       expect(connection.master_pool.connection_count).to eq(1)
       expect(connection.slave_pool.connection_count).to eq(2)
+=======
+    it 'should have one primary and two replicas' do
+      expect(connection.primary_pool.connection_count).to eq(1)
+      expect(connection.replica_pool.connection_count).to eq(2)
+>>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
     end
 
     it 'should allow real queries to work' do
       connection.execute('INSERT INTO users (name) VALUES (\'John\')')
 
-      connection.master_pool.connections.each do |master|
-        expect(master).to receive(:execute).never
+      connection.primary_pool.connections.each do |primary|
+        expect(primary).to receive(:execute).never
       end
 
       change_context
@@ -75,6 +75,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send SET operations to each connection' do
+<<<<<<< HEAD
       unless Makara.lazy?
         connection.master_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
@@ -83,6 +84,10 @@ describe 'MakaraPostgreSQLAdapter' do
         connection.slave_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
+=======
+      connection.primary_pool.connections.each do |con|
+        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+>>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       end
       connection.execute("SET TimeZone = 'UTC'")
     end
@@ -93,14 +98,20 @@ describe 'MakaraPostgreSQLAdapter' do
           expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
         end
 
+<<<<<<< HEAD
         connection.slave_pool.connections.each do |con|
           expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
         end
+=======
+      connection.replica_pool.connections.each do |con|
+        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+>>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       end
 
       connection.execute("SET TimeZone = 'UTC'")
     end
 
+<<<<<<< HEAD
     it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
       next unless Makara.lazy?
 
@@ -122,21 +133,23 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send reads to the slave' do
+=======
+    it 'should send reads to the replica' do
+>>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       # ensure the next connection will be the first one
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
-      con = connection.slave_pool.connections.first
+      con = connection.replica_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
 
       connection.execute('SELECT * FROM users')
     end
 
-    it 'should send exists? to slave' do
-      next if ActiveRecord::VERSION::MAJOR == 3 && ActiveRecord::VERSION::MINOR == 0 # query doesn't work?
-
+    it 'should send exists? to replica' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
 
+<<<<<<< HEAD
       con = connection.slave_pool.connections.first
       if (ActiveRecord::VERSION::MAJOR == 4 && ActiveRecord::VERSION::MINOR >= 2) ||
          (ActiveRecord::VERSION::MAJOR == 5 && ActiveRecord::VERSION::MINOR <= 0)
@@ -144,11 +157,21 @@ describe 'MakaraPostgreSQLAdapter' do
       else
         expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
       end
+=======
+      con = connection.replica_pool.connections.first
+
+      expect(con).to receive(:exec_query) do |query|
+        expect(query).to match(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/)
+      end.once.
+        # and_call_original # Switch back to this once https://github.com/rspec/rspec-mocks/pull/1385 is released
+        and_wrap_original { |m, *args| m.call(*args.first(3)) }
+
+>>>>>>> b8e7f3a0dce92e1434313e51b47218c4c5e2458e
       Test::User.exists?
     end
 
-    it 'should send writes to master' do
-      con = connection.master_pool.connections.first
+    it 'should send writes to primary' do
+      con = connection.primary_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
     end
@@ -164,10 +187,10 @@ describe 'MakaraPostgreSQLAdapter' do
     end
   end
 
-  context 'with only master connection' do
+  context 'with only primary connection' do
     it 'should not raise errors on read and write' do
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
 
       establish_connection(custom_config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -177,14 +200,14 @@ describe 'MakaraPostgreSQLAdapter' do
     end
   end
 
-  context 'with only slave connection' do
+  context 'with only replica connection' do
     it 'should raise error only on write' do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       ActiveRecord::Base.clear_all_connections!
 
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select{|h| h['role'] == 'primary' }.each{|h| h['port'] = '1'}
 
       establish_connection(custom_config)
 
@@ -200,13 +223,13 @@ describe 'MakaraPostgreSQLAdapter' do
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 
-        # Pre-loads the attributes so that schema queries don't hit slave
+        # Pre-loads the attributes so that schema queries don't hit replica
         # user = User.create(name: 'hello')
-        connection.slave_pool.connections.each do |slave|
+        connection.replica_pool.connections.each do |replica|
           # Using method missing to help with back trace, literally
-          # no query should be executed on slave once a transaction is opened
-          expect(slave).to receive(:method_missing).never
-          expect(slave).to receive(:execute).never
+          # no query should be executed on replica once a transaction is opened
+          expect(replica).to receive(:method_missing).never
+          expect(replica).to receive(:execute).never
         end
       end
 
@@ -252,7 +275,6 @@ describe 'MakaraPostgreSQLAdapter' do
   end
 
   context 'with two activerecord connection pools' do
-
     before :each do
       class Model1 < ActiveRecord::Base
       end
@@ -262,7 +284,6 @@ describe 'MakaraPostgreSQLAdapter' do
 
       Model1.establish_connection(config)
       Model2.establish_connection(config)
-
     end
 
     it 'should not leak raw connection into activerecord pool' do

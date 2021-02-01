@@ -1,16 +1,12 @@
 # RGeo doesn't play well with JRuby and to avoid complicated test setup
 # we're only testing ActiveRecord version ~> 4.2
-# also rgeo only works on 2.1+
 
-rmajor, rminor, rpatch = RUBY_VERSION.split(/[^\d]/)[0..2].map(&:to_i)
 require 'active_record'
 
 # TODO: test this in AR 5+ ?
-
 if RUBY_ENGINE == 'ruby' &&
     ActiveRecord::VERSION::MAJOR == 4 &&
-    ActiveRecord::VERSION::MINOR >= 2 &&
-    (rmajor > 2 || (rmajor == 2 && rminor >= 1))
+    ActiveRecord::VERSION::MINOR >= 2
 
   require 'spec_helper'
   require 'rgeo'
@@ -18,12 +14,8 @@ if RUBY_ENGINE == 'ruby' &&
   require 'active_record/connection_adapters/postgis_adapter'
 
   describe 'MakaraPostgisAdapter' do
-    let(:db_username){ ENV['TRAVIS'] ? 'postgres' : `whoami`.chomp }
-
     let(:config) do
-      base = YAML.load_file(File.expand_path('spec/support/postgis_database.yml'))['test']
-      base['username'] = db_username
-      base
+      YAML.load_file(File.expand_path('spec/support/postgis_database.yml'))['test']
     end
 
     let(:connection) { ActiveRecord::Base.connection }
@@ -60,16 +52,16 @@ if RUBY_ENGINE == 'ruby' &&
         end
       end
 
-      it 'should have one master and two slaves' do
-        expect(connection.master_pool.connection_count).to eq(1)
-        expect(connection.slave_pool.connection_count).to eq(2)
+      it 'should have one primary and two replicas' do
+        expect(connection.primary_pool.connection_count).to eq(1)
+        expect(connection.replica_pool.connection_count).to eq(2)
       end
 
       it 'should allow real queries to work' do
         connection.execute('INSERT INTO users (name) VALUES (\'John\')')
 
-        connection.master_pool.connections.each do |master|
-          expect(master).to receive(:execute).never
+        connection.primary_pool.connections.each do |primary|
+          expect(primary).to receive(:execute).never
         end
 
         change_context
@@ -79,28 +71,28 @@ if RUBY_ENGINE == 'ruby' &&
       end
 
       it 'should send SET operations to each connection' do
-        connection.master_pool.connections.each do |con|
+        connection.primary_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
 
-        connection.slave_pool.connections.each do |con|
+        connection.replica_pool.connections.each do |con|
           expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
         end
         connection.execute("SET TimeZone = 'UTC'")
       end
 
-      it 'should send reads to the slave' do
+      it 'should send reads to the replica' do
         # ensure the next connection will be the first one
         allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
 
-        con = connection.slave_pool.connections.first
+        con = connection.replica_pool.connections.first
         expect(con).to receive(:execute).with('SELECT * FROM users').once
 
         connection.execute('SELECT * FROM users')
       end
 
-      it 'should send writes to master' do
-        con = connection.master_pool.connections.first
+      it 'should send writes to primary' do
+        con = connection.primary_pool.connections.first
         expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
         connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
       end
@@ -123,10 +115,10 @@ if RUBY_ENGINE == 'ruby' &&
       end
     end
 
-    context 'with only master connection' do
+    context 'with only primary connection' do
       it 'should not raise errors on read and write' do
         custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['port'] = '1'}
+        custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
 
         ActiveRecord::Base.establish_connection(custom_config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -136,14 +128,14 @@ if RUBY_ENGINE == 'ruby' &&
       end
     end
 
-    context 'with only slave connection' do
+    context 'with only replica connection' do
       it 'should raise error only on write' do
         ActiveRecord::Base.establish_connection(config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         ActiveRecord::Base.clear_all_connections!
 
         custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'master' }.each{|h| h['port'] = '1'}
+        custom_config['makara']['connections'].select{|h| h['role'] == 'primary' }.each{|h| h['port'] = '1'}
 
         ActiveRecord::Base.establish_connection(custom_config)
 
