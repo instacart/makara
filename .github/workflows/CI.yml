@@ -17,19 +17,20 @@ jobs:
           - 2.6
           - 2.7
           - 3.0
-          - ruby-head
+          - head
           - jruby
-        gemfile:
-          - ar52
-          - ar60
-          - ar61
-          - ar-head
+        activerecord:
+          - 5.2
+          - 6.0
+          - 6.1
+          - head
         exclude:
-          - gemfile: ar52
+          - activerecord: 5.2
             ruby: 3.0
-          - gemfile: ar52
-            ruby: ruby-head
-    continue-on-error: ${{ matrix.ruby == 'jruby' || matrix.ruby == 'ruby-head' || matrix.gemfile == 'ar-head' }}
+          - activerecord: 5.2
+            ruby: head
+    continue-on-error: ${{ matrix.ruby == 'jruby' || matrix.ruby == 'head' || matrix.activerecord == 'head' }}
+    name: Ruby ${{ matrix.ruby }} / ActiveRecord ${{ matrix.activerecord }}
     services:
       postgres:
         image: postgis/postgis:12-3.1
@@ -56,7 +57,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
+       BUNDLE_GEMFILE: gemfiles/activerecord_${{ matrix.activerecord }}.gemfile
        JRUBY_OPTS: --dev -J-Xmx1024M
     steps:
       - uses: actions/checkout@v2
@@ -71,7 +72,7 @@ jobs:
           PGUSER: postgres
           MYSQL_HOST: 127.0.0.1
           RAILS_ENV: test
-  rubocop:
+  RuboCop:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
