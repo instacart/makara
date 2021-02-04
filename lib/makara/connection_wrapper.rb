@@ -44,7 +44,7 @@ module Makara
     end
 
     def _makara_in_transaction?
-      @connection && @connection.open_transactions > 0 ? true : false
+      @connection && @connection.open_transactions > 0
     end
 
     # blacklist this node for @config[:blacklist_duration] seconds
