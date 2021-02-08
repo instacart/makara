@@ -29,6 +29,10 @@ jobs:
             ruby: '3.0'
           - activerecord: '5.2'
             ruby: head
+          - activerecord: head
+            ruby: '2.5'
+          - activerecord: head
+            ruby: '2.6'
     continue-on-error: ${{ matrix.ruby == 'jruby' || matrix.ruby == 'head' || matrix.activerecord == 'head' }}
     name: Ruby ${{ matrix.ruby }} / ActiveRecord ${{ matrix.activerecord }}
     services:
