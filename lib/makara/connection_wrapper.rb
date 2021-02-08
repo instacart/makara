@@ -181,7 +181,7 @@ module Makara
       end
 
       # extend the instance
-      con.instance_eval(extension)
+      con.instance_eval(extension, __FILE__, __LINE__ + 1)
       # set the makara context
       con._makara = @proxy
 
