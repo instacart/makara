@@ -157,9 +157,7 @@ describe 'MakaraMysql2Adapter' do
       con = connection.replica_pool.connections.first
       expect(con).to receive(:exec_query) do |query|
         expect(query).to match(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/)
-      end.once.
-        # and_call_original # Switch back to this once https://github.com/rspec/rspec-mocks/pull/1385 is released
-        and_wrap_original { |m, *args| m.call(*args.first(3)) }
+      end.once.and_call_original
 
       Test::User.exists?
     end
