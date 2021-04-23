@@ -24,6 +24,9 @@ jobs:
           - '6.0'
           - '6.1'
           - head
+        lazy_makara:
+          - 'false'
+          - 'true'
         exclude:
           - activerecord: '5.2'
             ruby: '3.0'
@@ -34,7 +37,7 @@ jobs:
           - activerecord: head
             ruby: '2.6'
     continue-on-error: ${{ matrix.ruby == 'jruby' || matrix.ruby == 'head' || matrix.activerecord == 'head' }}
-    name: Ruby ${{ matrix.ruby }} / ActiveRecord ${{ matrix.activerecord }}
+    name: Ruby ${{ matrix.ruby }} / ActiveRecord ${{ matrix.activerecord }} / Lazy Mode ${{ matrix.lazy_makara }}
     services:
       postgres:
         image: postgis/postgis:12-3.1
@@ -63,7 +66,7 @@ jobs:
     env:
        BUNDLE_GEMFILE: gemfiles/activerecord_${{ matrix.activerecord }}.gemfile
        JRUBY_OPTS: --dev -J-Xmx1024M
-       MAKARA_LAZY_MODE: true
+       MAKARA_LAZY_MODE: ${{ matrix.lazy_makara }}
     steps:
       - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@v1
