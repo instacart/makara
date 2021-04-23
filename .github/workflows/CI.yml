@@ -63,6 +63,7 @@ jobs:
     env:
        BUNDLE_GEMFILE: gemfiles/activerecord_${{ matrix.activerecord }}.gemfile
        JRUBY_OPTS: --dev -J-Xmx1024M
+       MAKARA_LAZY_MODE: true
     steps:
       - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@v1
