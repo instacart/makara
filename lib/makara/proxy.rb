@@ -215,7 +215,7 @@ module Makara
       pool = _appropriate_pool(method_name, args)
       yield pool
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
-      if pool == @primary_pool
+      if pool == @primary_pool || pool.nil?
         @primary_pool.connections.each(&:_makara_whitelist!)
         @replica_pool.connections.each(&:_makara_whitelist!)
         Kernel.raise e
