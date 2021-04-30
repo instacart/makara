@@ -57,6 +57,7 @@ module Makara
     attr_reader :sticky
     attr_reader :config_parser
     attr_reader :control
+    attr_accessor :in_a_transaction
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -167,23 +168,20 @@ module Makara
     end
 
     def any_connection
-      if @master_pool.disabled
-        @slave_pool.provide do |con|
-          yield con
-        end
+      first_choice_pool = Makara.lazy? ? @slave_pool : @master_pool
+      fallback_pool     = Makara.lazy? ? @master_pool : @slave_pool
+
+      if first_choice_pool.disabled
+        fallback_pool.provide { |con| yield con }
       else
-        @master_pool.provide do |con|
-          yield con
-        end
+        first_choice_pool.provide { |con| yield con }
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
-        @master_pool.disabled = true
-        @slave_pool.provide do |con|
-          yield con
-        end
+        first_choice_pool.disabled = true
+        fallback_pool.provide { |con| yield con }
       ensure
-        @master_pool.disabled = false
+        first_choice_pool.disabled = false
       end
     end
 
@@ -237,7 +235,7 @@ module Makara
         stick_to_master(method_name, args)
         @master_pool
 
-      elsif in_transaction?
+      elsif @master_pool.populated? && @master_pool.in_a_transaction?
         @master_pool
 
       # yay! use a slave
@@ -290,21 +288,31 @@ module Makara
       @sticky && !@skip_sticking
     end
 
-    # use the config parser to generate a master and slave pool
-    def instantiate_connections
-      @master_pool = Makara::Pool.new('master', self)
+    def populate_master_pool
       @config_parser.master_configs.each do |master_config|
         @master_pool.add master_config do
           graceful_connection_for(master_config)
         end
       end
+    end
 
-      @slave_pool = Makara::Pool.new('slave', self)
-      @config_parser.slave_configs.each do |slave_config|
+    def populate_slave_pool
+      @config_parser.replica_configs.each do |slave_config|
         @slave_pool.add slave_config do
           graceful_connection_for(slave_config)
         end
       end
+    end
+
+    # use the config parser to generate a primary and replica pool
+    def instantiate_connections
+      @master_pool = Makara::Pool.new('master', self) { populate_master_pool }
+      @slave_pool  = Makara::Pool.new('slave', self)  { populate_slave_pool  }
+
+      return if Makara.lazy?
+
+      @master_pool.populate
+      @slave_pool.populate
     end
 
     def handling_an_all_execution(method_name)

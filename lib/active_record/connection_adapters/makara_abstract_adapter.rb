@@ -106,11 +106,12 @@ module ActiveRecord
       end
 
 
-      hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
-      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
+      send_to_all_methods = %i[connect reconnect! clear_cache! reset!]
+      send_to_all_methods << :verify! unless Makara.lazy?
 
-      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool,
-         :schema_cache=, :lock, :seconds_idle, :==
+      hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
+      send_to_all(*send_to_all_methods)
+      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool, :schema_cache=, :lock, :seconds_idle, :==
 
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
@@ -151,21 +152,22 @@ module ActiveRecord
 
       def appropriate_connection(method_name, args, &block)
         if needed_by_all?(method_name, args)
-
-          handling_an_all_execution(method_name) do
-            hijacked do
-              # slave pool must run first.
-              @slave_pool.send_to_all(nil, &block)  # just yields to each con
-              @master_pool.send_to_all(nil, &block) # just yields to each con
+          if Makara.lazy? && method_name == :execute
+            @slave_pool.queue_execute_for_all(args)
+            @master_pool.queue_execute_for_all(args)
+          else
+            handling_an_all_execution(method_name) do
+              hijacked do
+                # replica pool must run first.
+                @slave_pool.send_to_all(nil, &block)  # just yields to each con
+                @master_pool.send_to_all(nil, &block) # just yields to each con
+              end
             end
           end
-
         else
-
           super(method_name, args) do |con|
             yield con
           end
-
         end
       end
 

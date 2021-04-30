@@ -12,17 +12,21 @@ module Makara
     attr_accessor :disabled
     attr_reader :blacklist_errors
     attr_reader :role
-    attr_reader :connections
     attr_reader :strategy
     attr_reader :shard_strategy_class
     attr_reader :default_shard
 
-    def initialize(role, proxy)
+    def initialize(role, proxy, &block)
       @role             = role
       @proxy            = proxy
       @connections      = []
       @blacklist_errors = []
       @disabled         = false
+      @queued_queries   = []
+      @populated        = false
+      @load_callback    = block
+      @lazy_lock        = Mutex.new
+
       if proxy.shard_aware_for(role)
         @strategy = Makara::Strategies::ShardAware.new(self)
         @shard_strategy_class = proxy.strategy_class_for(proxy.strategy_name_for(role))
@@ -32,14 +36,58 @@ module Makara
       end
     end
 
+    def in_a_transaction?
+      return false if @role != 'master'
+      return false unless populated?
+
+      @connections.any?(&:_makara_in_transaction?)
+    end
+
+    def connections
+      populate if Makara.lazy? && !populated?
+
+      @connections
+    end
+
+
+    def populated?
+      @connections.any?
+    end
+
+    def populate
+      return if @load_callback.nil?
+
+      @lazy_lock.synchronize do
+        return if populated?
+
+        @load_callback.call
+        return unless Makara.lazy?
+
+        while @queued_queries.any?
+          args, block = @queued_queries.shift
+          @connections.each { |con| con._enqueue_query(args, &block) }
+        end
+      end
+    end
 
     def completely_blacklisted?
+      return false unless populated?
+
       @connections.each do |connection|
         return false unless connection._makara_blacklisted?
       end
       true
     end
 
+    def queue_execute_for_all(args, &block)
+      @lazy_lock.synchronize do
+        if populated?
+          @connections.each { |con| con._enqueue_query(args, &block) }
+        else
+          @queued_queries << [args, block]
+        end
+      end
+    end
 
     # Add a connection to this pool, wrapping the connection with a Makara::ConnectionWrapper
     def add(config)
@@ -100,6 +148,8 @@ module Makara
     # Provide a connection that is not blacklisted and connected. Handle any errors
     # that may occur within the block.
     def provide
+      populate unless populated?
+
       attempt = 0
       begin
         provided_connection = self.next

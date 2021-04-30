@@ -14,15 +14,20 @@ module Makara
     SQL_REPLACE = {"SET client_min_messages TO ''".freeze => "SET client_min_messages TO 'warning'".freeze}.freeze
 
     def initialize(proxy, connection, config)
-      @config = config.symbolize_keys
+      @config     = config.symbolize_keys
       @connection = connection
-      @proxy  = proxy
+      @proxy      = proxy
+      @queue      = Queue.new
 
       if connection.nil?
         _makara_blacklist!
       else
         _makara_decorate_connection(connection)
       end
+    end
+
+    def _enqueue_query(args, &block)
+      @queue.push([args, block])
     end
 
     # the weight of the current node
@@ -45,7 +50,7 @@ module Makara
     end
 
     def _makara_in_transaction?
-      @connection && @connection.open_transactions > 0 ? true : false
+      @connection&.respond_to?(:open_transactions) && @connection&.open_transactions&.positive? ? true : false
     end
 
     # blacklist this node for @config[:blacklist_duration] seconds
@@ -97,12 +102,22 @@ module Makara
           args[0] = replace
         end
       end
+      run_queue if Makara.lazy?
 
       _makara_connection.execute(*args)
     end
 
+    def run_queue
+      until @queue.empty?
+        item = @queue.pop
+        @proxy.send(:hijacked) { _makara_connection.execute(*item[0][0]) }
+      end
+    end
+
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
+      run_queue if m.to_s.start_with?("exec") && Makara.lazy?
+
       if _makara_connection.respond_to?(m)
         _makara_connection.public_send(m, *args, &block)
       else # probably private method
