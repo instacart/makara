@@ -28,6 +28,29 @@ describe 'MakaraPostgreSQLAdapter' do
       change_context
     end
 
+    context 'In the event of a primary outage' do
+      it 'should not block replica-bound queries if Makara is lazy' do
+        connection.master_pool.populate
+        connection.slave_pool.populate
+
+        tracker = SpecQuerySequenceTracker.new(connection, self)
+
+        # Simulate a primary outage
+        connection.master_pool.connections.each(&:_makara_blacklist!)
+        connection.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some primary connection issue')
+
+        if Makara.lazy?
+          connection.execute('SET TimeZone = \'UTC\'')
+          connection.execute('SELECT 1')
+          tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 1')
+        else
+          expect do
+            connection.execute('SET TimeZone = \'UTC\'')
+            connection.execute('SELECT 1')
+          end.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        end
+      end
+    end
 
     it 'should have one master and two slaves' do
       expect(connection.master_pool.connection_count).to eq(1)
@@ -48,15 +71,52 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send SET operations to each connection' do
-      connection.master_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
-      end
+      unless Makara.lazy?
+        connection.master_pool.connections.each do |con|
+          expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        end
 
-      connection.slave_pool.connections.each do |con|
-        expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        connection.slave_pool.connections.each do |con|
+          expect(con).to receive(:execute).with("SET TimeZone = 'UTC'").once
+        end
       end
       connection.execute("SET TimeZone = 'UTC'")
     end
+
+    it 'should queue SET operations to each connection if Makara is lazy' do
+      if Makara.lazy?
+        connection.slave_pool.connections.each do |con|
+          expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
+        end
+
+        connection.slave_pool.connections.each do |con|
+          expect(con).not_to receive(:execute).with("SET TimeZone = 'UTC'")
+        end
+      end
+
+      connection.execute("SET TimeZone = 'UTC'")
+    end
+
+    it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
+      next unless Makara.lazy?
+
+      tracker = SpecQuerySequenceTracker.new(connection, self)
+
+      connection.execute('SET TimeZone = \'UTC\'')
+      connection.execute('SELECT 2')
+      connection.execute('SET TimeZone = \'UTC\'')
+      connection.execute('SELECT 3')
+      connection.execute('SELECT 4')
+
+      tracker.expect_primary_seq(nil)
+      tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 2', 'SET TimeZone = \'UTC\'', 'SELECT 3', 'SELECT 4')
+
+      connection.execute('SELECT 5 FOR UPDATE')
+
+      tracker.expect_primary_seq('SET TimeZone = \'UTC\'', 'SET TimeZone = \'UTC\'', 'SELECT 5 FOR UPDATE')
+      tracker.expect_replica_seq('SET TimeZone = \'UTC\'', 'SELECT 2', 'SET TimeZone = \'UTC\'', 'SELECT 3', 'SELECT 4')
+    end
+
 
     it 'should send reads to the slave' do
       # ensure the next connection will be the first one

@@ -16,13 +16,12 @@ describe 'MakaraMysql2Adapter' do
   end
 
   context "unconnected" do
-
     it 'should allow a connection to be established' do
       establish_connection(config)
       expect(ActiveRecord::Base.connection).to be_instance_of(ActiveRecord::ConnectionAdapters::MakaraMysql2Adapter)
     end
 
-    it 'should execute a send_to_all against master even if no slaves are connected' do
+    it 'should execute a send_to_all against primary even if no replicas are connected' do
       establish_connection(config)
       connection = ActiveRecord::Base.connection
 
@@ -32,13 +31,18 @@ describe 'MakaraMysql2Adapter' do
         expect(c).to receive(:execute).with('SET @t1 = 1').never
       end
 
-      connection.master_pool.connections.each do |c|
-        expect(c).to receive(:execute).with('SET @t1 = 1')
-      end
+      tracker = SpecQuerySequenceTracker.new(connection, self)
 
-      expect{
+      expect do
         connection.execute('SET @t1 = 1')
-      }.not_to raise_error
+        connection.execute('SELECT 1 FOR UPDATE') if Makara.lazy? # trigger a query on primary to flush the lazy queue
+      end.not_to raise_error
+
+      if Makara.lazy?
+        tracker.expect_primary_seq('SET @t1 = 1', 'SELECT 1 FOR UPDATE')
+      else
+        tracker.expect_primary_seq('SET @t1 = 1')
+      end
     end
 
     it 'should execute a send_to_all and raise a NoConnectionsAvailable error' do
@@ -53,8 +57,8 @@ describe 'MakaraMysql2Adapter' do
 
       expect{
         connection.execute('SET @t1 = 1')
+        connection.execute('SELECT 1 FOR UPDATE') if Makara.lazy?
       }.to raise_error(Makara::Errors::NoConnectionsAvailable)
-
     end
 
     context "unconnect afterwards" do
@@ -64,7 +68,7 @@ describe 'MakaraMysql2Adapter' do
 
       it 'should not blow up if a connection fails' do
         wrong_config = config.deep_dup
-        wrong_config['makara']['connections'].select{|h| h['role'] == 'slave' }.each{|h| h['username'] = 'other'}
+        wrong_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['username'] = 'other'}
 
         original_method = ActiveRecord::Base.method(:mysql2_connection)
 
@@ -99,19 +103,40 @@ describe 'MakaraMysql2Adapter' do
         ActiveRecord::Base.remove_connection
       end
     end
-
   end
 
   context 'with the connection established and schema loaded' do
-
     before do
       establish_connection(config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
       change_context
     end
 
+    context 'In the event of a primary outage' do
+      it 'should not block replica-bound queries if Makara is lazy' do
+        connection.slave_pool.populate
+        connection.master_pool.populate
 
-    it 'should have one master and two slaves' do
+        tracker = SpecQuerySequenceTracker.new(connection, self)
+
+        # Simulate a primary outage
+        connection.master_pool.connections.each(&:_makara_blacklist!)
+        connection.master_pool.instance_variable_get('@blacklist_errors') << StandardError.new('some primary connection issue')
+
+        if Makara.lazy?
+          connection.execute('SET @t1 = 1')
+          connection.execute('SELECT 1')
+          tracker.expect_replica_seq('SET @t1 = 1', 'SELECT 1')
+        else
+          expect do
+            connection.execute('SET @t1 = 1')
+            connection.execute('SELECT 1')
+          end.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        end
+      end
+    end
+
+    it 'should have one primary and two replicas' do
       expect(connection.master_pool.connection_count).to eq(1)
       expect(connection.slave_pool.connection_count).to eq(2)
     end
@@ -119,8 +144,8 @@ describe 'MakaraMysql2Adapter' do
     it 'should allow real queries to work' do
       connection.execute("INSERT INTO users (name) VALUES ('John')")
 
-      connection.master_pool.connections.each do |master|
-        expect(master).to receive(:execute).never
+      connection.master_pool.connections.each do |primary|
+        expect(primary).to receive(:execute).never
       end
 
       change_context
@@ -135,6 +160,8 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send SET operations to each connection' do
+      next if Makara.lazy?
+
       connection.master_pool.connections.each do |con|
         expect(con).to receive(:execute).with('SET @t1 = 1').once
       end
@@ -143,6 +170,39 @@ describe 'MakaraMysql2Adapter' do
         expect(con).to receive(:execute).with('SET @t1 = 1').once
       end
       connection.execute("SET @t1 = 1")
+    end
+
+    it 'should queue SET operations on each connection unless Makara is lazy' do
+      next unless Makara.lazy?
+
+      connection.master_pool.connections.each do |con|
+        expect(con).not_to receive(:execute).with('SET @t1 = 1')
+      end
+
+      connection.slave_pool.connections.each do |con|
+        expect(con).not_to receive(:execute).with('SET @t1 = 1')
+      end
+
+      connection.execute('SET @t1 = 1')
+    end
+
+    it 'should queue SET operations to each connection if Makara is lazy and execute the SET queries lazily' do
+      next unless Makara.lazy?
+
+      tracker = SpecQuerySequenceTracker.new(connection, self)
+
+      connection.execute('SET @t1 = 1')
+      connection.execute('SELECT 2')
+      connection.execute('SET @t1 = 2')
+      connection.execute('SELECT 3')
+      connection.execute('SELECT 4')
+
+      tracker.expect_primary_seq(nil)
+      tracker.expect_replica_seq('SET @t1 = 1', 'SELECT 2', 'SET @t1 = 2', 'SELECT 3', 'SELECT 4')
+
+      connection.execute('SELECT 5 FOR UPDATE')
+      tracker.expect_primary_seq('SET @t1 = 1', 'SET @t1 = 2', 'SELECT 5 FOR UPDATE')
+      tracker.expect_replica_seq('SET @t1 = 1', 'SELECT 2', 'SET @t1 = 2', 'SELECT 3', 'SELECT 4')
     end
 
     it 'should send reads to the slave' do
@@ -155,16 +215,19 @@ describe 'MakaraMysql2Adapter' do
       connection.execute('SELECT * FROM users')
     end
 
-    it 'should send exists? to slave' do
+    it 'should send exists? to replica' do
       allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
       Test::User.exists? # flush other (schema) things that need to happen
 
       con = connection.slave_pool.connections.first
-      expect(con).to receive(:exec_query).with(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/, any_args).once.and_call_original
+      expect(con).to receive(:exec_query) do |query|
+        expect(query).to match(/SELECT\s+1\s*(AS one)?\s+FROM .?users.?\s+LIMIT\s+.?1/)
+      end.once.and_call_original
+
       Test::User.exists?
     end
 
-    it 'should send writes to master' do
+    it 'should send writes to primary' do
       con = connection.master_pool.connections.first
       expect(con).to receive(:execute).with('UPDATE users SET name = "bob" WHERE id = 1')
       connection.execute('UPDATE users SET name = "bob" WHERE id = 1')
@@ -189,7 +252,6 @@ describe 'MakaraMysql2Adapter' do
         }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
       end
     end
-
   end
 
   describe 'transaction support' do
@@ -199,11 +261,11 @@ describe 'MakaraMysql2Adapter' do
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
         change_context
 
-        connection.slave_pool.connections.each do |slave|
+        connection.slave_pool.connections.each do |replica|
           # Using method missing to help with back trace, literally
-          # no query should be executed on slave once a transaction is opened
-          expect(slave).to receive(:method_missing).never
-          expect(slave).to receive(:execute).never
+          # no query should be executed on replica once a transaction is opened
+          expect(replica).to receive(:method_missing).never
+          expect(replica).to receive(:execute).never
         end
       end
 
@@ -247,5 +309,4 @@ describe 'MakaraMysql2Adapter' do
       it_behaves_like 'a transaction supporter'
     end
   end
-
 end

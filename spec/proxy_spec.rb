@@ -27,14 +27,20 @@ describe Makara::Proxy do
   it 'instantiates N connections within each pool' do
     proxy = klass.new(config(1, 2))
 
+    if Makara.lazy?
+      proxy.master_pool.populate
+      proxy.slave_pool.populate
+    end
+
     expect(proxy.master_pool.connection_count).to eq(1)
     expect(proxy.slave_pool.connection_count).to eq(2)
   end
 
   it 'should delegate any unknown method to a connection in the master pool' do
     proxy = klass.new(config(1, 2))
+    preferred_pool = Makara.lazy? ? proxy.slave_pool : proxy.master_pool
 
-    con = proxy.master_pool.connections.first
+    con = preferred_pool.connections.first
     allow(con).to receive(:irespondtothis){ 'hello!' }
 
     expect(proxy).to respond_to(:irespondtothis)
@@ -186,6 +192,10 @@ describe Makara::Proxy do
     end
 
     it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
+      if Makara.lazy?
+        proxy.replica_pool.populate
+        proxy.primary_pool.populate
+      end
       proxy.ping
 
       # weird setup to allow for the correct
