@@ -193,8 +193,8 @@ describe Makara::Proxy do
 
     it 'should raise the error and whitelist all connections if everything is blacklisted (start over)' do
       if Makara.lazy?
-        proxy.replica_pool.populate
-        proxy.primary_pool.populate
+        proxy.slave_pool.populate
+        proxy.master_pool.populate
       end
       proxy.ping
 
