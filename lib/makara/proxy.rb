@@ -297,7 +297,7 @@ module Makara
     end
 
     def populate_slave_pool
-      @config_parser.replica_configs.each do |slave_config|
+      @config_parser.slave_configs.each do |slave_config|
         @slave_pool.add slave_config do
           graceful_connection_for(slave_config)
         end
