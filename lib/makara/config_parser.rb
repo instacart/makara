@@ -11,7 +11,7 @@ require 'cgi'
 #   another: 'top level variable'
 #   makara:
 #     primary_ttl: 3
-#     blacklist_duration: 20
+#     blocklist_duration: 20
 #     connections:
 #       - role: 'master' # Deprecated in favor of 'primary'
 #       - role: 'primary'
@@ -23,7 +23,7 @@ module Makara
   class ConfigParser
     DEFAULTS = {
       primary_ttl: 5,
-      blacklist_duration: 30,
+      blocklist_duration: 30,
       sticky: true
     }
 
