@@ -84,4 +84,30 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
       }.to raise_error(Makara::Errors::BlocklistConnection)
     end
   end
+
+  describe 'deprecated classes' do
+    it 'uses replacement for Makara::Errors::AllConnectionsBlacklisted and warns' do
+      expect {
+        expect(Makara::Errors::AllConnectionsBlacklisted).to eq(Makara::Errors::AllConnectionsBlocklisted)
+      }.to output(<<~MSG).to_stderr
+        Makara::Errors::AllConnectionsBlacklisted is deprecated. Switch to Makara::Errors::AllConnectionsBlocklisted
+      MSG
+    end
+
+    it 'uses replacement for Makara::Errors::BlacklistConnection and warns' do
+      expect {
+        expect(Makara::Errors::BlacklistConnection).to eq(Makara::Errors::BlocklistConnection)
+      }.to output(<<~MSG).to_stderr
+        Makara::Errors::BlacklistConnection is deprecated. Switch to Makara::Errors::BlocklistConnection
+      MSG
+    end
+
+    it 'uses replacement for Makara::Errors::BlacklistedWhileInTransaction and warns' do
+      expect {
+        expect(Makara::Errors::BlacklistedWhileInTransaction).to eq(Makara::Errors::BlocklistedWhileInTransaction)
+      }.to output(<<~MSG).to_stderr
+        Makara::Errors::BlacklistedWhileInTransaction is deprecated. Switch to Makara::Errors::BlocklistedWhileInTransaction
+      MSG
+    end
+  end
 end

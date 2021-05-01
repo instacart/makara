@@ -19,6 +19,24 @@ module Makara
     autoload :NoConnectionsAvailable,        'makara/errors/no_connections_available'
     autoload :BlocklistedWhileInTransaction, 'makara/errors/blocklisted_while_in_transaction'
     autoload :InvalidShard,                  'makara/errors/invalid_shard'
+
+    DEPRECATED_CLASSES = {
+      :AllConnectionsBlacklisted     => AllConnectionsBlocklisted,
+      :BlacklistConnection           => BlocklistConnection,
+      :BlacklistedWhileInTransaction => BlocklistedWhileInTransaction,
+    }
+
+    def self.const_missing(const_name)
+      if DEPRECATED_CLASSES.key? const_name
+        replacement = DEPRECATED_CLASSES.fetch(const_name)
+
+        warn "Makara::Errors::#{const_name} is deprecated. Switch to #{replacement}"
+
+        replacement
+      else
+        super
+      end
+    end
   end
 
   module Logging
