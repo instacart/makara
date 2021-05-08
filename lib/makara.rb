@@ -34,6 +34,9 @@ module Makara
     autoload :ShardAware,       'makara/strategies/shard_aware'
   end
 
+  def self.lazy?
+    @lazy ||= ENV['MAKARA_LAZY_MODE'] == 'true'
+  end
 end
 
 ActiveSupport.on_load(:active_record) do

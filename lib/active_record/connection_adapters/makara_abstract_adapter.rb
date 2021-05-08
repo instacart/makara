@@ -106,11 +106,12 @@ module ActiveRecord
       end
 
 
-      hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
-      send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
+      send_to_all_methods = %i[connect reconnect! clear_cache! reset!]
+      send_to_all_methods << :verify! unless Makara.lazy?
 
-      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool,
-         :schema_cache=, :lock, :seconds_idle, :==
+      hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
+      send_to_all(*send_to_all_methods)
+      control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool, :schema_cache=, :lock, :seconds_idle, :==
 
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
