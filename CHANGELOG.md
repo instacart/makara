@@ -2,6 +2,11 @@
 All notable changes to this project will be documented in this file.
 
 ## Unreleased
+
+### v0.5.1 - 2021-06-04
+[Full Changelog](https://github.com/instacart/makara/compare/v0.5.0...v0.6.0.pre)
+- Use ActiveRecord URL resolver instead of copying definition [#294](https://github.com/instacart/makara/pull/294) Matt Larraz
+- Fix Ruby 2.7 kwarg warning and add Ruby 3 support [#283](https://github.com/instacart/makara/pull/283) Matt Larraz
 - Drop support for Ruby < 2.5 and ActiveRecord < 5.2 [#281](https://github.com/instacart/makara/pull/281) Matt Larraz
 
 ## v0.5.0 - 2021-01-08
