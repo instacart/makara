@@ -103,6 +103,7 @@ module Makara
     def _execute_with_retry(retry_exceptions, *args)
       retry_attempts = retry_exceptions.inject({}).map { |memo, retry_exception| memo[retry_exception['name']] = 0 }
       begin
+        should_retry = false
         _makara_connection.execute(*args)
       rescue Exception => actual_exception
         retry_exceptions.each do |retry_exception|
@@ -112,11 +113,11 @@ module Makara
             retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
 
             if retry_attempt < retry_exception['retry_count'] && retry_attempt < MAX_RETRY_ATTEMPTS
-              retry
+              should_retry = true
             end
           end
         end
-
+        retry if should_retry
         raise actual_exception
       end
     end
