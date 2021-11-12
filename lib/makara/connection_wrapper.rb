@@ -101,7 +101,7 @@ module Makara
 
     # Attempt to retry the execution by re-establishing the connection
     def _execute_with_retry(retry_exceptions, *args)
-      retry_attempts = retry_exceptions.inject({}).map { |memo, retry_exception| memo[retry_exception['name']] = 0 }
+      retry_attempts = retry_exceptions.inject({}) { |memo, retry_exception| memo[retry_exception['name']] = 0; memo }
       begin
         should_retry = false
         _makara_connection.execute(*args)
