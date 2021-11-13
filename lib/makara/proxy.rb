@@ -44,42 +44,6 @@ module Makara
           end
         end
       end
-
-      private
-
-      def _execute_with_connection_and_retry_exceptions(retry_exceptions, args, block, method_name)
-        begin
-          should_retry = false
-          potentially_stale_connection = nil
-
-          appropriate_connection(method_name, args) do |con|
-            con.send(method_name, *args, &block)
-            potentially_stale_connection = con
-          end
-
-        rescue Exception => actual_exception
-          retry_attempts = retry_exceptions.inject({}) { |memo, retry_exception| memo[retry_exception['name']] = 0; memo }
-          retry_exceptions.each do |retry_exception|
-            if actual_exception.class.to_s == retry_exception['name']
-              potentially_stale_connection.disconnect!
-              sleep retry_exception['time_between_retries_in_seconds'] || 0.1
-              retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
-
-              if retry_attempt < retry_exception['retry_count'] && retry_attempt < MAX_RETRY_ATTEMPTS
-                should_retry = true
-              end
-            end
-          end
-          retry if should_retry
-          raise actual_exception
-        end
-      end
-
-      def _execute_with_connection(args, block, method_name)
-        appropriate_connection(method_name, args) do |con|
-          con.send(method_name, *args, &block)
-        end
-      end
     end
 
 
@@ -201,6 +165,40 @@ module Makara
         end
       ensure
         @master_pool.disabled = false
+      end
+    end
+
+    def _execute_with_connection_and_retry_exceptions(retry_exceptions, args, block, method_name)
+      begin
+        should_retry = false
+        potentially_stale_connection = nil
+
+        appropriate_connection(method_name, args) do |con|
+          con.send(method_name, *args, &block)
+          potentially_stale_connection = con
+        end
+
+      rescue Exception => actual_exception
+        retry_attempts = retry_exceptions.inject({}) { |memo, retry_exception| memo[retry_exception['name']] = 0; memo }
+        retry_exceptions.each do |retry_exception|
+          if actual_exception.class.to_s == retry_exception['name']
+            potentially_stale_connection.disconnect!
+            sleep retry_exception['time_between_retries_in_seconds'] || 0.1
+            retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
+
+            if retry_attempt < retry_exception['retry_count'] && retry_attempt < MAX_RETRY_ATTEMPTS
+              should_retry = true
+            end
+          end
+        end
+        retry if should_retry
+        raise actual_exception
+      end
+    end
+
+    def _execute_with_connection(args, block, method_name)
+      appropriate_connection(method_name, args) do |con|
+        con.send(method_name, *args, &block)
       end
     end
 
