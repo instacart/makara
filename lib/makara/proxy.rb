@@ -18,8 +18,6 @@ module Makara
     self.hijack_methods = []
 
     class << self
-      MAX_RETRY_ATTEMPTS = 10
-
       def hijack_method(*method_names)
         self.hijack_methods = self.hijack_methods || []
         self.hijack_methods |= method_names
@@ -168,6 +166,8 @@ module Makara
       end
     end
 
+    MAX_RETRY_COUNT = 10
+
     def _execute_with_connection_and_retry_exceptions(retry_exceptions, args, block, method_name)
       begin
         should_retry = false
@@ -186,7 +186,8 @@ module Makara
             sleep retry_exception['time_between_retries_in_seconds'] || 0.1
             retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
 
-            if retry_attempt < retry_exception['retry_count'] && retry_attempt < MAX_RETRY_ATTEMPTS
+            max_attempts = retry_exception['retry_count'] || MAX_RETRY_COUNT
+            if retry_attempt < max_attempts
               should_retry = true
             end
           end
