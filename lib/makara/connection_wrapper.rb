@@ -107,7 +107,7 @@ module Makara
         _makara_connection.execute(*args)
       rescue Exception => actual_exception
         retry_exceptions.each do |retry_exception|
-          if actual_exception.class.to_s == retry_exception
+          if actual_exception.class.to_s == retry_exception['name']
             _makara_connection(true) # Force new connection to re-try.
             sleep retry_exception['time_between_retries_in_seconds'] || 0.1
             retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
