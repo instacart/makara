@@ -90,36 +90,7 @@ module Makara
         end
       end
 
-      if @proxy.config.key?(:retry_exceptions) && (retry_exceptions = @proxy.config[:retry_exceptions]).present?
-        _execute_with_retry(retry_exceptions, *args)
-      else
-        _makara_connection.execute(*args)
-      end
-    end
-
-    MAX_RETRY_ATTEMPTS = 10
-
-    # Attempt to retry the execution by re-establishing the connection
-    def _execute_with_retry(retry_exceptions, *args)
-      retry_attempts = retry_exceptions.inject({}) { |memo, retry_exception| memo[retry_exception['name']] = 0; memo }
-      begin
-        should_retry = false
-        _makara_connection.execute(*args)
-      rescue Exception => actual_exception
-        retry_exceptions.each do |retry_exception|
-          if actual_exception.class.to_s == retry_exception['name']
-            _makara_connection(true) # Force new connection to re-try.
-            sleep retry_exception['time_between_retries_in_seconds'] || 0.1
-            retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
-
-            if retry_attempt < retry_exception['retry_count'] && retry_attempt < MAX_RETRY_ATTEMPTS
-              should_retry = true
-            end
-          end
-        end
-        retry if should_retry
-        raise actual_exception
-      end
+      _makara_connection.execute(*args)
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
