@@ -187,7 +187,7 @@ module Makara
             retry_attempt = (retry_attempts[actual_exception.class.to_s] += 1)
 
             max_attempts = retry_exception['retry_count'] || MAX_RETRY_COUNT
-            if retry_attempt < max_attempts
+            if retry_attempt < max_attempts && retry_attempt < MAX_RETRY_COUNT
               should_retry = true
             end
           end
