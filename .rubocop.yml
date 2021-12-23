@@ -13,3 +13,6 @@ inherit_from: .rubocop_todo.yml
 
 AllCops:
   NewCops: enable
+
+Gemspec/RequireMFA:
+  Enabled: false
