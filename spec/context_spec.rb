@@ -20,7 +20,7 @@ describe Makara::Context do
 
     [1, -1].each_with_index do |f, i|
       threads << Thread.new do
-        context_data = { "mysql" => now.to_f + f*5 }
+        context_data = { "mysql" => now.to_f + (f*5) }
         Makara::Context.set_current(context_data)
 
         contexts["context_#{i}"] = Makara::Context.stuck?('mysql')

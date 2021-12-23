@@ -224,7 +224,7 @@ module ActiveRecord
               msg << "it is already leased by the current thread."
             else
               msg << "it is already in use by a different thread: #{@owner}. " \
-                    "Current thread: #{Thread.current}."
+                     "Current thread: #{Thread.current}."
             end
             raise ActiveRecordError, msg
           end
@@ -236,8 +236,8 @@ module ActiveRecord
           if in_use?
             if @owner != Thread.current
               raise ActiveRecordError, "Cannot expire connection, " \
-                "it is owned by a different thread: #{@owner}. " \
-                "Current thread: #{Thread.current}."
+                                       "it is owned by a different thread: #{@owner}. " \
+                                       "Current thread: #{Thread.current}."
             end
 
             @idle_since = Concurrent.monotonic_time
