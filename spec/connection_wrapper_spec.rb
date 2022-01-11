@@ -1,7 +1,8 @@
 require 'spec_helper'
 
 describe Makara::ConnectionWrapper do
-  let(:proxy){ FakeProxy.new({makara: {blacklist_duration: 5, connections: [{role: 'primary'}, {role: 'replica'}, {role: 'replica'}]}}) }
+  let(:proxy_config){ {makara: {blacklist_duration: 5, connections: [{role: 'primary'}, {role: 'replica'}, {role: 'replica'}]}} }
+  let(:proxy){ FakeProxy.new(proxy_config) }
   let(:connection){ subject._makara_connection }
 
   subject{ proxy.primary_pool.connections.first }
@@ -36,6 +37,29 @@ describe Makara::ConnectionWrapper do
     it 'should handle frozen pre-epoch dates' do
       Timecop.freeze(Date.new(1900)) do
         expect(subject._makara_blacklisted?).to eq(false)
+      end
+    end
+  end
+
+  context '#_makara_in_transaction?' do
+    context 'open_transactions is 0' do
+      it 'should return false' do
+        expect(subject._makara_in_transaction?).to eq(false)
+      end
+    end
+
+    context 'connection does not respond to open_transactions' do
+      let(:non_ar_proxy) do
+        Class.new(FakeProxy) do
+          def connection_for(config)
+            FakeConnectionBase.new(config)
+          end
+        end
+      end
+      let(:proxy){ non_ar_proxy.new(proxy_config) }
+
+      it 'should return false' do
+        expect(subject._makara_in_transaction?).to eq(false)
       end
     end
   end

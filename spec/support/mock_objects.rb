@@ -1,6 +1,6 @@
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
-class FakeConnection < Struct.new(:config)
+class FakeConnectionBase < Struct.new(:config)
   def ping
     'ping!'
   end
@@ -17,16 +17,18 @@ class FakeConnection < Struct.new(:config)
     true
   end
 
-  def open_transactions
-    (config || {}).fetch(:open_transactions, 0)
-  end
-
   def disconnect!
     true
   end
 
   def something
     (config || {})[:something]
+  end
+end
+
+class FakeConnection < FakeConnectionBase
+  def open_transactions
+    (config || {}).fetch(:open_transactions, 0)
   end
 end
 
