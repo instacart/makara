@@ -142,12 +142,12 @@ module Makara
         end
       RUBY
 
-      args = RUBY_VERSION >= "3.0.0" ? "..." : "*args, &block"
+      args = RUBY_VERSION >= "2.7" ? "..." : "*args, &block"
 
       # Each method the Makara::Proxy needs to hijack should be redefined in the underlying connection.
       # The new definition should allow for the proxy to intercept the invocation if required.
       @proxy.class.hijack_methods.each do |meth|
-        method_call = RUBY_VERSION >= "3.0.0" ? "public_send(#{meth.inspect}, ...)" : "#{meth}(*args, &block)"
+        method_call = RUBY_VERSION >= "2.7" ? "public_send(#{meth.inspect}, ...)" : "#{meth}(*args, &block)"
 
         extension << <<~RUBY
           def #{meth}(#{args})
@@ -166,7 +166,7 @@ module Makara
       # Makara::Proxy control object for handling (typically
       # related to ActiveRecord connection pool management)
       @proxy.class.control_methods.each do |meth|
-        method_call = RUBY_VERSION >= "3.0.0" ? "public_send(#{meth.inspect}, ...)" : "#{meth}(*args=args, block)"
+        method_call = RUBY_VERSION >= "2.7" ? "public_send(#{meth.inspect}, ...)" : "#{meth}(*args=args, block)"
 
         extension << <<~RUBY
           def #{meth}(#{args})
