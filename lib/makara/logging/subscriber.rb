@@ -21,10 +21,11 @@ module Makara
       ### [Primary|Replica] User Load (1.3ms) SELECT * FROM `users`;
       ###
       def current_wrapper_name(event)
+        connection = event.payload[:connection]
         connection_object_id = event.payload[:connection_id]
-        return nil unless connection_object_id
+        return nil unless connection || connection_object_id
 
-        adapter = ObjectSpace._id2ref(connection_object_id)
+        adapter = connection || ObjectSpace._id2ref(connection_object_id)
 
         return nil unless adapter
         return nil unless adapter.respond_to?(:_makara_name)
