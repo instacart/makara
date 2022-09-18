@@ -90,14 +90,14 @@ module Makara
       end
     end
 
-    def execute(*args)
+    def execute(*args, **kwargs)
       SQL_REPLACE.each do |find, replace|
         if args[0] == find
           args[0] = replace
         end
       end
 
-      _makara_connection.execute(*args)
+      _makara_connection.execute(*args, **kwargs)
     end
 
     # we want to forward all private methods, since we could have kicked out from a private scenario
