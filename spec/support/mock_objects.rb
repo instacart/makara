@@ -1,6 +1,12 @@
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
-class FakeConnection < Struct.new(:config)
+class FakeConnection
+  attr_reader :config
+
+  def initialize(**config)
+    @config = config
+  end
+
   def ping
     'ping!'
   end
@@ -53,7 +59,7 @@ class FakeProxy < Makara::Proxy
   hijack_method :execute
 
   def connection_for(config)
-    FakeConnection.new(config)
+    FakeConnection.new(**config)
   end
 
   def needs_primary?(method_name, args)

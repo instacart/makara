@@ -60,7 +60,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
 
   describe 'custom errors' do
     let(:config_path) { File.join(File.expand_path('../../../', __FILE__), 'support', 'mysql2_database_with_custom_errors.yml') }
-    let(:config) { YAML.load(ERB.new(File.read(config_path)).result)['test'] }
+    let(:config) { YAML.load(ERB.new(File.read(config_path)).result, permitted_classes: [Regexp])['test'] }
     let(:handler){ described_class.new }
     let(:proxy) { FakeAdapter.new(config) }
     let(:connection){ proxy.primary_pool.connections.first }
