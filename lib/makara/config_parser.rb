@@ -118,7 +118,7 @@ module Makara
 
         if config[:role] == "slave"
           warn "Makara role 'slave' is deprecated. Use 'replica' instead"
-          config[:role] = "primary"
+          config[:role] = "replica"
         end
 
         config
