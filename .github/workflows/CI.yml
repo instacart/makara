@@ -21,6 +21,7 @@ jobs:
         activerecord:
           - '6.0'
           - '6.1'
+          - '7.0'
     continue-on-error: ${{ matrix.ruby == 'jruby' }}
     name: Ruby ${{ matrix.ruby }} / ActiveRecord ${{ matrix.activerecord }}
     services:
