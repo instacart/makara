@@ -98,6 +98,8 @@ module Makara
       _makara_connection.execute(*args)
     end
 
+    ruby2_keywords :execute
+
     # we want to forward all private methods, since we could have kicked out from a private scenario
     def method_missing(m, *args, &block)
       _makara_connection.send(m, *args, &block)
