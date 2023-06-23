@@ -15,9 +15,7 @@ begin
 rescue LoadError
 end
 
-if RUBY_VERSION >= "2.7.0"
-  Warning[:deprecated] = true
-end
+Warning[:deprecated] = true if RUBY_VERSION >= "2.7.0"
 
 RSpec.configure do |config|
   config.run_all_when_everything_filtered = true
@@ -36,7 +34,7 @@ RSpec.configure do |config|
 
   config.before :each do
     change_context
-    allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:should_shuffle?){ false }
+    allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:should_shuffle?) { false }
     RSpec::Mocks.space.proxy_for(ActiveRecord::Base).reset # make sure not stubbed in some way
   end
 

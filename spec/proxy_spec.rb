@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Makara::Proxy do
-  let(:klass){ FakeProxy }
+  let(:klass) { FakeProxy }
 
   it 'sets up a primary and replica pool no matter the number of connections' do
     proxy = klass.new(config(0, 0))
@@ -32,7 +32,7 @@ describe Makara::Proxy do
     proxy = klass.new(config(1, 2))
 
     con = proxy.primary_pool.connections.first
-    allow(con).to receive(:irespondtothis){ 'hello!' }
+    allow(con).to receive(:irespondtothis) { 'hello!' }
 
     expect(proxy).to respond_to(:irespondtothis)
     expect(proxy.irespondtothis).to eq('hello!')
@@ -61,7 +61,6 @@ describe Makara::Proxy do
     end
 
     it 'optionally skips stickiness persistence, so it applies only to the current request' do
-      now = Time.now
       proxy.stick_to_primary!(false)
 
       expect(proxy.primary_for?('select * from users')).to eq(true)
@@ -87,7 +86,7 @@ describe Makara::Proxy do
   end
 
   describe '#appropriate_pool' do
-    let(:proxy) { klass.new(config(1,1)) }
+    let(:proxy) { klass.new(config(1, 1)) }
 
     it 'should be sticky by default' do
       expect(proxy.sticky).to eq(true)
@@ -158,7 +157,7 @@ describe Makara::Proxy do
     end
 
     it 'should use primary if all replicas are blacklisted' do
-      allow(proxy.replica_pool).to receive(:completely_blacklisted?){ true }
+      allow(proxy.replica_pool).to receive(:completely_blacklisted?) { true }
       expect(proxy.primary_for?('select * from users')).to eq(true)
     end
 
@@ -194,14 +193,14 @@ describe Makara::Proxy do
 
       begin
         proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
-          pool.provide{|c| c }
+          pool.provide { |c| c }
         end
       rescue Makara::Errors::AllConnectionsBlacklisted => e
         expect(e.message).to eq('[Makara/primary] All connections are blacklisted -> some primary connection issue -> [Makara/replica] All connections are blacklisted -> some replica connection issue')
       end
 
-      proxy.replica_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
-      proxy.primary_pool.connections.each{|con| expect(con._makara_blacklisted?).to eq(false) }
+      proxy.replica_pool.connections.each { |con| expect(con._makara_blacklisted?).to eq(false) }
+      proxy.primary_pool.connections.each { |con| expect(con._makara_blacklisted?).to eq(false) }
     end
   end
 end

@@ -2,11 +2,11 @@ require 'spec_helper'
 require 'active_record/connection_adapters/mysql2_adapter'
 
 describe 'MakaraMysql2Adapter' do
-  let(:config){
+  let(:config) do
     file = File.expand_path('spec/support/mysql2_database.yml')
     hash = YAML.load(ERB.new(File.read(file)).result)
     hash['test']
-  }
+  end
 
   let(:connection) { ActiveRecord::Base.connection }
 
@@ -26,8 +26,8 @@ describe 'MakaraMysql2Adapter' do
       connection = ActiveRecord::Base.connection
 
       connection.replica_pool.connections.each do |c|
-        allow(c).to receive(:_makara_blacklisted?){ true }
-        allow(c).to receive(:_makara_connected?){ false }
+        allow(c).to receive(:_makara_blacklisted?) { true }
+        allow(c).to receive(:_makara_connected?) { false }
         expect(c).to receive(:execute).with('SET @t1 = 1').never
       end
 
@@ -35,9 +35,9 @@ describe 'MakaraMysql2Adapter' do
         expect(c).to receive(:execute).with('SET @t1 = 1')
       end
 
-      expect{
+      expect do
         connection.execute('SET @t1 = 1')
-      }.not_to raise_error
+      end.not_to raise_error
     end
 
     it 'should execute a send_to_all and raise a NoConnectionsAvailable error' do
@@ -45,14 +45,14 @@ describe 'MakaraMysql2Adapter' do
       connection = ActiveRecord::Base.connection
 
       (connection.replica_pool.connections | connection.primary_pool.connections).each do |c|
-        allow(c).to receive(:_makara_blacklisted?){ true }
-        allow(c).to receive(:_makara_connected?){ false }
+        allow(c).to receive(:_makara_blacklisted?) { true }
+        allow(c).to receive(:_makara_connected?) { false }
         expect(c).to receive(:execute).with('SET @t1 = 1').never
       end
 
-      expect{
+      expect do
         connection.execute('SET @t1 = 1')
-      }.to raise_error(Makara::Errors::NoConnectionsAvailable)
+      end.to raise_error(Makara::Errors::NoConnectionsAvailable)
     end
 
     context "unconnect afterwards" do
@@ -62,16 +62,14 @@ describe 'MakaraMysql2Adapter' do
 
       it 'should not blow up if a connection fails' do
         wrong_config = config.deep_dup
-        wrong_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['username'] = 'other'}
+        wrong_config['makara']['connections'].select { |h| h['role'] == 'replica' }.each { |h| h['username'] = 'other' }
 
         original_method = ActiveRecord::Base.method(:mysql2_connection)
 
         allow(ActiveRecord::Base).to receive(:mysql2_connection) do |config|
-          if config[:username] == 'other'
-            raise "could not connect"
-          else
-            original_method.call(config)
-          end
+          raise "could not connect" if config[:username] == 'other'
+
+          original_method.call(config)
         end
 
         establish_connection(wrong_config)
@@ -142,7 +140,7 @@ describe 'MakaraMysql2Adapter' do
 
     it 'should send reads to the replica' do
       # ensure the next connection will be the first one
-      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?) { true }
 
       con = connection.replica_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
@@ -151,7 +149,7 @@ describe 'MakaraMysql2Adapter' do
     end
 
     it 'should send exists? to replica' do
-      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?) { true }
       Test::User.exists? # flush other (schema) things that need to happen
 
       con = connection.replica_pool.connections.first
@@ -175,16 +173,16 @@ describe 'MakaraMysql2Adapter' do
 
     it 'should allow reconnecting when one of the nodes is blacklisted' do
       con = connection.replica_pool.connections.first
-      allow(con).to receive(:_makara_blacklisted?){ true }
+      allow(con).to receive(:_makara_blacklisted?) { true }
       connection.reconnect!
     end
 
-    if !defined?(JRUBY_VERSION)
+    unless defined?(JRUBY_VERSION)
       # yml settings only for mysql2
       it 'should blacklist on timeout' do
-        expect {
+        expect do
           connection.execute('SELECT SLEEP(2)') # read timeout set to 1
-        }.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        end.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
       end
     end
   end

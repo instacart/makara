@@ -28,4 +28,4 @@ module ProxyExtensions
   end
 end
 
-Makara::Proxy.send(:include, ProxyExtensions)
+Makara::Proxy.include ProxyExtensions

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Makara::ConfigParser do
-  let(:config){
+  let(:config) do
     {
       top_level: 'value',
       makara: {
@@ -19,7 +19,7 @@ describe Makara::ConfigParser do
         ]
       }
     }
-  }
+  end
 
   context '::merge_and_resolve_default_url_config' do
     let(:config_without_url) do

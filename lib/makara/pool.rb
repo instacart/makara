@@ -9,12 +9,7 @@ module Makara
     # there are cases when we understand the pool is busted and we essentially want to skip
     # all execution
     attr_accessor :disabled
-    attr_reader :blacklist_errors
-    attr_reader :role
-    attr_reader :connections
-    attr_reader :strategy
-    attr_reader :shard_strategy_class
-    attr_reader :default_shard
+    attr_reader :blacklist_errors, :role, :connections, :strategy, :shard_strategy_class, :default_shard
 
     def initialize(role, proxy)
       @role             = role == "master" ? "primary" : role
@@ -84,12 +79,11 @@ module Makara
         end
       end
 
-      if !one_worked
-        if connection_made?
-          raise Makara::Errors::AllConnectionsBlacklisted.new(self, errors)
-        else
-          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
-        end
+      unless one_worked
+        raise Makara::Errors::AllConnectionsBlacklisted.new(self, errors) if connection_made?
+
+        raise Makara::Errors::NoConnectionsAvailable, @role unless @disabled
+
       end
 
       ret
@@ -119,15 +113,15 @@ module Makara
           @blacklist_errors = []
           raise err
         else
-          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+          raise Makara::Errors::NoConnectionsAvailable, @role unless @disabled
         end
 
       # when a connection causes a blacklist error within the provided block, we blacklist it then retry
       rescue Makara::Errors::BlacklistConnection => e
         @blacklist_errors.insert(0, e)
-        in_transaction = self.role == "primary" && provided_connection._makara_in_transaction?
+        in_transaction = role == "primary" && provided_connection._makara_in_transaction?
         provided_connection._makara_blacklist!
-        raise Makara::Errors::BlacklistedWhileInTransaction.new(@role) if in_transaction
+        raise Makara::Errors::BlacklistedWhileInTransaction, @role if in_transaction
 
         attempt += 1
         if attempt < @connections.length
@@ -137,7 +131,7 @@ module Makara
           @blacklist_errors = []
           raise err
         else
-          raise Makara::Errors::NoConnectionsAvailable.new(@role) unless @disabled
+          raise Makara::Errors::NoConnectionsAvailable, @role unless @disabled
         end
       end
     end

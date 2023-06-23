@@ -36,6 +36,6 @@ end
 
 ActiveSupport.on_load(:active_record) do
   ActiveRecord::LogSubscriber.log_subscribers.each do |subscriber|
-    subscriber.extend ::Makara::Logging::Subscriber
+    subscriber.extend Makara::Logging::Subscriber
   end
 end

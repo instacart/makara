@@ -15,7 +15,7 @@ class FakeConnection
     'hey!'
   end
 
-  def query(content)
+  def query(_content)
     config[:name]
   end
 
@@ -37,15 +37,15 @@ class FakeConnection
 end
 
 class FakeDatabaseAdapter < Struct.new(:config)
-  def execute(sql, name = nil)
+  def execute(_sql, _name = nil)
     []
   end
 
-  def exec_query(sql, name = 'SQL', binds = [])
+  def exec_query(_sql, _name = 'SQL', _binds = [])
     []
   end
 
-  def select_rows(sql, name = nil)
+  def select_rows(_sql, _name = nil)
     []
   end
 
@@ -62,14 +62,14 @@ class FakeProxy < Makara::Proxy
     FakeConnection.new(**config)
   end
 
-  def needs_primary?(method_name, args)
+  def needs_primary?(_method_name, args)
     return false if args.first =~ /^select/
 
     true
   end
 end
 
-class FakeAdapter < ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
+class FakeAdapter < ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
   def connection_for(config)
     FakeDatabaseAdapter.new(config)
   end

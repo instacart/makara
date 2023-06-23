@@ -8,14 +8,14 @@ module Makara
 
       def connection_added(wrapper)
         # the weight results in N references to the connection, not N connections
-        wrapper._makara_weight.times{ @weighted_connections << wrapper }
+        wrapper._makara_weight.times { @weighted_connections << wrapper }
 
-        if should_shuffle?
-          # randomize the connections so we don't get peaks and valleys of load
-          @weighted_connections.shuffle!
-          # then start at a random spot in the list
-          @current_idx = rand(@weighted_connections.length)
-        end
+        return unless should_shuffle?
+
+        # randomize the connections so we don't get peaks and valleys of load
+        @weighted_connections.shuffle!
+        # then start at a random spot in the list
+        @current_idx = rand(@weighted_connections.length)
       end
 
       def current
@@ -33,7 +33,7 @@ module Makara
           # if we've looped all the way around, return our safe value
           return safe_value(idx, true) if idx == @current_idx
 
-        # while our current safe value is dangerous
+          # while our current safe value is dangerous
         end while safe_value(idx).nil?
 
         # store our current spot and return our safe value
@@ -43,7 +43,7 @@ module Makara
       # next index within the bounds of the connections array
       # loop around when the end is hit
       def next_index(idx)
-        idx = idx + 1
+        idx += 1
         idx = 0 if idx >= @weighted_connections.length
         idx
       end
@@ -56,9 +56,7 @@ module Makara
         return nil unless con
         return nil if con._makara_blacklisted?
 
-        if stick
-          @current_idx = idx
-        end
+        @current_idx = idx if stick
 
         con
       end

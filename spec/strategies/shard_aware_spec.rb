@@ -2,23 +2,23 @@ require 'spec_helper'
 
 describe Makara::Strategies::ShardAware do
   def with_shard(shard_id)
-    begin
-      Thread.current['makara_shard_id'] = shard_id
-      yield
-    ensure
-      Thread.current['makara_shard_id'] = nil
-    end
+    Thread.current['makara_shard_id'] = shard_id
+    yield
+  ensure
+    Thread.current['makara_shard_id'] = nil
   end
 
   describe "failover strategy with shard awareness," do
-    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('primary', proxy) }
-    let(:pool_config){ { blacklist_duration: 5} }
-    let(:makara_config) { {
+    let(:proxy) { FakeProxy.new({ makara: pool_config.merge(makara_config).merge(connections: []) }) }
+    let(:pool) { Makara::Pool.new('primary', proxy) }
+    let(:pool_config) { { blacklist_duration: 5 } }
+    let(:makara_config) do
+      {
         primary_strategy: 'failover',
         primary_shard_aware: true,
         primary_default_shard: 'shard2'
-      } }
+      }
+    end
     let(:strategy) { pool.strategy }
 
     it 'should use the strategy' do
@@ -26,9 +26,9 @@ describe Makara::Strategies::ShardAware do
     end
 
     it 'should take the top weight for a given shard' do
-      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'a') }
-      wrapper_b = pool.add(pool_config.merge(shard_id: 'shard1', weight: 2)){ FakeConnection.new(something: 'b') }
-      wrapper_c = pool.add(pool_config.merge(weight: 2, shard_id: 'shard2')){ FakeConnection.new(something: 'c') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'a') }
+      pool.add(pool_config.merge(shard_id: 'shard1', weight: 2)) { FakeConnection.new(something: 'b') }
+      pool.add(pool_config.merge(weight: 2, shard_id: 'shard2')) { FakeConnection.new(something: 'c') }
 
       # default shard
       expect(strategy.current.something).to eql('c')
@@ -51,9 +51,9 @@ describe Makara::Strategies::ShardAware do
     end
 
     it 'should take given order within shard if no weights' do
-      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'a') }
-      wrapper_b = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'b') }
-      wrapper_c = pool.add(pool_config.merge(shard_id: 'shard2')){ FakeConnection.new(something: 'c') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'a') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'b') }
+      pool.add(pool_config.merge(shard_id: 'shard2')) { FakeConnection.new(something: 'c') }
 
       # default shard
       expect(strategy.current.something).to eql('c')
@@ -74,9 +74,9 @@ describe Makara::Strategies::ShardAware do
     end
 
     it 'should handle failover to next one within shard' do
-      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'a') }
-      wrapper_b = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'b') }
-      wrapper_c = pool.add(pool_config.merge(shard_id: 'shard2')){ FakeConnection.new(something: 'c') }
+      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'a') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'b') }
+      pool.add(pool_config.merge(shard_id: 'shard2')) { FakeConnection.new(something: 'c') }
 
       # default shard
       expect(strategy.current.something).to eql('c')
@@ -86,9 +86,7 @@ describe Makara::Strategies::ShardAware do
       # skips a for shard1
       with_shard('shard1') do
         pool.provide do |connection|
-          if connection == wrapper_a
-            raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
-          end
+          raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure')) if connection == wrapper_a
         end
         expect(strategy.current.something).to eql('b')
         expect(strategy.next.something).to eql('b')
@@ -102,20 +100,22 @@ describe Makara::Strategies::ShardAware do
     end
     it 'raises error for invalid shard' do
       with_shard('shard3') do
-        expect{strategy.current.something }.to raise_error(Makara::Errors::InvalidShard)
+        expect { strategy.current.something }.to raise_error(Makara::Errors::InvalidShard)
       end
     end
   end
 
   describe "round_robin strategy with shard awareness," do
-    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('primary', proxy) }
-    let(:pool_config){ { blacklist_duration: 5} }
-    let(:makara_config) { {
+    let(:proxy) { FakeProxy.new({ makara: pool_config.merge(makara_config).merge(connections: []) }) }
+    let(:pool) { Makara::Pool.new('primary', proxy) }
+    let(:pool_config) { { blacklist_duration: 5 } }
+    let(:makara_config) do
+      {
         primary_strategy: 'round_robin',
         primary_shard_aware: true,
         primary_default_shard: 'shard2'
-      } }
+      }
+    end
     let(:strategy) { pool.strategy }
 
     it 'should use the strategy' do
@@ -123,9 +123,9 @@ describe Makara::Strategies::ShardAware do
     end
 
     it 'should loop through with weights within shard' do
-      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'a') }
-      wrapper_b = pool.add(pool_config.merge(shard_id: 'shard1', weight: 2)){ FakeConnection.new(something: 'b') }
-      wrapper_c = pool.add(pool_config.merge(weight: 2, shard_id: 'shard2')){ FakeConnection.new(something: 'c') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'a') }
+      pool.add(pool_config.merge(shard_id: 'shard1', weight: 2)) { FakeConnection.new(something: 'b') }
+      pool.add(pool_config.merge(weight: 2, shard_id: 'shard2')) { FakeConnection.new(something: 'c') }
 
       # default shard
       expect(strategy.current.something).to eql('c')
@@ -149,9 +149,9 @@ describe Makara::Strategies::ShardAware do
     end
 
     it 'should handle failover to next one within shard' do
-      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'a') }
-      wrapper_b = pool.add(pool_config.merge(shard_id: 'shard1')){ FakeConnection.new(something: 'b') }
-      wrapper_c = pool.add(pool_config.merge(shard_id: 'shard2')){ FakeConnection.new(something: 'c') }
+      wrapper_a = pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'a') }
+      pool.add(pool_config.merge(shard_id: 'shard1')) { FakeConnection.new(something: 'b') }
+      pool.add(pool_config.merge(shard_id: 'shard2')) { FakeConnection.new(something: 'c') }
 
       # default shard
       expect(strategy.current.something).to eql('c')
@@ -161,9 +161,7 @@ describe Makara::Strategies::ShardAware do
       # skips a for shard1
       with_shard('shard1') do
         pool.provide do |connection|
-          if connection == wrapper_a
-            raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure'))
-          end
+          raise Makara::Errors::BlacklistConnection.new(wrapper_a, StandardError.new('failure')) if connection == wrapper_a
         end
         expect(strategy.current.something).to eql('b')
         expect(strategy.next.something).to eql('b')
@@ -179,20 +177,22 @@ describe Makara::Strategies::ShardAware do
     end
     it 'raises error for invalid shard' do
       with_shard('shard3') do
-        expect{strategy.current.something }.to raise_error(Makara::Errors::InvalidShard)
+        expect { strategy.current.something }.to raise_error(Makara::Errors::InvalidShard)
       end
     end
   end
 
   describe "uses the configured failover strategy when shard_aware set to false," do
-    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('primary', proxy) }
-    let(:pool_config){ { blacklist_duration: 5} }
-    let(:makara_config) { {
+    let(:proxy) { FakeProxy.new({ makara: pool_config.merge(makara_config).merge(connections: []) }) }
+    let(:pool) { Makara::Pool.new('primary', proxy) }
+    let(:pool_config) { { blacklist_duration: 5 } }
+    let(:makara_config) do
+      {
         primary_strategy: 'failover',
         primary_shard_aware: false,
         primary_default_shard: 'shard2'
-      } }
+      }
+    end
     let(:strategy) { pool.strategy }
 
     it 'should use the failover strategy' do
@@ -201,14 +201,16 @@ describe Makara::Strategies::ShardAware do
   end
 
   describe "uses the configured roundrobin strategy when shard_aware set to false," do
-    let(:proxy){ FakeProxy.new({makara: pool_config.merge(makara_config).merge(connections: [])}) }
-    let(:pool){ Makara::Pool.new('primary', proxy) }
-    let(:pool_config){ { blacklist_duration: 5} }
-    let(:makara_config) { {
+    let(:proxy) { FakeProxy.new({ makara: pool_config.merge(makara_config).merge(connections: []) }) }
+    let(:pool) { Makara::Pool.new('primary', proxy) }
+    let(:pool_config) { { blacklist_duration: 5 } }
+    let(:makara_config) do
+      {
         primary_strategy: 'round_robin',
         primary_shard_aware: false,
         primary_default_shard: 'shard2'
-      } }
+      }
+    end
     let(:strategy) { pool.strategy }
 
     it 'should use the failover strategy' do

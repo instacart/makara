@@ -2,7 +2,7 @@ require 'spec_helper'
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
 describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
-  let(:klass){ FakeAdapter }
+  let(:klass) { FakeAdapter }
 
   {
     'insert into dogs...' => true,
@@ -38,7 +38,7 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'select pg_advisory_unlock(12345)' => true
   }.each do |sql, should_go_to_primary|
     it "determines that \"#{sql}\" #{should_go_to_primary ? 'requires' : 'does not require'} primary" do
-      proxy = klass.new(config(1,1))
+      proxy = klass.new(config(1, 1))
       expect(proxy.primary_for?(sql)).to eq(should_go_to_primary)
     end
   end
@@ -48,18 +48,18 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     "INSERT INTO wisdom ('The truth will set you free.')" => false,
     "INSERT INTO wisdom ('The truth will\nset you free.')" => false,
     "UPDATE dogs SET max_treats = 10 WHERE max_treats IS NULL" => false,
-    %Q{
+    %(
       UPDATE
         dogs
       SET
         max_treats = 10
       WHERE
         max_treats IS NULL
-    } => false
+    ) => false
   }.each do |sql, should_send_to_all_connections|
     it "determines that \"#{sql}\" #{should_send_to_all_connections ? 'should' : 'should not'} be sent to all underlying connections" do
-      proxy = klass.new(config(1,1))
-      proxy.primary_pool.connections.each{|con| expect(con).to receive(:execute).with(sql).once}
+      proxy = klass.new(config(1, 1))
+      proxy.primary_pool.connections.each { |con| expect(con).to receive(:execute).with(sql).once }
       proxy.replica_pool.connections.each do |con|
         if should_send_to_all_connections
           expect(con).to receive(:execute).with(sql).once
@@ -93,17 +93,17 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter do
     'begin deferred transaction' => true,
     'commit transaction' => true,
     'rollback transaction' => true,
-    %Q{
+    %(
       UPDATE
         dogs
       SET
         max_treats = 10
       WHERE
         max_treats IS NULL
-    } => true
-  }.each do |sql,should_stick|
+    ) => true
+  }.each do |sql, should_stick|
     it "should #{should_stick ? 'stick' : 'not stick'} to primary if handling sql like \"#{sql}\"" do
-      proxy = klass.new(config(0,0))
+      proxy = klass.new(config(0, 0))
       expect(proxy.would_stick?(sql)).to eq(should_stick)
     end
   end
