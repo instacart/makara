@@ -52,21 +52,21 @@ describe Makara::Cookie do
     it 'sets the context cookie with updated stickiness and enough expiration time' do
       Makara::Cookie.store(context_data, headers)
 
-      expect(headers['Set-Cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f};")
-      expect(headers['Set-Cookie']).to include("path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; HttpOnly")
+      expect(headers['set-cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f};")
+      expect(headers['set-cookie']).to include("path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; httponly")
     end
 
     it 'expires the cookie if the next context is empty' do
       Makara::Cookie.store({}, headers)
 
-      expect(headers['Set-Cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.httpdate}; HttpOnly")
+      expect(headers['set-cookie']).to eq("#{cookie_key}=; path=/; max-age=0; expires=#{Time.now.httpdate}; httponly")
     end
 
     it 'allows custom cookie options to be provided' do
       Makara::Cookie.store(context_data, headers, { secure: true })
 
-      expect(headers['Set-Cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f};")
-      expect(headers['Set-Cookie']).to include("path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; secure; HttpOnly")
+      expect(headers['set-cookie']).to include("#{cookie_key}=mysql%3A#{(now + 5).to_f}%7Credis%3A#{(now + 5).to_f};")
+      expect(headers['set-cookie']).to include("path=/; max-age=10; expires=#{(Time.now + 10).httpdate}; secure; httponly")
     end
   end
 end
