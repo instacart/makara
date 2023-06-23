@@ -1,8 +1,7 @@
 module Makara
   module Errors
     class InvalidShard < MakaraError
-      attr_reader :role
-      attr_reader :shard_id
+      attr_reader :role, :shard_id
 
       def initialize(role, shard_id)
         @role = role

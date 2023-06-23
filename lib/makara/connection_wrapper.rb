@@ -10,7 +10,7 @@ module Makara
     attr_accessor :initial_error, :config
 
     # invalid queries caused by connections switching that needs to be replaced
-    SQL_REPLACE = {"SET client_min_messages TO ''".freeze => "SET client_min_messages TO 'warning'".freeze}.freeze
+    SQL_REPLACE = { "SET client_min_messages TO ''".freeze => "SET client_min_messages TO 'warning'".freeze }.freeze
 
     def initialize(proxy, connection, config)
       @config = config.symbolize_keys
@@ -92,9 +92,7 @@ module Makara
 
     def execute(*args)
       SQL_REPLACE.each do |find, replace|
-        if args[0] == find
-          args[0] = replace
-        end
+        args[0] = replace if args[0] == find
       end
 
       _makara_connection.execute(*args)
@@ -107,7 +105,7 @@ module Makara
 
     ruby2_keywords :method_missing if Module.private_method_defined?(:ruby2_keywords)
 
-    def respond_to_missing?(m, include_private = false)
+    def respond_to_missing?(m, _include_private = false)
       _makara_connection.respond_to?(m, true)
     end
 

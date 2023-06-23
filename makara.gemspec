@@ -1,10 +1,10 @@
-require File.expand_path('../lib/makara/version', __FILE__)
+require File.expand_path('lib/makara/version', __dir__)
 
 Gem::Specification.new do |gem|
   gem.authors       = ["Mike Nelson"]
   gem.email         = ["mike@mikeonrails.com"]
-  gem.description   = %q{Read-write split your DB yo}
-  gem.summary       = %q{Read-write split your DB yo}
+  gem.description   = 'Read-write split your DB yo'
+  gem.summary       = 'Read-write split your DB yo'
   gem.homepage      = "https://github.com/instacart/makara"
   gem.licenses      = ['MIT']
   gem.metadata      = {
@@ -12,8 +12,7 @@ Gem::Specification.new do |gem|
   }
 
   gem.files         = `git ls-files`.split($\)
-  gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
-  gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
+  gem.executables   = gem.files.grep(%r{^bin/}).map { |f| File.basename(f) }
   gem.name          = "makara"
   gem.require_paths = ["lib"]
   gem.version       = Makara::VERSION
@@ -27,7 +26,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "rake", "~> 13.0"
   gem.add_development_dependency "rspec", "~> 3.9"
   gem.add_development_dependency "timecop"
-  gem.add_development_dependency "rubocop", "~> 1.24.0"
+  gem.add_development_dependency "rubocop", "~> 1.53.0"
 
   if RUBY_ENGINE == "jruby"
     gem.add_development_dependency "activerecord-jdbcmysql-adapter"

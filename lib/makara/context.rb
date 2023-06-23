@@ -32,7 +32,7 @@ module Makara
     end
 
     def release_all
-      if self.stored_data.any?
+      if stored_data.any?
         self.stored_data = {}
         # We need to track a change made to the current stored data
         # so we can commit it later
@@ -81,8 +81,8 @@ module Makara
 
     def store_staged_data
       staged_data.each do |proxy_id, ttl|
-        if ttl > 0 && self.stored_data[proxy_id].to_f < current_timestamp + ttl
-          self.stored_data[proxy_id] = current_timestamp + ttl
+        if ttl > 0 && stored_data[proxy_id].to_f < current_timestamp + ttl
+          stored_data[proxy_id] = current_timestamp + ttl
           @dirty = true
         end
       end
@@ -109,9 +109,9 @@ module Makara
       end
 
       def next
-        if current.commit
-          current.stored_data
-        end
+        return unless current.commit
+
+        current.stored_data
       end
 
       def release(proxy_id)
@@ -146,7 +146,7 @@ module Makara
         end
 
         def set(key, value)
-          Thread.current[key]=value
+          Thread.current[key] = value
         end
       end
     end

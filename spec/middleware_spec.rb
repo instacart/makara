@@ -3,18 +3,18 @@ require 'time'
 
 describe Makara::Middleware do
   let(:now) { Time.parse('2018-02-11 11:10:40 +0000') }
-  let(:app){
-    lambda{|env|
+  let(:app) do
+    lambda { |env|
       response = proxy.query(env[:query] || 'select * from users')
       [200, {}, response]
     }
-  }
+  end
 
-  let(:env){ {} }
-  let(:proxy){ FakeProxy.new(config(1,2)) }
-  let(:middleware){ described_class.new(app, secure: true) }
+  let(:env) { {} }
+  let(:proxy) { FakeProxy.new(config(1, 2)) }
+  let(:middleware) { described_class.new(app, secure: true) }
 
-  let(:key){ Makara::Cookie::IDENTIFIER }
+  let(:key) { Makara::Cookie::IDENTIFIER }
 
   before do
     @hijacked_methods = FakeProxy.hijack_methods

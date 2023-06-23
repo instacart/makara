@@ -1,6 +1,6 @@
 module SpecHelpers
   def establish_connection(config)
-    connection = ActiveRecord::Base.establish_connection(config)
+    ActiveRecord::Base.establish_connection(config)
 
     # make sure these are all reset to not be blacklisted
     ActiveRecord::Base.connection.replica_pool.connections.each(&:_makara_whitelist!)
@@ -11,8 +11,8 @@ module SpecHelpers
 
   def config(primaries = 1, replicas = 2)
     connections = []
-    primaries.times{ connections << {role: 'primary'} }
-    replicas.times{ connections << {role: 'replica'} }
+    primaries.times { connections << { role: 'primary' } }
+    replicas.times { connections << { role: 'replica' } }
     {
       makara: {
         # Defaults:

@@ -57,7 +57,7 @@ describe 'MakaraPostgreSQLAdapter' do
 
     it 'should send reads to the replica' do
       # ensure the next connection will be the first one
-      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?) { true }
 
       con = connection.replica_pool.connections.first
       expect(con).to receive(:execute).with('SELECT * FROM users').once
@@ -66,7 +66,7 @@ describe 'MakaraPostgreSQLAdapter' do
     end
 
     it 'should send exists? to replica' do
-      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+      allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?) { true }
       Test::User.exists? # flush other (schema) things that need to happen
 
       con = connection.replica_pool.connections.first
@@ -98,7 +98,7 @@ describe 'MakaraPostgreSQLAdapter' do
   context 'with only primary connection' do
     it 'should not raise errors on read and write' do
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select { |h| h['role'] == 'replica' }.each { |h| h['port'] = '1' }
 
       establish_connection(custom_config)
       load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -115,7 +115,7 @@ describe 'MakaraPostgreSQLAdapter' do
       ActiveRecord::Base.clear_all_connections!
 
       custom_config = config.deep_dup
-      custom_config['makara']['connections'].select{|h| h['role'] == 'primary' }.each{|h| h['port'] = '1'}
+      custom_config['makara']['connections'].select { |h| h['role'] == 'primary' }.each { |h| h['port'] = '1' }
 
       establish_connection(custom_config)
 
@@ -200,7 +200,7 @@ describe 'MakaraPostgreSQLAdapter' do
       Model1.connection_pool.remove(conn)
 
       # assign the connection to Model2 pool
-      conn.pool=Model2.connection_pool
+      conn.pool = Model2.connection_pool
 
       # now close the connection to return it back to the pool
       conn.close
@@ -222,10 +222,10 @@ describe 'MakaraPostgreSQLAdapter' do
     it 'should not be able to expire the connection from same thread' do
       conn = Model2.connection_pool.checkout
       # expire is not thread safe. it should be done while holding connection pool's mutex
-      expect {
+      expect do
         t = Thread.new { conn.expire }
         t.join
-      }.to raise_error(ActiveRecord::ActiveRecordError)
+      end.to raise_error(ActiveRecord::ActiveRecordError)
     end
 
     it 'should be able to checkin connection back into activerecord pool' do

@@ -11,7 +11,7 @@ require 'active_support/core_ext/string/inflections'
 
 module Makara
   class Proxy < ::SimpleDelegator
-    METHOD_MISSING_SKIP = [ :byebug, :puts ]
+    METHOD_MISSING_SKIP = [:byebug, :puts]
 
     class_attribute :hijack_methods, :control_methods
     self.hijack_methods = []
@@ -19,7 +19,7 @@ module Makara
 
     class << self
       def hijack_method(*method_names)
-        self.hijack_methods = self.hijack_methods || []
+        self.hijack_methods = hijack_methods || []
         self.hijack_methods |= method_names
 
         method_names.each do |method_name|
@@ -44,7 +44,7 @@ module Makara
       end
 
       def control_method(*method_names)
-        self.control_methods = self.control_methods || []
+        self.control_methods = control_methods || []
         self.control_methods |= method_names
 
         method_names.each do |method_name|
@@ -57,10 +57,7 @@ module Makara
       end
     end
 
-    attr_reader :error_handler
-    attr_reader :sticky
-    attr_reader :config_parser
-    attr_reader :control
+    attr_reader :error_handler, :sticky, :config_parser, :control
 
     def initialize(config)
       @config         = config.symbolize_keys
@@ -69,8 +66,8 @@ module Makara
       @ttl            = @config_parser.makara_config[:primary_ttl]
       @sticky         = @config_parser.makara_config[:sticky]
       @hijacked       = false
-      @error_handler  ||= ::Makara::ErrorHandler.new
-      @skip_sticking  = false
+      @error_handler ||= ::Makara::ErrorHandler.new
+      @skip_sticking = false
       instantiate_connections
       super(config)
     end
@@ -126,9 +123,7 @@ module Makara
     end
 
     def method_missing(m, *args, &block)
-      if METHOD_MISSING_SKIP.include?(m)
-        return super
-      end
+      return super if METHOD_MISSING_SKIP.include?(m)
 
       any_connection do |con|
         if con.respond_to?(m, true)
@@ -141,7 +136,7 @@ module Makara
 
     ruby2_keywords :method_missing if Module.private_method_defined?(:ruby2_keywords)
 
-    def respond_to_missing?(m, include_private = false)
+    def respond_to_missing?(m, _include_private = false)
       any_connection do |con|
         con._makara_connection.respond_to?(m, true)
       end
@@ -176,22 +171,16 @@ module Makara
 
     ruby2_keywords :send_to_all if Module.private_method_defined?(:ruby2_keywords)
 
-    def any_connection
+    def any_connection(&block)
       if @primary_pool.disabled
-        @replica_pool.provide do |con|
-          yield con
-        end
+        @replica_pool.provide(&block)
       else
-        @primary_pool.provide do |con|
-          yield con
-        end
+        @primary_pool.provide(&block)
       end
     rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
       begin
         @primary_pool.disabled = true
-        @replica_pool.provide do |con|
-          yield con
-        end
+        @replica_pool.provide(&block)
       ensure
         @primary_pool.disabled = false
       end
@@ -265,7 +254,7 @@ module Makara
 
     def in_transaction?
       if respond_to?(:open_transactions)
-        self.open_transactions > 0
+        open_transactions > 0
       else
         false
       end
@@ -297,7 +286,7 @@ module Makara
 
     # For the generic proxy implementation, we stick if we are sticky,
     # method and args don't matter
-    def should_stick?(method_name, args)
+    def should_stick?(_method_name, _args)
       sticky?
     end
 
@@ -323,7 +312,7 @@ module Makara
       end
     end
 
-    def handling_an_all_execution(method_name)
+    def handling_an_all_execution(_method_name)
       yield
     rescue ::Makara::Errors::NoConnectionsAvailable => e
       if e.role == 'primary'
@@ -337,7 +326,7 @@ module Makara
       @replica_pool.disabled = false
     end
 
-    def connection_for(config)
+    def connection_for(_config)
       Kernel.raise NotImplementedError
     end
   end

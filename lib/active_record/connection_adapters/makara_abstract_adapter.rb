@@ -16,10 +16,10 @@ module ActiveRecord
           /gone away/,
           /connection[^:]+refused/,
           /could not connect/,
-          /can\'t connect/,
+          /can't connect/,
           /cannot connect/,
           /connection[^:]+closed/,
-          /can\'t get socket descriptor/,
+          /can't get socket descriptor/,
           /connection to [a-z0-9.]+:[0-9]+ refused/,
           /timeout expired/,
           /could not translate host name/,
@@ -69,17 +69,18 @@ module ActiveRecord
           message = message.to_s
 
           custom_error_matchers.each do |matcher|
-            if matcher.is_a?(String)
+            # accept strings that look like "/.../" as a regex
+            if matcher.is_a?(String) && (matcher =~ %r{^/(.+)/([a-z])?$})
 
-              # accept strings that look like "/.../" as a regex
-              if matcher =~ /^\/(.+)\/([a-z])?$/
+              options = if ::Regexp.last_match(2)
+                          ((::Regexp.last_match(2).include?('x') ? Regexp::EXTENDED : 0) |
+                                                  (::Regexp.last_match(2).include?('i') ? Regexp::IGNORECASE : 0) |
+                                                  (::Regexp.last_match(2).include?('m') ? Regexp::MULTILINE : 0))
+                        else
+                          0
+                        end
 
-                options = $2 ? (($2.include?('x') ? Regexp::EXTENDED : 0) |
-                          ($2.include?('i') ? Regexp::IGNORECASE : 0) |
-                          ($2.include?('m') ? Regexp::MULTILINE : 0)) : 0
-
-                matcher = Regexp.new($1, options)
-              end
+              matcher = Regexp.new(::Regexp.last_match(1), options)
             end
 
             return true if matcher === message
@@ -93,7 +94,7 @@ module ActiveRecord
       send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
 
       control_method :close, :steal!, :expire, :lease, :in_use?, :owner, :schema_cache, :pool=, :pool,
-         :schema_cache=, :lock, :seconds_idle, :==
+                     :schema_cache=, :lock, :seconds_idle, :==
 
       SQL_PRIMARY_MATCHERS          = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
       SQL_REPLICA_MATCHERS          = [/\A\s*(select|with.+\)\s*select)\s/i].map(&:freeze).freeze
@@ -149,22 +150,20 @@ module ActiveRecord
             end
           end
         else
-          super(method_name, args) do |con|
-            yield con
-          end
+          super(method_name, args, &block)
         end
       end
 
       def should_stick?(method_name, args)
         sql = coerce_query_to_sql_string(args.first)
-        return false if sql_skip_stickiness_matchers.any?{|m| sql =~ m }
+        return false if sql_skip_stickiness_matchers.any? { |m| sql =~ m }
 
         super
       end
 
-      def needed_by_all?(method_name, args)
+      def needed_by_all?(_method_name, args)
         sql = coerce_query_to_sql_string(args.first)
-        return true if sql_all_matchers.any?{|m| sql =~ m }
+        return true if sql_all_matchers.any? { |m| sql =~ m }
 
         false
       end
@@ -175,8 +174,8 @@ module ActiveRecord
           needs_master?(method_name, args)
         else
           sql = coerce_query_to_sql_string(args.first)
-          return true if sql_primary_matchers.any?{|m| sql =~ m }
-          return false if sql_replica_matchers.any?{|m| sql =~ m }
+          return true if sql_primary_matchers.any? { |m| sql =~ m }
+          return false if sql_replica_matchers.any? { |m| sql =~ m }
 
           true
         end
@@ -201,7 +200,7 @@ module ActiveRecord
 
       class ActiveRecordPoolControl
         attr_reader :owner
-        alias :in_use? :owner
+        alias in_use? owner
 
         def initialize(proxy)
           @proxy = proxy
@@ -212,61 +211,57 @@ module ActiveRecord
           @adapter = ActiveRecord::ConnectionAdapters::AbstractAdapter.new(@proxy)
         end
 
-        def close(*args)
+        def close(*_args)
           @pool.checkin @proxy
         end
 
         # this method must only be called while holding connection pool's mutex
-        def lease(*args)
+        def lease(*_args)
           if in_use?
             msg = +"Cannot lease connection, "
-            if @owner == Thread.current
-              msg << "it is already leased by the current thread."
-            else
-              msg << "it is already in use by a different thread: #{@owner}. " \
-                     "Current thread: #{Thread.current}."
-            end
+            msg << if @owner == Thread.current
+                     "it is already leased by the current thread."
+                   else
+                     "it is already in use by a different thread: #{@owner}. " \
+                       "Current thread: #{Thread.current}."
+                   end
             raise ActiveRecordError, msg
           end
           @owner = Thread.current
         end
 
         # this method must only be called while holding connection pool's mutex
-        def expire(*args)
-          if in_use?
-            if @owner != Thread.current
-              raise ActiveRecordError, "Cannot expire connection, " \
-                                       "it is owned by a different thread: #{@owner}. " \
-                                       "Current thread: #{Thread.current}."
-            end
+        def expire(*_args)
+          raise ActiveRecordError, "Cannot expire connection, it is not currently leased." unless in_use?
 
-            @idle_since = Concurrent.monotonic_time
-            @owner = nil
-          else
-            raise ActiveRecordError, "Cannot expire connection, it is not currently leased."
+          if @owner != Thread.current
+            raise ActiveRecordError, "Cannot expire connection, " \
+                                     "it is owned by a different thread: #{@owner}. " \
+                                     "Current thread: #{Thread.current}."
           end
+
+          @idle_since = Concurrent.monotonic_time
+          @owner = nil
         end
 
         # Seconds since this connection was returned to the pool
-        def seconds_idle(*args)
+        def seconds_idle(*_args)
           return 0 if in_use?
 
           Concurrent.monotonic_time - @idle_since
         end
 
         # this method must only be called while holding connection pool's mutex (and a desire for segfaults)
-        def steal!(*args)
-          if in_use?
-            if @owner != Thread.current
-              @pool.send :remove_connection_from_thread_cache, @proxy, @owner
-              @owner = Thread.current
-            end
-          else
-            raise ActiveRecordError, "Cannot steal connection, it is not currently leased."
-          end
+        def steal!(*_args)
+          raise ActiveRecordError, "Cannot steal connection, it is not currently leased." unless in_use?
+
+          return unless @owner != Thread.current
+
+          @pool.send :remove_connection_from_thread_cache, @proxy, @owner
+          @owner = Thread.current
         end
 
-        def schema_cache(*args)
+        def schema_cache(*_args)
           if @pool.respond_to?(:get_schema_cache) # AR6
             @pool.get_schema_cache(@proxy)
           else
@@ -284,7 +279,7 @@ module ActiveRecord
           end
         end
 
-        def lock(*args)
+        def lock(*_args)
           @adapter.lock
         end
 
@@ -292,12 +287,12 @@ module ActiveRecord
           @pool = args[0]
         end
 
-        def pool(*args)
+        def pool(*_args)
           @pool
         end
 
         def ==(*args)
-          @proxy.object_id == args[0].object_id
+          @proxy.equal?(args[0])
         end
       end
     end

@@ -5,8 +5,8 @@ require 'active_record'
 
 # TODO: test this in AR 5+ ?
 if RUBY_ENGINE == 'ruby' &&
-    ActiveRecord::VERSION::MAJOR == 4 &&
-    ActiveRecord::VERSION::MINOR >= 2
+   ActiveRecord::VERSION::MAJOR == 4 &&
+   ActiveRecord::VERSION::MINOR >= 2
 
   require 'spec_helper'
   require 'rgeo'
@@ -83,7 +83,7 @@ if RUBY_ENGINE == 'ruby' &&
 
       it 'should send reads to the replica' do
         # ensure the next connection will be the first one
-        allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?){ true }
+        allow_any_instance_of(Makara::Strategies::RoundRobin).to receive(:single_one?) { true }
 
         con = connection.replica_pool.connections.first
         expect(con).to receive(:execute).with('SELECT * FROM users').once
@@ -118,7 +118,7 @@ if RUBY_ENGINE == 'ruby' &&
     context 'with only primary connection' do
       it 'should not raise errors on read and write' do
         custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'replica' }.each{|h| h['port'] = '1'}
+        custom_config['makara']['connections'].select { |h| h['role'] == 'replica' }.each { |h| h['port'] = '1' }
 
         ActiveRecord::Base.establish_connection(custom_config)
         load(File.dirname(__FILE__) + '/../../support/schema.rb')
@@ -135,7 +135,7 @@ if RUBY_ENGINE == 'ruby' &&
         ActiveRecord::Base.clear_all_connections!
 
         custom_config = config.deep_dup
-        custom_config['makara']['connections'].select{|h| h['role'] == 'primary' }.each{|h| h['port'] = '1'}
+        custom_config['makara']['connections'].select { |h| h['role'] == 'primary' }.each { |h| h['port'] = '1' }
 
         ActiveRecord::Base.establish_connection(custom_config)
 

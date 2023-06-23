@@ -8,4 +8,4 @@ module PoolExtensions
   end
 end
 
-Makara::Pool.send(:include, PoolExtensions)
+Makara::Pool.include PoolExtensions

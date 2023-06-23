@@ -1,15 +1,17 @@
 # frozen_string_literal: true
 
 module Makara
-  module VERSION
-    MAJOR = 0
-    MINOR = 6
-    PATCH = 0
-    PRE = "pre"
+  unless defined?(::Makara::VERSION)
+    module VERSION
+      MAJOR = 0
+      MINOR = 6
+      PATCH = 0
+      PRE = "pre"
 
-    def self.to_s
-      [MAJOR, MINOR, PATCH, PRE].compact.join('.')
+      def self.to_s
+        [MAJOR, MINOR, PATCH, PRE].compact.join('.')
+      end
     end
-  end unless defined?(::Makara::VERSION)
+  end
   ::Makara::VERSION
 end
