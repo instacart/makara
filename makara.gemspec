@@ -26,7 +26,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "rake", "~> 13.0"
   gem.add_development_dependency "rspec", "~> 3.9"
   gem.add_development_dependency "timecop"
-  gem.add_development_dependency "rubocop", "~> 1.53.0"
+  gem.add_development_dependency "rubocop", "~> 1.54.1"
 
   if RUBY_ENGINE == "jruby"
     gem.add_development_dependency "activerecord-jdbcmysql-adapter"
