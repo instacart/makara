@@ -212,7 +212,8 @@ module ActiveRecord
           @proxy = proxy
           @owner = nil
           @pool = nil
-          @schema_cache = ActiveRecord::ConnectionAdapters::SchemaCache.new @proxy
+          schema_reflection = ActiveRecord::ConnectionAdapters::SchemaReflection.new(nil).load!(@proxy)
+          @schema_cache = ActiveRecord::ConnectionAdapters::BoundSchemaReflection.new(schema_reflection, @proxy)
           @idle_since = Concurrent.monotonic_time
           @adapter = ActiveRecord::ConnectionAdapters::AbstractAdapter.new(@proxy)
         end
