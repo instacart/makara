@@ -205,9 +205,6 @@ module ActiveRecord
       end
 
       class ActiveRecordPoolControl
-        attr_reader :owner
-        alias in_use? owner
-
         def initialize(proxy)
           @proxy = proxy
           @owner = nil
@@ -300,6 +297,12 @@ module ActiveRecord
         def ==(*args)
           @proxy.equal?(args[0])
         end
+
+        def owner(*_args)
+          @owner
+        end
+
+        alias in_use? owner
       end
     end
   end
