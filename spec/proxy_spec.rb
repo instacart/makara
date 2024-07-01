@@ -195,7 +195,7 @@ describe Makara::Proxy do
         proxy.send(:appropriate_pool, :execute, ['select * from users']) do |pool|
           pool.provide { |c| c }
         end
-      rescue Makara::Errors::AllConnectionsBlacklisted => e
+      rescue Makara::Errors::AllConnectionsDenylisted => e
         expect(e.message).to eq('[Makara/primary] All connections are blacklisted -> some primary connection issue -> [Makara/replica] All connections are blacklisted -> some replica connection issue')
       end
 

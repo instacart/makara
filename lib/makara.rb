@@ -14,10 +14,10 @@ module Makara
 
   module Errors
     autoload :MakaraError,                   'makara/errors/makara_error'
-    autoload :AllConnectionsBlacklisted,     'makara/errors/all_connections_blacklisted'
-    autoload :BlacklistConnection,           'makara/errors/blacklist_connection'
+    autoload :AllConnectionsDenylisted, 'makara/errors/all_connections_denylisted'
+    autoload :BlacklistConnection, 'makara/errors/denylist_connection'
     autoload :NoConnectionsAvailable,        'makara/errors/no_connections_available'
-    autoload :BlacklistedWhileInTransaction, 'makara/errors/blacklisted_while_in_transaction'
+    autoload :BlacklistedWhileInTransaction, 'makara/errors/denylisted_while_in_transaction'
     autoload :InvalidShard,                  'makara/errors/invalid_shard'
   end
 
