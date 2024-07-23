@@ -119,7 +119,7 @@ module Makara
       any_connection do |con|
         con._makara_connection.respond_to?(m, true)
       end
-    RUBY_EVAL
+    end
 
     def graceful_connection_for(config)
       fake_wrapper = Makara::ConnectionWrapper.new(self, nil, config)
