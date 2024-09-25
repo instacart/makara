@@ -1,3 +1,7 @@
+We are looking for maintainers to oversee the support and development of Makara. We are no longer using Makara at Instacart and we are unable to dedicate the time and resources to maintain it.
+
+If you're interested in maintaining Makara, please respond to [this issue](https://github.com/instacart/makara/issues/393)
+
 # Makara
 
 ![Build Status](https://github.com/instacart/makara/workflows/CI/badge.svg)
