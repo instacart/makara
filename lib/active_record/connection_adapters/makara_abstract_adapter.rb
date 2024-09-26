@@ -212,7 +212,12 @@ module ActiveRecord
           @proxy = proxy
           @owner = nil
           @pool = nil
-          @schema_cache = ActiveRecord::ConnectionAdapters::SchemaCache.new @proxy
+          if ActiveRecord.version >= Gem::Version.new('7.1.0')
+            schema_reflection = ActiveRecord::ConnectionAdapters::SchemaReflection.new(nil).load!(@proxy)
+            @schema_cache = ActiveRecord::ConnectionAdapters::BoundSchemaReflection.new(schema_reflection, @proxy)
+          else
+            @schema_cache = ActiveRecord::ConnectionAdapters::SchemaCache.new @proxy
+          end
           @idle_since = Concurrent.monotonic_time
           @adapter = ActiveRecord::ConnectionAdapters::AbstractAdapter.new(@proxy)
         end
