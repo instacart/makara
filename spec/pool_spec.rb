@@ -128,7 +128,7 @@ describe Makara::Pool do
       pool.provide do |connection|
         raise Makara::Errors::BlacklistConnection.new(connection, StandardError.new('failure'))
       end
-    rescue Makara::Errors::AllConnectionsBlacklisted => e
+    rescue Makara::Errors::AllConnectionsDenylisted => e
       expect(e).to be_present
       expect(e.message).to eq("[Makara/test] All connections are blacklisted -> [Makara/test/2] failure -> [Makara/test/1] failure")
     end

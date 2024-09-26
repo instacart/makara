@@ -182,7 +182,7 @@ describe 'MakaraMysql2Adapter' do
       it 'should blacklist on timeout' do
         expect do
           connection.execute('SELECT SLEEP(2)') # read timeout set to 1
-        end.to raise_error(Makara::Errors::AllConnectionsBlacklisted)
+        end.to raise_error(Makara::Errors::AllConnectionsDenylisted)
       end
     end
   end

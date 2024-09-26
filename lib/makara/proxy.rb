@@ -155,7 +155,7 @@ module Makara
 
     def disconnect!
       send_to_all(:disconnect!)
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+    rescue ::Makara::Errors::AllConnectionsDenylisted, ::Makara::Errors::NoConnectionsAvailable
       # all connections are already down, nothing to do here
     end
 
@@ -177,7 +177,7 @@ module Makara
       else
         @primary_pool.provide(&block)
       end
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable
+    rescue ::Makara::Errors::AllConnectionsDenylisted, ::Makara::Errors::NoConnectionsAvailable
       begin
         @primary_pool.disabled = true
         @replica_pool.provide(&block)
@@ -204,7 +204,7 @@ module Makara
       # for testing purposes
       pool = _appropriate_pool(method_name, args)
       yield pool
-    rescue ::Makara::Errors::AllConnectionsBlacklisted, ::Makara::Errors::NoConnectionsAvailable => e
+    rescue ::Makara::Errors::AllConnectionsDenylisted, ::Makara::Errors::NoConnectionsAvailable => e
       if pool == @primary_pool
         @primary_pool.connections.each(&:_makara_whitelist!)
         @replica_pool.connections.each(&:_makara_whitelist!)

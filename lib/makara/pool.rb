@@ -80,7 +80,7 @@ module Makara
       end
 
       unless one_worked
-        raise Makara::Errors::AllConnectionsBlacklisted.new(self, errors) if connection_made?
+        raise Makara::Errors::AllConnectionsDenylisted.new(self, errors) if connection_made?
 
         raise Makara::Errors::NoConnectionsAvailable, @role unless @disabled
 
@@ -109,7 +109,7 @@ module Makara
 
         # if we've made any connections within this pool, we should report the blackout.
         elsif connection_made?
-          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          err = Makara::Errors::AllConnectionsDenylisted.new(self, @blacklist_errors)
           @blacklist_errors = []
           raise err
         else
@@ -127,7 +127,7 @@ module Makara
         if attempt < @connections.length
           retry
         elsif connection_made?
-          err = Makara::Errors::AllConnectionsBlacklisted.new(self, @blacklist_errors)
+          err = Makara::Errors::AllConnectionsDenylisted.new(self, @blacklist_errors)
           @blacklist_errors = []
           raise err
         else
