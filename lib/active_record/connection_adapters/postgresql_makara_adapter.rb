@@ -37,11 +37,18 @@ module ActiveRecord
 
       def active_record_connection_for(config)
         # Rails 7.2+: Use new_client instead of deprecated postgresql_connection
-        # Filter out Makara-specific config options that PostgreSQL doesn't recognize
-        makara_options = [:master_ttl, :slave_ttl, :blacklist_duration, :sticky,
-                          :master_strategy, :slave_strategy, :connections]
-        filtered_config = config.except(*makara_options)
-        ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new_client(filtered_config)
+        # Replicate parameter mapping and filtering from PostgreSQLAdapter#initialize
+        conn_params = config.compact
+
+        # Map ActiveRecord param names to PostgreSQL param names
+        conn_params[:user] = conn_params.delete(:username) if conn_params[:username]
+        conn_params[:dbname] = conn_params.delete(:database) if conn_params[:database]
+
+        # Filter to only valid PostgreSQL connection parameters
+        valid_conn_param_keys = PG::Connection.conndefaults_hash.keys + [:requiressl]
+        conn_params.slice!(*valid_conn_param_keys)
+
+        ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new_client(conn_params)
       end
 
     end
