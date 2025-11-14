@@ -27,25 +27,15 @@ module ActiveRecord
   module ConnectionAdapters
     class MakaraPostgreSQLAdapter < ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter
 
+      # Extend PostgreSQL's Quoting ClassMethods to automatically get all class methods
+      # for quoting table names, column names, and matchers. This prevents having to
+      # manually add delegations for each method as Rails adds new ones.
+      extend ActiveRecord::ConnectionAdapters::PostgreSQL::Quoting::ClassMethods
+
       class << self
+        # visitor_for is not in the Quoting module, so we still delegate it manually
         def visitor_for(*args)
           ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.visitor_for(*args)
-        end
-
-        def column_name_matcher
-          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.column_name_matcher
-        end
-
-        def column_name_with_order_matcher
-          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.column_name_with_order_matcher
-        end
-
-        def quote_table_name(table_name)
-          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.quote_table_name(table_name)
-        end
-
-        def quote_column_name(column_name)
-          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.quote_column_name(column_name)
         end
       end
 
