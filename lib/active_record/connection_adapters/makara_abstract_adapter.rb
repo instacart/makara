@@ -107,6 +107,8 @@ module ActiveRecord
 
 
       hijack_method :execute, :exec_query, :exec_no_cache, :exec_cache, :transaction
+      # Rails 7.2+: Hijack schema methods to ensure they use Makara's pool reference
+      hijack_method :dump_schema_information, :schema_cache
       send_to_all :connect, :reconnect!, :verify!, :clear_cache!, :reset!
 
       SQL_MASTER_MATCHERS           = [/\A\s*select.+for update\Z/i, /select.+lock in share mode\Z/i, /\A\s*select.+(nextval|currval|lastval|get_lock|release_lock|pg_advisory_lock|pg_advisory_unlock)\(/i].map(&:freeze).freeze
