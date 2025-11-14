@@ -43,6 +43,10 @@ module ActiveRecord
         def quote_table_name(table_name)
           ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.quote_table_name(table_name)
         end
+
+        def quote_column_name(column_name)
+          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.quote_column_name(column_name)
+        end
       end
 
       protected
