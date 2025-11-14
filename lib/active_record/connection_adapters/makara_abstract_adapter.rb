@@ -114,14 +114,66 @@ module ActiveRecord
       SQL_ALL_MATCHERS              = [/\A\s*set\s/i].map(&:freeze).freeze
       SQL_SKIP_STICKINESS_MATCHERS  = [/\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
 
-      # Rails 7.2+: Connection pool reference management
+      # Rails 7.2+: Connection pool reference and lease management
       # The pool= method is called by Rails to associate this adapter with its connection pool
-      attr_reader :pool
+      attr_reader :pool, :owner
 
       def pool=(value)
         return if value.eql?(@pool)
         @schema_cache = nil
         @pool = value
+      end
+
+      # Rails 7.2+: Connection leasing for thread-safety
+      # These methods track whether this Makara adapter is leased to a thread
+      def lease
+        if in_use?
+          msg = +"Cannot lease connection, "
+          if @owner == ActiveSupport::IsolatedExecutionState.context
+            msg << "it is already leased by the current thread."
+          else
+            msg << "it is already in use by a different thread: #{@owner}. " \
+                   "Current thread: #{ActiveSupport::IsolatedExecutionState.context}."
+          end
+          raise ActiveRecord::ActiveRecordError, msg
+        end
+
+        @owner = ActiveSupport::IsolatedExecutionState.context
+      end
+
+      def expire
+        if in_use?
+          if @owner != ActiveSupport::IsolatedExecutionState.context
+            raise ActiveRecord::ActiveRecordError, "Cannot expire connection, " \
+              "it is owned by a different thread: #{@owner}. " \
+              "Current thread: #{ActiveSupport::IsolatedExecutionState.context}."
+          end
+
+          @idle_since = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          @owner = nil
+        else
+          raise ActiveRecord::ActiveRecordError, "Cannot expire connection, it is not currently leased."
+        end
+      end
+
+      def steal!
+        if in_use?
+          if @owner != ActiveSupport::IsolatedExecutionState.context
+            pool.send :remove_connection_from_thread_cache, self, @owner
+            @owner = ActiveSupport::IsolatedExecutionState.context
+          end
+        else
+          raise ActiveRecord::ActiveRecordError, "Cannot steal connection, it is not currently leased."
+        end
+      end
+
+      def seconds_idle
+        return 0 if in_use?
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) - @idle_since
+      end
+
+      def in_use?
+        @owner
       end
 
       def sql_master_matchers
@@ -146,6 +198,9 @@ module ActiveRecord
 
       def initialize(config)
         @error_handler = ::ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler.new
+        # Rails 7.2+: Initialize connection leasing state
+        @owner = nil
+        @idle_since = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         super(config)
       end
 
