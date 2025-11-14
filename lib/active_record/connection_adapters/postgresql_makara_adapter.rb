@@ -36,7 +36,8 @@ module ActiveRecord
       protected
 
       def active_record_connection_for(config)
-        ::ActiveRecord::Base.postgresql_connection(config)
+        # Rails 7.2+: Use new_client instead of deprecated postgresql_connection
+        ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new_client(config)
       end
 
     end
