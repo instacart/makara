@@ -36,19 +36,10 @@ module ActiveRecord
       protected
 
       def active_record_connection_for(config)
-        # Rails 7.2+: Use new_client instead of deprecated postgresql_connection
-        # Replicate parameter mapping and filtering from PostgreSQLAdapter#initialize
-        conn_params = config.compact
-
-        # Map ActiveRecord param names to PostgreSQL param names
-        conn_params[:user] = conn_params.delete(:username) if conn_params[:username]
-        conn_params[:dbname] = conn_params.delete(:database) if conn_params[:database]
-
-        # Filter to only valid PostgreSQL connection parameters
-        valid_conn_param_keys = PG::Connection.conndefaults_hash.keys + [:requiressl]
-        conn_params.slice!(*valid_conn_param_keys)
-
-        ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new_client(conn_params)
+        # Rails 7.2+: Create a full PostgreSQLAdapter instance
+        # The old postgresql_connection method was removed, so we call .new directly
+        # This returns a complete adapter instance, not just a raw PG connection
+        ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new(config)
       end
 
     end
