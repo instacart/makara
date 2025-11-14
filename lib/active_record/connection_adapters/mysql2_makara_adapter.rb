@@ -36,7 +36,7 @@ module ActiveRecord
       protected
 
       def active_record_connection_for(config)
-        ::ActiveRecord::Base.mysql2_connection(config)
+        ActiveRecord::ConnectionAdapters::Mysql2Adapter.new(config)
       end
 
     end

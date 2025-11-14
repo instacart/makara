@@ -36,7 +36,7 @@ module ActiveRecord
       protected
 
       def active_record_connection_for(config)
-        ::ActiveRecord::Base.postgresql_connection(config)
+        ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.new(config)
       end
 
     end
