@@ -114,6 +114,15 @@ module ActiveRecord
       SQL_ALL_MATCHERS              = [/\A\s*set\s/i].map(&:freeze).freeze
       SQL_SKIP_STICKINESS_MATCHERS  = [/\A\s*show\s([\w]+\s)?(field|table|database|schema|view|index)(es|s)?/i, /\A\s*(set|describe|explain|pragma)\s/i].map(&:freeze).freeze
 
+      # Rails 7.2+: Connection pool reference management
+      # The pool= method is called by Rails to associate this adapter with its connection pool
+      attr_reader :pool
+
+      def pool=(value)
+        return if value.eql?(@pool)
+        @schema_cache = nil
+        @pool = value
+      end
 
       def sql_master_matchers
         SQL_MASTER_MATCHERS
