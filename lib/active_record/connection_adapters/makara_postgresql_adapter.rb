@@ -39,6 +39,10 @@ module ActiveRecord
         def column_name_with_order_matcher
           ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.column_name_with_order_matcher
         end
+
+        def quote_table_name(table_name)
+          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.quote_table_name(table_name)
+        end
       end
 
       protected
