@@ -116,7 +116,11 @@ module ActiveRecord
 
       # Rails 7.2+: Connection pool reference and lease management
       # The pool= method is called by Rails to associate this adapter with its connection pool
-      attr_reader :pool, :owner
+      attr_reader :owner
+
+      def pool
+        @pool
+      end
 
       def pool=(value)
         return if value.eql?(@pool)
@@ -174,6 +178,13 @@ module ActiveRecord
 
       def in_use?
         @owner
+      end
+
+      # Override respond_to_missing? to prevent pool-related methods from being
+      # forwarded to underlying connections
+      def respond_to_missing?(method_name, include_private = false)
+        return false if [:pool, :pool=].include?(method_name)
+        super
       end
 
       def sql_master_matchers
