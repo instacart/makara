@@ -32,6 +32,10 @@ module ActiveRecord
           ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.visitor_for(*args)
         end
 
+        def column_name_matcher
+          ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.column_name_matcher
+        end
+
         def column_name_with_order_matcher
           ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.column_name_with_order_matcher
         end
